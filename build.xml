@@ -1,0 +1,31 @@
+<project name="student" default="install" basedir=".">
+
+  <property name="jar.file" value="${ant.project.name}.jar"/>
+  <property file="build.properties"/>
+
+  <target name="export.jar"
+    description="Build a distributable jar file for this library">
+    <tstamp/>
+    <jar destfile="${jar.file}">
+      <manifest>
+        <attribute name="Specification-Version" value="${core.version}"/>
+        <attribute name="Implementation-Version"
+          value="${core.version} ${DSTAMP}"/>
+        <attribute name="Main-Class" value="student.Version"/>
+      </manifest>
+      <!-- temporarily, until we can confirm we have the most recent source -->
+      <fileset dir="bin" excludes="objectdraw/,student/web/internal/tests/"/>
+      <fileset dir="." includes="objectdraw/"/>
+      <zipfileset
+        src="/Web-CAT/Plugins/JavaTddPlugin/webcat-support-3.2.0.jar">
+        <exclude name="META-INF/"/>
+      </zipfileset>
+      <zipfileset src="utils.jar">
+        <include name="**/*.class"/>
+      </zipfileset>
+    </jar>
+  </target>
+
+  <target name="install" depends="export.jar"/>
+
+</project>
