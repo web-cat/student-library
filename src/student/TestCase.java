@@ -4,6 +4,7 @@ import java.util.Arrays;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.Scanner;
+import junit.framework.AssertionFailedError;
 import net.sf.webcat.PrintStreamWithHistory;
 import net.sf.webcat.PrintWriterWithHistory;
 import net.sf.webcat.StringNormalizer;
@@ -285,9 +286,17 @@ public class TestCase
         {
             message += " (after normalizing strings)";
         }
-        assertEquals(
-            message, stringNormalizer().normalize(expected),
-            stringNormalizer().normalize(actual));
+        try
+        {
+            assertEquals(
+                message, stringNormalizer().normalize(expected),
+                stringNormalizer().normalize(actual));
+        }
+        catch (AssertionFailedError e)
+        {
+            trimStack(e);
+            throw e;
+        }
     }
 
 
@@ -307,11 +316,26 @@ public class TestCase
         String falseReason = predicateReturnsFalseReason;
         predicateReturnsFalseReason = null;
         predicateReturnsTrueReason = null;
-        if (!condition && falseReason != null)
+        if (falseReason != null)
         {
-            System.out.println(falseReason);
+            if (message == null)
+            {
+                message = falseReason;
+            }
+            else
+            {
+                message += " " + falseReason;
+            }
         }
-        junit.framework.TestCase.assertTrue(message, condition);
+        try
+        {
+            junit.framework.TestCase.assertTrue(message, condition);
+        }
+        catch (AssertionFailedError e)
+        {
+            trimStack(e);
+            throw e;
+        }
     }
 
 
@@ -347,11 +371,26 @@ public class TestCase
         String trueReason = predicateReturnsTrueReason;
         predicateReturnsFalseReason = null;
         predicateReturnsTrueReason = null;
-        if (condition && trueReason != null)
+        if (trueReason != null)
         {
-            System.out.println(trueReason);
+            if (message == null)
+            {
+                message = trueReason;
+            }
+            else
+            {
+                message += " " + trueReason;
+            }
         }
-        junit.framework.TestCase.assertFalse(message, condition);
+        try
+        {
+            junit.framework.TestCase.assertFalse(message, condition);
+        }
+        catch (AssertionFailedError e)
+        {
+            trimStack(e);
+            throw e;
+        }
     }
 
 
@@ -984,5 +1023,26 @@ public class TestCase
     {
         return containsRegex(
             stringNormalizer().normalize(largerString), substrings);
+    }
+
+
+    // ----------------------------------------------------------
+    private static void trimStack(Throwable t)
+    {
+        StackTraceElement[] oldTrace = t.getStackTrace();
+        int pos = 0;
+        while (pos < oldTrace.length
+            && (oldTrace[pos].getClassName().equals("junit.framework.Assert")
+                || oldTrace[pos].getClassName().equals("student.TestCase")))
+        {
+            ++pos;
+        }
+        if (pos > 0 && pos < oldTrace.length - 1)
+        {
+            StackTraceElement[] newTrace =
+                new StackTraceElement[oldTrace.length - pos];
+            System.arraycopy(oldTrace, pos, newTrace, 0, newTrace.length);
+            t.setStackTrace(newTrace);
+        }
     }
 }
