@@ -1030,18 +1030,28 @@ public class TestCase
     private static void trimStack(Throwable t)
     {
         StackTraceElement[] oldTrace = t.getStackTrace();
-        int pos = 0;
-        while (pos < oldTrace.length
-            && (oldTrace[pos].getClassName().equals("junit.framework.Assert")
-                || oldTrace[pos].getClassName().equals("student.TestCase")))
+        int pos1 = 0;
+        while (pos1 < oldTrace.length
+            && (oldTrace[pos1].getClassName().equals("junit.framework.Assert")))
         {
-            ++pos;
+            ++pos1;
         }
-        if (pos > 0 && pos < oldTrace.length - 1)
+        int pos2 = pos1;
+        while (pos2 < oldTrace.length
+            && (oldTrace[pos2].getClassName().equals("student.TestCase")))
+        {
+            ++pos2;
+        }
+        if (pos2 > pos1 && pos2 < oldTrace.length - 1)
         {
             StackTraceElement[] newTrace =
-                new StackTraceElement[oldTrace.length - pos];
-            System.arraycopy(oldTrace, pos, newTrace, 0, newTrace.length);
+                new StackTraceElement[oldTrace.length - (pos2 - pos1)];
+            if (pos1 > 0)
+            {
+                System.arraycopy(oldTrace, 0, newTrace, 0, pos1);
+            }
+            System.arraycopy(
+                oldTrace, pos2, newTrace, pos1, newTrace.length - pos1);
             t.setStackTrace(newTrace);
         }
     }
