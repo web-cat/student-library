@@ -296,6 +296,9 @@ public abstract class Application
         assert objectId != null : "An objectId cannot be null";
         assert objectId.length() > 0 :
             "An objectId cannot be an empty string";
+        assert !(object instanceof Class) :
+            "The object to store cannot be a class; perhaps you wanted "
+            + "to provide an instance of this class instead?";
         setPersistentObject(objectId, object);
     }
 
@@ -348,6 +351,9 @@ public abstract class Application
         assert objectId != null : "An objectId cannot be null";
         assert objectId.length() > 0 :
             "An objectId cannot be an empty string";
+        assert !(object instanceof Class) :
+            "The object to reload cannot be a class; perhaps you wanted "
+            + "to provide an instance of this class instead?";
         return reloadPersistentObject(objectId, object);
     }
 
@@ -398,6 +404,9 @@ public abstract class Application
         assert objectId != null : "An objectId cannot be null";
         assert objectId.length() > 0 :
             "An objectId cannot be an empty string";
+        assert !(object instanceof Class) :
+            "The object to store cannot be a class; perhaps you wanted "
+            + "to provide an instance of this class instead?";
         setPersistentObject(id + SEPARATOR + objectId, object);
     }
 
@@ -450,6 +459,9 @@ public abstract class Application
         assert objectId != null : "An objectId cannot be null";
         assert objectId.length() > 0 :
             "An objectId cannot be an empty string";
+        assert !(object instanceof Class) :
+            "The object to reload cannot be a class; perhaps you wanted "
+            + "to provide an instance of this class instead?";
         return reloadApplicationObject(id + SEPARATOR + objectId, object);
     }
 
@@ -533,6 +545,9 @@ public abstract class Application
         assert objectId != null : "An objectId cannot be null";
         assert objectId.length() > 0 :
             "An objectId cannot be an empty string";
+        assert !(object instanceof Class) :
+            "The object to store cannot be a class; perhaps you wanted "
+            + "to provide an instance of this class instead?";
         sessionValues.put(objectId, object);
         support.setSessionParameter(
             id + SEPARATOR + APP_STORE, sessionValues);
