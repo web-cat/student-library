@@ -1,9 +1,9 @@
 package student;
 
 import java.util.Arrays;
+import java.util.Scanner;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.Scanner;
 import junit.framework.AssertionFailedError;
 import net.sf.webcat.PrintStreamWithHistory;
 import net.sf.webcat.PrintWriterWithHistory;
@@ -916,7 +916,7 @@ public class TestCase
         if (result)
         {
             predicateReturnsTrueReason =
-                "<" + compact(largerString) + "> contains:"
+                "<" + compact(largerString) + "> contains regexes:"
                 + Arrays.toString(substrings);
             return true;
         }
