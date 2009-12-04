@@ -1,11 +1,10 @@
 package student.web.internal;
 
-import java.lang.ref.SoftReference;
-import java.util.Map;
-import java.util.TreeMap;
 import com.thoughtworks.xstream.converters.reflection.PureJavaReflectionProvider;
 import com.thoughtworks.xstream.converters.reflection.ReflectionProvider;
 import com.thoughtworks.xstream.core.JVM;
+import java.util.Map;
+import java.util.TreeMap;
 
 //-------------------------------------------------------------------------
 /**
@@ -14,7 +13,8 @@ import com.thoughtworks.xstream.core.JVM;
  *  merging such maps.
  *
  *  @author  Stephen Edwards
- *  @version 2009.09.13
+ *  @author  Last changed by $Author$
+ *  @version $Revision$, $Date$
  */
 public class ObjectFieldExtractor
 {
@@ -84,7 +84,8 @@ public class ObjectFieldExtractor
         }
         Object result = null;
         result = reflectionProvider.newInstance(t);
-        if (!restoreObjectFromFieldMap(result, fields))
+        if (!restoreObjectFromFieldMap(result, fields) &&
+            !(reflectionProvider instanceof PureJavaReflectionProvider))
         {
             // If some fields weren't initialized, then try to create an
             // object using a default constructor, if possible

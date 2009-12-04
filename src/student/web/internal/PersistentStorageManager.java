@@ -1,5 +1,6 @@
 package student.web.internal;
 
+import com.thoughtworks.xstream.XStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -10,10 +11,8 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-import java.util.TreeMap;
 import java.util.WeakHashMap;
 import student.web.WebUtilities;
-import com.thoughtworks.xstream.XStream;
 
 //-------------------------------------------------------------------------
 /**
@@ -21,7 +20,8 @@ import com.thoughtworks.xstream.XStream;
  *  is in the form of field/value maps.
  *
  *  @author  Stephen Edwards
- *  @version 2009.09.13
+ *  @author  Last changed by $Author$
+ *  @version $Revision$, $Date$
  */
 public class PersistentStorageManager
 {
@@ -34,13 +34,13 @@ public class PersistentStorageManager
     private File baseDir = new File("data");
     private MRUMap<String, String> idCache =
         new MRUMap<String, String>(10000, 0);
-//    private XStream xstream;
-    private Map<ClassLoader, XStream> xstream =
-        new WeakHashMap<ClassLoader, XStream>(256);
-    private Map<ClassLoader, MRUMap<String, Map<String, Object>>> cache =
-        new WeakHashMap<ClassLoader, MRUMap<String, Map<String, Object>>>(256);
-    private Map<String, Set<ClassLoader>> idToClassLoader =
-        new HashMap<String, Set<ClassLoader>>();
+    private MRUMap<String, String> idReverseCache =
+        new MRUMap<String, String>(10000, 0);
+    private Map<ClassLoader, XStreamBundle> xstream =
+        new WeakHashMap<ClassLoader, XStreamBundle>(256);
+    private Set<String> usedIds = null;
+    private long usedIdsTimestamp = 0L;
+
 
     //~ Constructor ...........................................................
 
@@ -82,76 +82,166 @@ public class PersistentStorageManager
     //~ Public Methods ........................................................
 
     // ----------------------------------------------------------
-    public synchronized MRUMap.ValueWithTimestamp<Map<String, Object>>
-    getFieldSet(String id, ClassLoader loader)
+    public synchronized Set<String> getAllIds()
     {
-//        System.out.println("==> getFieldSet(" + id + ", " + loader + ")");
-        id = sanitizeId(id);
-        return getFieldSetForSanitizedId(id, loader);
+        if (usedIds == null)
+        {
+            usedIds = new HashSet<String>(256);
+            for (File file : baseDir.listFiles())
+            {
+                String name = file.getName();
+                if (name.endsWith(EXT))
+                {
+                    // Strip the extension
+                    name = name.substring(0, name.length() - EXT.length());
+                    usedIds.add(unsanitizeId(name));
+                }
+            }
+            usedIdsTimestamp = System.currentTimeMillis();
+        }
+        return usedIds;
     }
 
 
     // ----------------------------------------------------------
-    public synchronized boolean fieldSetHasChanged(
+    public synchronized Set<String> getAllIdsContaining(
+        String fragment, String after)
+    {
+        if (fragment == null || fragment.length() == 0)
+        {
+            return getAllIds();
+        }
+        else
+        {
+            fragment = fragment.toLowerCase();
+            Set<String> result = new HashSet<String>(getAllIds().size());
+            for (String id : getAllIds())
+            {
+                if (id.toLowerCase().contains(fragment))
+                {
+                    result.add(id);
+                }
+            }
+            return result;
+        }
+    }
+
+
+    // ----------------------------------------------------------
+    public synchronized Set<String> getAllIdsNotContaining(String fragment)
+    {
+        if (fragment == null || fragment.length() == 0)
+        {
+            return getAllIds();
+        }
+        else
+        {
+            fragment = fragment.toLowerCase();
+            Set<String> result = new HashSet<String>(getAllIds().size());
+            for (String id : getAllIds())
+            {
+                if (!id.toLowerCase().contains(fragment))
+                {
+                    result.add(id);
+                }
+            }
+            return result;
+        }
+    }
+
+
+    // ----------------------------------------------------------
+    public synchronized boolean idSetHasChangedSince(long time)
+    {
+        return usedIdsTimestamp == 0L || usedIdsTimestamp > time;
+    }
+
+
+    // ----------------------------------------------------------
+    public synchronized StoredObject getPersistentObject(
+        String id, ClassLoader loader)
+    {
+//        System.out.println("==> getFieldSet(" + id + ", " + loader + ")");
+        String sanitizedId = sanitizeId(id);
+
+        StoredObject result = null;
+
+        try
+        {
+            if (baseDir.exists())
+            {
+                File src = new File(baseDir, sanitizedId + EXT);
+                if (src.exists())
+                {
+                    FileInputStream in = new FileInputStream(src);
+                    XStreamBundle bundle = getXStreamFor(loader);
+                    bundle.converter.clearSnapshots();
+                    try
+                    {
+                        Object object = bundle.xstream.fromXML(in);
+                        result = new StoredObject(
+                            id,
+                            sanitizedId,
+                            object,
+                            bundle.converter.getSnapshots(),
+                            src.lastModified());
+                    }
+                    finally
+                    {
+                        in.close();
+                    }
+                }
+            }
+        }
+        catch ( IOException e )
+        {
+            throw new RuntimeException( e );
+        }
+
+//        System.out.println("  fieldset = " + result.value);
+//        System.out.println("\n  idCache = " + idCache);
+//        System.out.println("  idToClassLoader = " + idToClassLoader);
+//        System.out.println("  cache = " + cache);
+        return result;
+    }
+
+
+    // ----------------------------------------------------------
+    public synchronized boolean persistentObjectHasChanged(
         String id, long timestamp, ClassLoader loader)
     {
 //        System.out.println("==> fieldSetHasChanged("
 //            + id + ", " + timestamp + ", " + loader + ")");
         id = sanitizeId(id);
-        MRUMap<String, Map<String, Object>> fieldsetCache = cache.get(loader);
-        if (fieldsetCache == null) return true;
-        long current = fieldsetCache.getTimestampFor(id);
-        return timestamp != current;
+
+        File dest = new File(baseDir, id + EXT);
+        return timestamp < dest.lastModified();
     }
 
 
     // ----------------------------------------------------------
-    public synchronized void storeChangedFields(
-        String id, Map<String, Object> fields, ClassLoader loader)
+    public synchronized StoredObject storePersistentObject(
+        String id, Object object)
+    {
+        ClassLoader loader = object.getClass().getClassLoader();
+        StoredObject stored = new StoredObject(
+            id,
+            sanitizeId(id),
+            object,
+            new HashMap<Object, Map<String, Object>>(),
+            0L);
+        storePersistentObjectChanges(id, stored, loader);
+        return stored;
+    }
+
+
+    // ----------------------------------------------------------
+    public synchronized void storePersistentObjectChanges(
+        String id, StoredObject object, ClassLoader loader)
     {
 //        System.out.println("==> storeChangedFields("
 //            + id + ", " + fields + ", " + loader + ")");
-        id = sanitizeId(id);
-        Set<ClassLoader> listeners = idToClassLoader.get(id);
-        if (listeners != null)
-        {
-            // Clear any stored cache values for any other classloaders
-            for (ClassLoader other : listeners)
-            {
-                if (other != loader)
-                {
-                    MRUMap<String, Map<String, Object>> fieldsetCache =
-                        cache.get(loader);
-                    if (fieldsetCache != null)
-                    {
-                        fieldsetCache.remove(id);
-                    }
-                }
-            }
-            listeners.clear();
-            listeners.add(loader);
-        }
-
-        MRUMap.ValueWithTimestamp<Map<String, Object>> old =
-            getFieldSetForSanitizedId(id, loader);
-
-        Map<String, Object> value = null;
-        if (old != null)
-        {
-            value = old.value;
-        }
-        if (value == null)
-        {
-            value = new TreeMap<String, Object>();
-        }
-        value.putAll(fields);
-        MRUMap<String, Map<String, Object>> fieldsetCache = cache.get(loader);
-        if (fieldsetCache == null)
-        {
-            fieldsetCache = new MRUMap<String, Map<String, Object>>(10000, 0);
-            cache.put(loader, fieldsetCache);
-        }
-        fieldsetCache.put(id, value);
+        String sanitizedId = sanitizeId(id);
 
         try
         {
@@ -159,14 +249,42 @@ public class PersistentStorageManager
             {
                 baseDir.mkdirs();
             }
-            File dest = new File(baseDir, id + EXT);
+            File dest = new File(baseDir, sanitizedId + EXT);
+            XStreamBundle bundle = getXStreamFor(loader);
+            bundle.converter.clearSnapshots();
+            if (dest.exists())
+            {
+                FileInputStream in = new FileInputStream(dest);
+                try
+                {
+                    bundle.xstream.fromXML(in);
+                }
+                finally
+                {
+                    in.close();
+                }
+                // Leave the snapshots set in the converter
+            }
+            else
+            {
+                bundle.converter.clearSnapshots();
+            }
             PrintWriter out = new PrintWriter(dest);
-            getXStreamFor(loader).toXML(value, out);
+            bundle.converter.setOldSnapshots(object.fieldset());
+            bundle.xstream.toXML(object.value(), out);
             out.close();
+            if (usedIds != null && !usedIds.contains(id))
+            {
+                usedIdsTimestamp = System.currentTimeMillis();
+                usedIds.add(id);
+            }
+            object.fieldset().clear();
+            object.fieldset().putAll(bundle.converter.getSnapshots());
+            object.timestamp = System.currentTimeMillis();
         }
-        catch ( IOException e )
+        catch (IOException e)
         {
-            throw new RuntimeException( e );
+            throw new RuntimeException(e);
         }
     }
 
@@ -176,15 +294,7 @@ public class PersistentStorageManager
     {
 //        System.out.println("==> hasFieldSetFor(" + id + ", " + loader + ")");
         id = sanitizeId(id);
-        // First, check the cache
-        MRUMap<String, Map<String, Object>> fieldsetCache =
-            cache.get(loader);
-        if (fieldsetCache != null && fieldsetCache.get(id) != null)
-        {
-            return true;
-        }
 
-        // Otherwise, check the file system
         File dest = new File(baseDir, id + EXT);
         return dest.exists();
     }
@@ -195,20 +305,7 @@ public class PersistentStorageManager
     {
 //        System.out.println("==> removeFieldSet(" + id + ")");
         id = sanitizeId(id);
-        Set<ClassLoader> listeners = idToClassLoader.get(id);
-        if (listeners != null)
-        {
-            for (ClassLoader other : listeners)
-            {
-                MRUMap<String, Map<String, Object>> fieldsetCache =
-                    cache.get(other);
-                if (fieldsetCache != null)
-                {
-                    fieldsetCache.remove(id);
-                }
-            }
-            listeners.clear();
-        }
+
         File dest = new File(baseDir, id + EXT);
         if (dest.exists())
         {
@@ -220,8 +317,6 @@ public class PersistentStorageManager
     // ----------------------------------------------------------
     public synchronized void flushCache()
     {
-        cache.clear();
-        idToClassLoader.clear();
         idCache.clear();
         xstream.clear();
     }
@@ -232,20 +327,39 @@ public class PersistentStorageManager
     {
 //        System.out.println("==> flushClassCacheFor(" + loader + ")");
         xstream.remove(loader);
-        MRUMap<String, Map<String, Object>> fieldsetCache = cache.get(loader);
-        if (fieldsetCache != null)
+    }
+
+
+    // ----------------------------------------------------------
+    public static class StoredObject
+    {
+        private StoredObject(
+            String id,
+            String sanitizedId,
+            Object value,
+            Map<Object, Map<String, Object>> fieldset,
+            long timestamp)
         {
-            for (String id : fieldsetCache.keySet())
-            {
-                Set<ClassLoader> listeners = idToClassLoader.get(id);
-                if (listeners != null)
-                {
-                    listeners.remove(loader);
-                }
-            }
-            fieldsetCache.clear();
-            cache.remove(loader);
+            this.id = id;
+            this.sanitizedId = sanitizedId;
+            this.value = value;
+            this.fieldset = fieldset;
+            this.timestamp = timestamp;
         }
+
+        public String id() { return id; }
+        public String sanitizedId() { return sanitizedId; }
+        public Object value() { return value; }
+        public Map<Object, Map<String, Object>> fieldset() { return fieldset; }
+        public long timestamp() { return timestamp; }
+
+        public void setValue(Object newValue) { value = newValue; }
+
+        private String id;
+        private String sanitizedId;
+        private Object value;
+        private Map<Object, Map<String, Object>> fieldset;
+        private long timestamp;
     }
 
 
@@ -276,116 +390,104 @@ public class PersistentStorageManager
             {
                 if (Character.isUpperCase(id.charAt(i)))
                 {
-                    marker += 1 << (i % 8);
+                    marker += 1 << (i % 4);
                 }
-                if (i % 8 == 7)
+                if (i % 4 == 3)
                 {
                     result += Integer.toHexString(marker);
                     marker = 0;
                 }
             }
-            if (length % 8 > 0)
+            if (length % 4 > 0)
             {
                 result += Integer.toHexString(marker);
             }
             idCache.put(id, result);
-            idToClassLoader.put(result, new HashSet<ClassLoader>());
+            idReverseCache.put(result, id);
         }
         return result;
     }
 
 
     // ----------------------------------------------------------
-    @SuppressWarnings("unchecked")
-    private MRUMap.ValueWithTimestamp<Map<String, Object>>
-    getFieldSetForSanitizedId(String id, ClassLoader loader)
+    private String unsanitizeId(String id)
     {
-//        System.out.println("==> getFieldSetForSanitizedId("
-//            + id + ", " + loader + ") --------------------");
-//        System.out.println("  idCache = " + idCache);
-//        System.out.println("  idToClassLoader = " + idToClassLoader);
-//        System.out.println("  cache = " + cache + "\n");
-        MRUMap<String, Map<String, Object>> fieldsetCache = cache.get(loader);
-        if (fieldsetCache == null)
+        String result = idReverseCache.get(id);
+        if (result == null)
         {
-//            System.out.println("  initializing fieldset cache for " + loader);
-            fieldsetCache = new MRUMap<String, Map<String, Object>>(10000, 0);
-            cache.put(loader, fieldsetCache);
-        }
-        MRUMap.ValueWithTimestamp<Map<String, Object>> result =
-            fieldsetCache.getTimestampedValue(id);
-        if (result == null || result.value == null)
-        {
-//            System.out.println("  no cached value found");
-            Map<String, Object> fields = null;
-
-            try
+            String encodedBase = id;
+            String caps = "";
+            int pos = id.lastIndexOf('-');
+            if (pos > 0)
             {
-                if (baseDir.exists())
+                encodedBase = id.substring(0, pos);
+                caps = id.substring(pos + 1);
+            }
+            String unencoded = WebUtilities.urlDecode(encodedBase);
+
+            result = "";
+            pos = 0;
+            int length = caps.length();
+            for (int i = 0; i < length && pos < unencoded.length(); i++)
+            {
+                int digit = Integer.parseInt(caps.substring(i, i + 1), 16);
+                for (int j = 0; j < 4 && pos < unencoded.length(); j++)
                 {
-                    File src = new File(baseDir, id + EXT);
-                    if (src.exists())
+                    if ((digit & (1 << j)) != 0)
                     {
-                        FileInputStream in = new FileInputStream(src);
-                        fields = (Map<String, Object>)getXStreamFor(loader)
-                            .fromXML(in);
-                        in.close();
+                        result +=
+                            Character.toUpperCase(unencoded.charAt(pos++));
+                    }
+                    else
+                    {
+                        result +=
+                            Character.toLowerCase(unencoded.charAt(pos++));
                     }
                 }
             }
-            catch ( IOException e )
+            if (pos < unencoded.length())
             {
-                throw new RuntimeException( e );
+                result += unencoded.substring(pos);
             }
-
-            fieldsetCache.put(id, fields);
-            result = fieldsetCache.getTimestampedValue(id);
-            idToClassLoader.get(id).add(loader);
+            idReverseCache.put(id, result);
+            idCache.put(result, id);
         }
-//        System.out.println("  fieldset = " + result.value);
-//        System.out.println("\n  idCache = " + idCache);
-//        System.out.println("  idToClassLoader = " + idToClassLoader);
-//        System.out.println("  cache = " + cache);
         return result;
     }
 
 
     // ----------------------------------------------------------
-//    private XStream privxstream;
-    private XStream getXStreamFor(final ClassLoader loader)
+    private XStreamBundle getXStreamFor(final ClassLoader loader)
     {
-        XStream result = xstream.get(loader);
+        XStreamBundle result = xstream.get(loader);
         if (result == null)
         {
-            result = (XStream)AccessController.doPrivileged(
+            result = (XStreamBundle)AccessController.doPrivileged(
                 new PrivilegedAction<Object>() {
                     public Object run()
                     {
-                        XStream xs = new XStream();
-                        xs.setClassLoader(loader);
-                        return xs;
+                        return new XStreamBundle(loader);
                     }
                 });
             xstream.put(loader, result);
-//            System.out.println("Creating new xstream " + result + " for "
-//                + "loader " + loader);
         }
-
-//        if (privxstream == null)
-//        {
-//            privxstream = (XStream)AccessController.doPrivileged(
-//                new PrivilegedAction<Object>() {
-//                    public Object run()
-//                    {
-//                        XStream xs = new XStream();
-//                        return xs;
-//                    }
-//                });
-//        }
-
-//        System.out.println("Found xstream " + result + " for loader " + loader);
         return result;
     }
 
 
+    // ----------------------------------------------------------
+    private static class XStreamBundle
+    {
+        XStream xstream;
+        FlexibleFieldSetConverter converter;
+
+        public XStreamBundle(ClassLoader loader)
+        {
+            xstream = new XStream();
+            xstream.setClassLoader(loader);
+            converter = new FlexibleFieldSetConverter(
+                xstream.getMapper(), xstream.getReflectionProvider());
+            xstream.registerConverter(converter, XStream.PRIORITY_VERY_LOW);
+        }
+    }
 }

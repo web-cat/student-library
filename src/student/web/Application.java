@@ -6,12 +6,14 @@ package student.web;
 
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
+import java.util.TreeMap;
 import net.sf.webcat.ReflectionSupport;
 import net.sf.webcat.SystemIOUtilities;
 import student.web.internal.ApplicationSupportStrategy;
 import student.web.internal.LocalApplicationSupportStrategy;
-import student.web.internal.MRUMap;
 import student.web.internal.ObjectFieldExtractor;
 import student.web.internal.PersistentStorageManager;
 
@@ -97,10 +99,14 @@ public abstract class Application
     private String id;
     private ApplicationSupportStrategy support;
     private Map<String, Object> sessionValues;
-    private Map<String, CachedObject> context =
-        new HashMap<String, CachedObject>();
-    private ObjectFieldExtractor extractor = new ObjectFieldExtractor();
+    private Map<String, PersistentStorageManager.StoredObject> context =
+        new HashMap<String, PersistentStorageManager.StoredObject>();
     private ClassLoader mostRecent = this.getClass().getClassLoader();
+    private Set<String> rawIdSet = null;
+    private Set<String> thisAppIdSet = null;
+    private Set<String> sharedIdSet = null;
+    private long idSetTimestamp = 0L;
+    private ObjectFieldExtractor extractor = new ObjectFieldExtractor();
 
 
     //~ Constructor ...........................................................
@@ -112,6 +118,7 @@ public abstract class Application
      *        applications on the web server should use this same identifier.
      *        Identifiers cannot be null or empty.
      */
+    @SuppressWarnings("unchecked")
     public Application(String identifier)
     {
         assert identifier != null : "The application identifier cannot be null";
@@ -360,6 +367,19 @@ public abstract class Application
 
     // ----------------------------------------------------------
     /**
+     * Get a set of all used object ids.  The set may be quite large,
+     * and may take some time to produce.
+     * @return A set of all ids for which shared objects are stored.
+     */
+    public Set<String> getAllSharedObjectIds()
+    {
+        ensureIdSetsAreCurrent();
+        return sharedIdSet;
+    }
+
+
+    // ----------------------------------------------------------
+    /**
      *  Retrieve an object that is available only to this web application.
      *  Note that if you retrieve an object and then
      *  make changes to it, you <b>must</b> use
@@ -463,6 +483,20 @@ public abstract class Application
             "The object to reload cannot be a class; perhaps you wanted "
             + "to provide an instance of this class instead?";
         return reloadApplicationObject(id + SEPARATOR + objectId, object);
+    }
+
+
+    // ----------------------------------------------------------
+    /**
+     * Get a set of all used application-specific object ids.  The set may
+     * take some time to produce.
+     * @return A set of all ids for which application-specific objects are
+     * stored.
+     */
+    public Set<String> getAllApplicationObjectIds()
+    {
+        ensureIdSetsAreCurrent();
+        return thisAppIdSet;
     }
 
 
@@ -589,6 +623,18 @@ public abstract class Application
 
     // ----------------------------------------------------------
     /**
+     * Get a set of all used session object ids.
+     * @return A set of all ids for which session-specific objects are
+     * stored.
+     */
+    public Set<String> getSessionObjectIds()
+    {
+        return sessionValues.keySet();
+    }
+
+
+    // ----------------------------------------------------------
+    /**
      *  Cause the web application to show a different web page in the
      *  user's web browser.
      *  @param url The new web page to show in the user's browser
@@ -623,6 +669,8 @@ public abstract class Application
     {
         return support.getCurrentPagePath();
     }
+
+
     // ----------------------------------------------------------
     /**
      *  Get a parameter passed to this page in the query part of the URL.
@@ -646,6 +694,12 @@ public abstract class Application
         {
             return null;
         }
+        if (value instanceof TreeMap
+            && !TreeMap.class.isAssignableFrom(t))
+        {
+            value = extractor.fieldMapToObject(t, (Map<String, Object>)value);
+        }
+
         assert t.isAssignableFrom(value.getClass())
             : "Cannot return object \"" + value + "\" of type "
               + value.getClass() + " when a " + t + " value is requested";
@@ -675,29 +729,25 @@ public abstract class Application
     {
         ObjectType result = null;
 //        System.out.println("looking up " + objectId);
-        CachedObject latest = context.get(objectId);
-        if (latest != null)
-        {
-            result = returnAsType(objectType, latest.clientValue);
-//            System.out.println("  found cached value");
-        }
-        else
+        PersistentStorageManager.StoredObject latest = context.get(objectId);
+        if (latest == null)
         {
             mostRecent = objectType.getClassLoader();
-            MRUMap.ValueWithTimestamp<Map<String, Object>> fieldSet =
-                PersistentStorageManager.getInstance().getFieldSet(
-                    objectId, mostRecent);
-            if (fieldSet != null)
-            {
-                result =
-                    extractor.fieldMapToObject(objectType, fieldSet.value);
-                latest = new CachedObject(fieldSet, result);
-                context.put(objectId, latest);
-            }
-//            System.out.println("  loaded from persistent storage: fields =\n\t"
-//                + fieldSet.value);
+            latest = PersistentStorageManager.getInstance()
+                .getPersistentObject(objectId, mostRecent);
+//          System.out.println("  loaded from persistent storage: fields =\n\t"
+//          + fieldSet.value);
+            context.put(objectId, latest);
         }
 //        System.out.println("  result = " + result);
+        if (latest != null)
+        {
+            result = returnAsType(objectType, latest.value());
+            if (result != latest.value())
+            {
+                latest.setValue(result);
+            }
+        }
         return result;
     }
 
@@ -706,30 +756,22 @@ public abstract class Application
     private <ObjectType> void setPersistentObject(
         String objectId, ObjectType object)
     {
-        CachedObject latest = context.get(objectId);
-        Map<String, Object> fields = extractor.objectToFieldMap(object);
+        PersistentStorageManager.StoredObject latest = context.get(objectId);
         if (latest != null)
         {
-            Map<String, Object> diffs =
-                extractor.difference(latest.vwt.value, fields);
-            PersistentStorageManager.getInstance().storeChangedFields(
-                objectId, diffs, object.getClass().getClassLoader());
+            latest.setValue(object);
+            PersistentStorageManager.getInstance()
+                .storePersistentObjectChanges(
+                    objectId,
+                    latest,
+                    object.getClass().getClassLoader());
         }
         else
         {
-            PersistentStorageManager psm =
-                PersistentStorageManager.getInstance();
-            synchronized (psm)
-            {
-                psm.storeChangedFields(
-                    objectId, fields, object.getClass().getClassLoader());
-                latest = new CachedObject(psm.getFieldSet(
-                    objectId, object.getClass().getClassLoader()), object);
-                context.put(objectId, latest);
-            }
+            latest = PersistentStorageManager.getInstance()
+                .storePersistentObject(objectId, object);
+            context.put(objectId, latest);
         }
-        latest.vwt.value = fields;
-        latest.clientValue = object;
     }
 
 
@@ -754,50 +796,72 @@ public abstract class Application
     private <ObjectType> ObjectType reloadPersistentObject(
         String objectId, ObjectType object)
     {
+        if (false)
+        {
+            context.remove(objectId);
+            return (ObjectType)getPersistentObject(objectId, object.getClass());
+        }
+
         ObjectType result = object;
-        CachedObject latest = context.get(objectId);
+        PersistentStorageManager.StoredObject latest = context.get(objectId);
         if (latest == null)
         {
-            mostRecent = object.getClass().getClassLoader();
-            return (ObjectType)getPersistentObject(objectId, object.getClass());
+            result = (ObjectType)getPersistentObject(
+                objectId, object.getClass());
         }
         else
         {
-            if (result == null)
+            // Remove from cache
+            context.remove(objectId);
+            // Reload
+            getPersistentObject(objectId, object.getClass());
+            // grab newer copy
+            PersistentStorageManager.StoredObject newest =
+                context.get(objectId);
+            Object original = latest.value();
+            Map<String, Object> fields =
+                extractor.objectToFieldMap(newest.value());
+
+            // Reload the existing objects
+            extractor.restoreObjectFromFieldMap(object, fields);
+            if (object != original)
             {
-                result = (ObjectType)latest.clientValue;
+                extractor.restoreObjectFromFieldMap(original, fields);
             }
-            mostRecent = object.getClass().getClassLoader();
-            MRUMap.ValueWithTimestamp<Map<String, Object>> fieldSet =
-                PersistentStorageManager.getInstance().getFieldSet(
-                    objectId, mostRecent);
-            if (fieldSet != null)
-            {
-                latest.vwt = fieldSet;
-            }
-            extractor.restoreObjectFromFieldMap(
-                latest.clientValue, fieldSet.value);
-            if (latest.clientValue != result)
-            {
-                extractor.restoreObjectFromFieldMap(result, fieldSet.value);
-            }
+
+            // Now, replace the "new" loaded copy with the freshly reloaded
+            // original
+            Map<String, Object> snapshot = newest.fieldset().get(newest.value());
+            newest.fieldset().remove(newest.value());
+            newest.setValue(original);
+            newest.fieldset().put(original, snapshot);
         }
         return result;
     }
 
 
     // ----------------------------------------------------------
-    private static class CachedObject
+    private void ensureIdSetsAreCurrent()
     {
-        public MRUMap.ValueWithTimestamp<Map<String, Object>> vwt;
-        public Object clientValue;
-
-        public CachedObject(
-            MRUMap.ValueWithTimestamp<Map<String, Object>> vwt,
-            Object clientValue)
+        PersistentStorageManager PSM = PersistentStorageManager.getInstance();
+        if (rawIdSet == null || PSM.idSetHasChangedSince(idSetTimestamp))
         {
-            this.vwt = vwt;
-            this.clientValue = clientValue;
+            rawIdSet = PSM.getAllIds();
+            idSetTimestamp = System.currentTimeMillis();
+            String prefix = id + SEPARATOR;
+            thisAppIdSet = new HashSet<String>(rawIdSet.size() / 10 + 1);
+            sharedIdSet = new HashSet<String>(rawIdSet.size());
+            for (String id : rawIdSet)
+            {
+                if (id.startsWith(prefix))
+                {
+                    thisAppIdSet.add(id.substring(prefix.length()));
+                }
+                else if (!id.contains(SEPARATOR))
+                {
+                    sharedIdSet.add(id);
+                }
+            }
         }
     }
 }

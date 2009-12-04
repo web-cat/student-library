@@ -1,7 +1,10 @@
 package student.web;
 
-import java.net.*;
 import java.io.UnsupportedEncodingException;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.net.URLDecoder;
+import java.net.URLEncoder;
 
 //-------------------------------------------------------------------------
 /**
@@ -45,6 +48,31 @@ public class WebUtilities
         try
         {
             result = URLEncoder.encode(content, "UTF-8");
+        }
+        catch (UnsupportedEncodingException e)
+        {
+            throw new RuntimeException(e);
+        }
+        return result;
+    }
+
+
+    // ----------------------------------------------------------
+    /**
+     * Decodes a string extracted from a URL parameter.
+     * This operation wraps the behavior of
+     * {@link URLDecoder#decode(String,String)}, using a UTF-8 encoding and
+     * turning any exceptions into RuntimeExceptions.
+     *
+     * @param content The string to decode
+     * @return The URL-decoded version of the parameter
+     */
+    public static String urlDecode(String content)
+    {
+        String result = content;
+        try
+        {
+            result = URLDecoder.decode(content, "UTF-8");
         }
         catch (UnsupportedEncodingException e)
         {
