@@ -173,12 +173,18 @@ public class PersistentStorageManager
                 File src = new File(baseDir, sanitizedId + EXT);
                 if (src.exists())
                 {
-                    FileInputStream in = new FileInputStream(src);
-                    XStreamBundle bundle = getXStreamFor(loader);
+                    final FileInputStream in = new FileInputStream(src);
+                    final XStreamBundle bundle = getXStreamFor(loader);
                     bundle.converter.clearSnapshots();
                     try
                     {
-                        Object object = bundle.xstream.fromXML(in);
+                        Object object = AccessController.doPrivileged(
+                            new PrivilegedAction<Object>() {
+                                public Object run()
+                                {
+                                    return bundle.xstream.fromXML(in);
+                                }
+                            });
                         result = new StoredObject(
                             id,
                             sanitizedId,
@@ -237,7 +243,7 @@ public class PersistentStorageManager
 
     // ----------------------------------------------------------
     public synchronized void storePersistentObjectChanges(
-        String id, StoredObject object, ClassLoader loader)
+        String id, final StoredObject object, ClassLoader loader)
     {
 //        System.out.println("==> storeChangedFields("
 //            + id + ", " + fields + ", " + loader + ")");
@@ -250,14 +256,21 @@ public class PersistentStorageManager
                 baseDir.mkdirs();
             }
             File dest = new File(baseDir, sanitizedId + EXT);
-            XStreamBundle bundle = getXStreamFor(loader);
+            final XStreamBundle bundle = getXStreamFor(loader);
             bundle.converter.clearSnapshots();
             if (dest.exists())
             {
-                FileInputStream in = new FileInputStream(dest);
+                final FileInputStream in = new FileInputStream(dest);
                 try
                 {
-                    bundle.xstream.fromXML(in);
+                    AccessController.doPrivileged(
+                        new PrivilegedAction<Object>() {
+                            public Object run()
+                            {
+                                bundle.xstream.fromXML(in);
+                                return null;
+                            }
+                        });
                 }
                 finally
                 {
@@ -269,9 +282,16 @@ public class PersistentStorageManager
             {
                 bundle.converter.clearSnapshots();
             }
-            PrintWriter out = new PrintWriter(dest);
+            final PrintWriter out = new PrintWriter(dest);
             bundle.converter.setOldSnapshots(object.fieldset());
-            bundle.xstream.toXML(object.value(), out);
+            AccessController.doPrivileged(
+                new PrivilegedAction<Object>() {
+                    public Object run()
+                    {
+                        bundle.xstream.toXML(object.value(), out);
+                        return null;
+                    }
+                });
             out.close();
             if (usedIds != null && !usedIds.contains(id))
             {
@@ -462,9 +482,9 @@ public class PersistentStorageManager
         XStreamBundle result = xstream.get(loader);
         if (result == null)
         {
-            result = (XStreamBundle)AccessController.doPrivileged(
-                new PrivilegedAction<Object>() {
-                    public Object run()
+            result = AccessController.doPrivileged(
+                new PrivilegedAction<XStreamBundle>() {
+                    public XStreamBundle run()
                     {
                         return new XStreamBundle(loader);
                     }
