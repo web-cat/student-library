@@ -14,10 +14,14 @@
         <attribute name="Main-Class" value="student.Version"/>
       </manifest>
       <!-- temporarily, until we can confirm we have the most recent source -->
-      <fileset dir="bin" excludes="objectdraw/,student/web/internal/tests/"/>
+      <fileset dir="bin">
+        <exclude name="objectdraw/"/>
+        <exclude name="student/web/internal/tests/"/>
+        <exclude name="student/tests/"/>
+      </fileset>
       <fileset dir="." includes="objectdraw/"/>
       <zipfileset
-        src="/Web-CAT/Plugins/JavaTddPlugin/webcat-support-3.2.0.jar">
+        src="/Web-CAT/Plugins/JavaTddPlugin/webcat-support-3.2.1.jar">
         <exclude name="META-INF/"/>
       </zipfileset>
       <zipfileset src="utils.jar">

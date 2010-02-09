@@ -44,11 +44,22 @@ public interface HtmlElement
 
     // ----------------------------------------------------------
     /**
-     * Get the text contained by this element.
+     * Get the text contained by this element, without any embedded
+     * HTML tags.
      * @return The text surrounded by this element in the original
      * document, or null if none
      */
     String getText();
+
+
+    // ----------------------------------------------------------
+    /**
+     * Get the entire nested HTML content surrounded by this element,
+     * including any nested HTML elements with full markup.
+     * @return The nested HTML surrounded by this element in the original
+     * document, or null if none
+     */
+    String getInnerHTML();
 
 
     // ----------------------------------------------------------

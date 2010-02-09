@@ -1,17 +1,27 @@
 package student.web;
 
-import student.*;
-import java.io.*;
+import static net.sf.webcat.SystemIOUtilities.isOnServer;
+import java.io.File;
+import java.io.FileReader;
+import java.io.IOException;
+import java.io.PrintStream;
+import java.io.PrintWriter;
+import java.io.Reader;
+import java.io.StringReader;
+import java.io.StringWriter;
 import java.lang.ref.SoftReference;
-import java.net.*;
+import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.regex.Pattern;
-import java.util.regex.Matcher;
 import java.util.Stack;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import javax.xml.transform.OutputKeys;
 import javax.xml.transform.Result;
 import javax.xml.transform.Source;
@@ -26,13 +36,13 @@ import javax.xml.xpath.XPath;
 import javax.xml.xpath.XPathConstants;
 import javax.xml.xpath.XPathFactory;
 import net.sf.webcat.PrintWriterWithHistory;
-import static net.sf.webcat.SystemIOUtilities.isOnServer;
 import org.ccil.cowan.tagsoup.Parser;
 import org.w3c.dom.Attr;
 import org.w3c.dom.NamedNodeMap;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.InputSource;
+import student.IOHelper;
 import student.web.internal.MutableNamespaceContext;
 
 // -------------------------------------------------------------------------
@@ -1560,6 +1570,19 @@ public class WebBot
         // ----------------------------------------------------------
         public String getText()
         {
+            String result = getInnerHTML();
+            if (result != null)
+            {
+                Matcher m = INNER_TAG_TRIMMER.matcher(result);
+                result = m.replaceAll("");
+            }
+            return result;
+        }
+
+
+        // ----------------------------------------------------------
+        public String getInnerHTML()
+        {
             if (nodeChildrenAsTextIsNull)
             {
                 return null;
@@ -1573,7 +1596,7 @@ public class WebBot
                 result = toString();
                 if (result != null)
                 {
-                    Matcher m = tagTrimmer.matcher(result);
+                    Matcher m = TAG_TRIMMER.matcher(result);
                     if (m.find())
                     {
                         result = m.group(1);
@@ -1972,8 +1995,10 @@ public class WebBot
     private XPathFactory xpf = XPathFactory.newInstance();
     private XPath xpath = xpf.newXPath();
     private Transformer xformer;
-    private static final Pattern tagTrimmer =
+    private static final Pattern TAG_TRIMMER =
         Pattern.compile("^<[^>]*>(.*)</[^>]*>$", Pattern.DOTALL);
+    private static final Pattern INNER_TAG_TRIMMER =
+        Pattern.compile("<[^>]*>", Pattern.DOTALL);
     private static final String HTML_ANCHOR = HTML_NODE_PREFIX + "a";
     private static final String HTML_HEADING =
         HTML_NODE_PREFIX + "h1|"
