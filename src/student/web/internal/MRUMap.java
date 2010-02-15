@@ -2,11 +2,11 @@ package student.web.internal;
 
 import java.lang.ref.ReferenceQueue;
 import java.lang.ref.SoftReference;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
-import java.util.ArrayList;
 
 //-------------------------------------------------------------------------
 /**
@@ -414,10 +414,21 @@ public class MRUMap<K, V>
 	// ----------------------------------------------------------
 	private V internalRemove(Data<K, V> val)
 	{
+	    if (val == null)
+	    {
+	        return null;
+	    }
+
+        val.clear();        // prevent val from being added to ReferenceQueue
         V result = null;
 		if (val != null)
 		{
-			val.removeFromAgeChain();
+            // defensive, since we should get here only once per instance
+            if (val.newer != null && val.older != null)
+            {
+                val.removeFromAgeChain();
+            }
+
 			map.remove(val.getKey());
 			result = val.get();
 		}

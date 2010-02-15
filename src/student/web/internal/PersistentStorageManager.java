@@ -503,11 +503,15 @@ public class PersistentStorageManager
 
         public XStreamBundle(ClassLoader loader)
         {
-            xstream = new XStream();
+            xstream = new FlexibleXStream();
             xstream.setClassLoader(loader);
+
             converter = new FlexibleFieldSetConverter(
                 xstream.getMapper(), xstream.getReflectionProvider());
             xstream.registerConverter(converter, XStream.PRIORITY_VERY_LOW);
+
+            UnrecognizedClassConverter ucc = new UnrecognizedClassConverter();
+            xstream.registerConverter(ucc, XStream.PRIORITY_VERY_HIGH);
         }
     }
 }

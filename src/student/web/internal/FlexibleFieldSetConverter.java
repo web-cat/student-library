@@ -115,6 +115,7 @@ public class FlexibleFieldSetConverter
         Map<String, Object> fields = null;
         if (reader.getAttribute("fieldset") != null)
         {
+            System.out.println("attempting to unmarshal [fieldset] " + path);
             @SuppressWarnings("unchecked")
             Map<String, Object> realFields = (Map<String, Object>)
                 mapConverter.unmarshal(reader, context);
@@ -122,6 +123,7 @@ public class FlexibleFieldSetConverter
         }
         else
         {
+            System.out.println("attempting to unmarshal " + path);
             result = super.unmarshal(reader, context);
             if (result instanceof TreeMap
                 && !TreeMap.class.isAssignableFrom(context.getRequiredType()))
@@ -222,11 +224,18 @@ public class FlexibleFieldSetConverter
                 {
                     if (fields.containsKey(fieldName))
                     {
-                        reflectionProvider.writeField(
-                            result,
-                            fieldName,
-                            fields.get(fieldName),
-                            definedIn);
+                        // Be sure to ignore values of unrecognized types,
+                        // which are placeholders for objects created from
+                        // classes that are not available in the current
+                        // class loader
+                        if (! (value instanceof UnrecognizedClass))
+                        {
+                            reflectionProvider.writeField(
+                                result,
+                                fieldName,
+                                fields.get(fieldName),
+                                definedIn);
+                        }
                     }
                     else
                     {
