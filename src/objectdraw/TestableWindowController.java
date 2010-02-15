@@ -143,7 +143,7 @@ public class TestableWindowController extends objectdraw.FrameWindowController
      *
      * @return true if it has the 2D object specified, false if not.
      */
-    public boolean has2DObject(Class shape,
+    public boolean has2DObject(Class<?> shape,
                       Location loc, Double width, Double height,
                       java.awt.Color color, Boolean visible)
     {
@@ -200,7 +200,7 @@ public class TestableWindowController extends objectdraw.FrameWindowController
      * @return an arbitrary shape that fits the parameters passed, or null
      * if no such element exists.
      */
-    public Drawable2DInterface get2DObject(Class shape,
+    public Drawable2DInterface get2DObject(Class<?> shape,
                       Location loc, Double width, Double height,
                       java.awt.Color color, Boolean visible)
     {
@@ -304,7 +304,7 @@ public class TestableWindowController extends objectdraw.FrameWindowController
      *
      * @return a List of the 2D objects specified, the list may be empty
      */
-    public List<Drawable2DInterface> get2DObjects(Class shape,
+    public List<Drawable2DInterface> get2DObjects(Class<?> shape,
                       Location loc, Double width, Double height,
                       java.awt.Color color, Boolean visible)
     {

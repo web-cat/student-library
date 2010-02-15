@@ -1895,7 +1895,7 @@ public class WebBot
     {
         try
         {
-            jumpToNormalizedURL(normalizeURL(makeFileAbsolute(file).toURL()));
+            jumpToNormalizedURL(normalizeURL(makeFileAbsolute(file).toURI().toURL()));
         }
         catch (MalformedURLException e)
         {

@@ -631,7 +631,7 @@ public class TurboWebBot
     {
         try
         {
-            return hasVisitedPage(makeFileAbsolute(file).toURL());
+            return hasVisitedPage(makeFileAbsolute(file).toURI().toURL());
         }
         catch (MalformedURLException e)
         {

@@ -85,7 +85,7 @@ public class Browser
                 boolean success = false;
                 try
                 {
-                    Class macClass;
+                    Class<?> macClass;
                     if ( System.getProperty( "java.vm.version" )
                         .startsWith( "1.3" ) )
                     {
@@ -111,14 +111,14 @@ public class Browser
                 {
                     try
                     {
-                        Class nSWorkspace;
+                        Class<?> nSWorkspace;
                         if ( new File( "/System/Library/Java/com/apple/cocoa/application/NSWorkspace.class" ).exists() )
                         {
                             // Mac OS X has NSWorkspace, but it is not in the
                             // classpath, so add it.
                             ClassLoader classLoader = new URLClassLoader(
                                 new URL[]{ new File( "/System/Library/Java" )
-                                    .toURL() } );
+                                    .toURI().toURL() } );
                             nSWorkspace = Class.forName(
                                 "com.apple.cocoa.application.NSWorkspace",
                                 true,
@@ -153,7 +153,7 @@ public class Browser
                 {
                     try
                     {
-                        Class mrjFileUtils =
+                        Class<?> mrjFileUtils =
                             Class.forName( "com.apple.mrj.MRJFileUtils" );
                         Method openURL = mrjFileUtils.getMethod(
                             "openURL",
