@@ -245,9 +245,9 @@ public abstract class Application
 
     // ----------------------------------------------------------
     /**
-     *  Get this application's identifier.  If this method is overridden
+     *  End a user session.  This method clears all session objects,
+     *  including the current user.  If this method is overridden
      *  in a subclass, do not forget to call <code>super.logout()</code>!
-     *  @return This application's identifier
      */
     public void logout()
     {
