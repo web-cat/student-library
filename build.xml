@@ -21,7 +21,10 @@
             + webcat-support- files
             + Ostermiller's util.jar files
       -->
-      <fileset dir="${build.classes}" excludes="student/web/internal/tests/"/>
+      <fileset dir="${build.classes}">
+        <exclude name="student/web/internal/tests/"/>
+        <exclude name="student/tests/"/>
+      </fileset>
       <zipfileset src="${build.lib}/${webcatsupport.jar}">
         <exclude name="META-INF/"/>
       </zipfileset>
@@ -61,6 +64,12 @@
       </classpath>
       <compilerarg value="-Xlint:unchecked"/>
     </javac>
+  </target>
+
+  <target name="clean" description="Remove all derived files (except for downloaded jars in lib)">
+    <delete dir="${build.classes}"/>
+  	<delete file="${jar.file}"/>
+    <delete file="${jar.web.file}"/>
   </target>
 
   <target name="check.objectdraw">
@@ -112,6 +121,8 @@
       <not>
         <and>
           <available file="${build.lib}/abbot.jar" />
+          <available file="${build.lib}/costello.jar" />
+          <available file="${build.lib}/gnu-regexp-1.1.0.jar" />
         </and>
       </not>
     </condition>
@@ -122,6 +133,8 @@
     <copy overwrite="false" todir="${build.lib}" flatten="true">
       <fileset dir="${tmpdir}/abbot-1.0.2/lib">
         <include name="abbot.jar" />
+        <include name="costello.jar" />
+        <include name="gnu-regexp-1.1.0.jar" />
       </fileset>
     </copy>
   </target>
