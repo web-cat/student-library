@@ -3,3 +3,5 @@ data
 objectdraw
 *.jar
 *.zip
+lib
+classes
