@@ -11,7 +11,6 @@
 	<classpathentry exported="true" kind="lib" path="lib/rome-0.9.jar"/>
 	<classpathentry exported="true" kind="lib" path="lib/tagsoup-1.2.jar"/>
 	<classpathentry exported="true" kind="lib" path="lib/utils.jar"/>
-	<classpathentry exported="true" kind="lib" path="lib/webcat-support-3.2.1.jar"/>
 	<classpathentry exported="true" kind="lib" path="lib/zrss-0.9.5.jar"/>
 	<classpathentry exported="true" kind="lib" path="lib/xpp3_min-1.1.4c.jar"/>
 	<classpathentry exported="true" kind="lib" path="lib/xstream-1.3.1.jar"/>
