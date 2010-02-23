@@ -1,31 +1,13 @@
-/*==========================================================================*\
- |  $Id$
- |*-------------------------------------------------------------------------*|
- |  Copyright (C) 2007 Virginia Tech
- |
- |  This file is part of Web-CAT.
- |
- |  Web-CAT is free software; you can redistribute it and/or modify
- |  it under the terms of the GNU General Public License as published by
- |  the Free Software Foundation; either version 2 of the License, or
- |  (at your option) any later version.
- |
- |  Web-CAT is distributed in the hope that it will be useful,
- |  but WITHOUT ANY WARRANTY; without even the implied warranty of
- |  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- |  GNU General Public License for more details.
- |
- |  You should have received a copy of the GNU General Public License
- |  along with Web-CAT; if not, write to the Free Software
- |  Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
- |
- |  Project manager: Stephen Edwards <edwards@cs.vt.edu>
- |  Virginia Tech CS Dept, 660 McBryde Hall (0106), Blacksburg, VA 24061 USA
-\*==========================================================================*/
-
 package student.testingsupport;
 
-import java.io.*;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.io.PrintWriter;
+import java.io.StringWriter;
+import java.io.UnsupportedEncodingException;
+import java.io.Writer;
 
 //-------------------------------------------------------------------------
 /**
@@ -35,7 +17,8 @@ import java.io.*;
  *  more thorough details on what methods are provided.
  *
  *  @author  Stephen Edwards
- *  @version $Id$
+ *  @author Last changed by $Author$
+ *  @version $Revision$, $Date$
  */
 public class PrintWriterWithHistory
     extends PrintWriter
