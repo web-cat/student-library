@@ -4,6 +4,7 @@ import java.util.Scanner;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import junit.framework.AssertionFailedError;
+import net.sf.webcat.MutableStringBufferInputStream;
 import net.sf.webcat.PrintStreamWithHistory;
 import net.sf.webcat.PrintWriterWithHistory;
 import net.sf.webcat.StringNormalizer;
@@ -15,9 +16,7 @@ import net.sf.webcat.SystemIOUtilities;
  *  {@link junit.framework.TestCase} to support testing of I/O driven
  *  programs and flexible/fuzzy comparison of strings.  In most cases, it
  *  can be used as a completely transparent drop-in replacement for its
- *  parent class.  Subclasses that override {@link #tearDown()} should also
- *  override {@link #setUp()}--be sure to call super.setUp() in this case,
- *  or you'll see unexpected behavior!
+ *  parent class.
  *  <p>
  *  Fuzzy string comparisons in this class default to standard rules in
  *  {@link StringNormalizer} (excluding the OPT_* rules).  You can use
@@ -26,7 +25,7 @@ import net.sf.webcat.SystemIOUtilities;
  *  </p>
  *
  *  @author  Stephen Edwards
- *  @version 2007.09.12
+ *  @version 2010.02.17
  */
 public class TestCase
     extends junit.framework.TestCase
@@ -38,6 +37,7 @@ public class TestCase
     // off the parens.
     private PrintWriterWithHistory tcOut = null;
     private Scanner                tcIn  = null;
+    private MutableStringBufferInputStream tcInBuf = null;
     private StringNormalizer       sn = new StringNormalizer(true);
 
     // Used for communicating with assertTrue() and assertFalse().  Ideally,
@@ -46,8 +46,10 @@ public class TestCase
     private static String predicateReturnsTrueReason;
     private static String predicateReturnsFalseReason;
 
+    private static Boolean trimStackTraces;
 
-    //~ Constructor ...........................................................
+
+    //~ Constructors ..........................................................
 
     // ----------------------------------------------------------
     /**
@@ -74,6 +76,18 @@ public class TestCase
 
     //~ Methods ...............................................................
 
+    @Override
+    public void runBare()
+        throws Throwable
+    {
+        predicateReturnsTrueReason = null;
+        predicateReturnsFalseReason = null;
+        instrumentIO();
+        super.runBare();
+        resetIO();
+    }
+
+
     // ----------------------------------------------------------
     /**
      * Sets up the fixture, for example, open a network connection. This
@@ -83,6 +97,7 @@ public class TestCase
     protected void setUp()
         throws Exception
     {
+        // Included only for Javadoc purposes--implementation adds nothing.
         super.setUp();
     }
 
@@ -96,23 +111,56 @@ public class TestCase
     protected void tearDown()
         throws Exception
     {
+        // Included only for Javadoc purposes--implementation adds nothing.
         super.tearDown();
-        resetIO();
-        predicateReturnsTrueReason = null;
-        predicateReturnsFalseReason = null;
+    }
+
+
+    // ----------------------------------------------------------
+    /**
+     * An internal helper that ensures input/output buffering is in place
+     * before each test case.
+     */
+    protected void instrumentIO()
+    {
+        // Clear out all the stream history stuff
+        tcIn = null;
+        tcOut = null;
+        tcInBuf = null;
+
+        // Make sure these are history-wrapped
+        SystemIOUtilities.out();
+        SystemIOUtilities.err();
+
+        // First, make sure the original System.in gets captured, so it
+        // can be restored later
+        SystemIOUtilities.replaceSystemInContents(null);
+
+        // The previous line actually replaced System.in, but now we'll
+        // "replace the replacement" with one that uses fail() if it
+        // has no contents.
+        System.setIn(new MutableStringBufferInputStream((String)null)
+        {
+            protected void handleMissingContents()
+            {
+                fail("Attempt to access System.in before its contents "
+                    + "have been set");
+            }
+        });
     }
 
 
     // ----------------------------------------------------------
     /**
      * An internal helper that resets all of the input/output buffering
-     * between test cases.
+     * after each test case.
      */
     protected void resetIO()
     {
         // Clear out all the stream history stuff
         tcIn = null;
         tcOut = null;
+        tcInBuf = null;
 
         // Make sure these are history-wrapped
         SystemIOUtilities.out().clearHistory();
@@ -179,8 +227,10 @@ public class TestCase
      */
     public Scanner in()
     {
-        assert tcIn != null
-            : "You must call setIn() before you can access the stream";
+        if (tcIn == null)
+        {
+            setIn((String)null);
+        }
         return tcIn;
     }
 
@@ -194,7 +244,22 @@ public class TestCase
      */
     public void setIn(String contents)
     {
-        tcIn = new Scanner(contents);
+        if (tcInBuf == null)
+        {
+            tcInBuf = new MutableStringBufferInputStream(contents)
+            {
+                protected void handleMissingContents()
+                {
+                    fail("Attempt to access built-in test case Scanner "
+                        + "in() before its contents have been set");
+                }
+            };
+            tcIn = new Scanner(tcInBuf);
+        }
+        else
+        {
+            tcInBuf.resetContents(contents);
+        }
     }
 
 
@@ -208,6 +273,7 @@ public class TestCase
     public void setIn(Scanner contents)
     {
         tcIn = contents;
+        tcInBuf = null;
     }
 
 
@@ -884,6 +950,36 @@ public class TestCase
     // ----------------------------------------------------------
     private static void trimStack(Throwable t)
     {
+        if (trimStackTraces == null)
+        {
+            try
+            {
+                String setting =
+                    System.getProperty("student.TestCase.trimStackTraces");
+                if (setting == null)
+                {
+                    trimStackTraces = true;
+                }
+                else
+                {
+                    setting = setting.toLowerCase().trim();
+                    trimStackTraces = "yes".equals(setting)
+                        || "true".equals(setting)
+                        || "on".equals(setting)
+                        || "1".equals(setting);
+                }
+            }
+            catch (Exception e)
+            {
+                trimStackTraces = true;
+            }
+        }
+
+        if (!trimStackTraces)
+        {
+            return;
+        }
+
         StackTraceElement[] oldTrace = t.getStackTrace();
         int pos1 = 0;
         while (pos1 < oldTrace.length
@@ -897,6 +993,10 @@ public class TestCase
         {
             ++pos2;
         }
+
+        // It would be good to strip out a top-level stack trace element for
+        // student.TestCase.runBare(), which will come soon
+
         if (pos2 > pos1 && pos2 < oldTrace.length - 1)
         {
             StackTraceElement[] newTrace =
