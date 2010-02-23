@@ -82,7 +82,7 @@ public class StringNormalizer
 {
     //~ Instance/static variables .............................................
 
-    private static final long serialVersionUID = 5952248055096628574L;
+    private static final long serialVersionUID = -909915399977948511L;
     private static Map<StandardRule, NormalizerRule> standardRules =
         new EnumMap<StandardRule, NormalizerRule>(StandardRule.class);
     // initialize the map
