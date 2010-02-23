@@ -53,11 +53,15 @@ public class SystemIOUtilities
     // ----------------------------------------------------------
     /**
      * Since this class provides only static methods, clients should not create
-     * an instance.
+     * an instance.  This constructor is protected only to allow legacy/
+     * deprecated subclass stubs, and it should never actually be called.
+     * @throws UnsupportedOperationException Always thrown if this
+     *         constructor is invoked.
      */
-    private SystemIOUtilities()
+    protected SystemIOUtilities()
     {
-        // nothing to do
+        throw new UnsupportedOperationException("No instances of "
+            + SystemIOUtilities.class + " can be created");
     }
 
 
