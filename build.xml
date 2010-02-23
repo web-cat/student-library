@@ -8,6 +8,10 @@
   <target name="export.jar" depends="compile"
     description="Build a distributable jar file for this library">
     <tstamp/>
+    <pathconvert property="overrideAbbotFiles" pathsep=",">
+      <fileset dir="${build.classes}/" includes="abbot/"/>
+      <mapper type="glob" from="${build.classes}/*" to="*"/>
+    </pathconvert>
     <jar destfile="${jar.file}">
       <manifest>
         <attribute name="Specification-Version" value="${core.version}"/>
@@ -17,18 +21,20 @@
       </manifest>
       <!-- temporarily, until we can confirm we have the most recent source -->
       <!-- We place the following files in the .jar:
-            + all classes, except student/web/internal/tests
-            + webcat-support- files
+            + all classes, except student/web/internal/tests and student/tests
             + Ostermiller's util.jar files
+            + abbot.jar files, except those patched here in this project
       -->
       <fileset dir="${build.classes}">
         <exclude name="student/web/internal/tests/"/>
         <exclude name="student/tests/"/>
       </fileset>
-      <zipfileset src="${build.lib}/${webcatsupport.jar}">
-        <exclude name="META-INF/"/>
-      </zipfileset>
+      <fileset dir="." includes="COPYING, COPYING.LESSER, LICENSE"/>
       <zipfileset src="${build.lib}/utils.jar">
+        <include name="**/*.class"/>
+      </zipfileset>
+      <zipfileset src="${build.lib}/abbot.jar"
+                  excludes="${overrideAbbotFiles}">
         <include name="**/*.class"/>
       </zipfileset>
     </jar>
@@ -42,7 +48,7 @@
   <target name="find.external.jars"
   	description="Downloads all of the external jar dependencies"
   	depends="get.objectdraw, get.xstream, get.junit, get.abbot,
-  	         get.ostermiller, get.webcatsupport, get.zrss, get.tagsoup,
+  	         get.ostermiller, get.zrss, get.tagsoup,
   	         get.eddie" />
 
   <target name="create.dirs" description="Create necessary directories">
@@ -149,18 +155,6 @@
   <target name="get.ostermiller" depends="check.ostermiller" if="need.ostermiller">
     <get usetimestamp="true" dest="${build.lib}/utils.jar"
       src="${ostermiller.download.url}" />
-  </target>
-
-  <target name="check.webcatsupport">
-    <condition property="need.webcatsupport">
-      <not>
-        <available file="${build.lib}/${webcatsupport.jar}" />
-      </not>
-    </condition>
-  </target>
-  <target name="get.webcatsupport" depends="check.webcatsupport" if="need.webcatsupport">
-    <get usetimestamp="true" dest="${build.lib}/${webcatsupport.jar}"
-      src="${webcatsupport.download.url}" />
   </target>
 
   <target name="check.zrss">
