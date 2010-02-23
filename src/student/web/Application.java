@@ -1,3 +1,24 @@
+/*==========================================================================*\
+ |  $Id$
+ |*-------------------------------------------------------------------------*|
+ |  Copyright (C) 2009-2010 Virginia Tech
+ |
+ |  This file is part of the Student-Library.
+ |
+ |  The Student-Library is free software; you can redistribute it and/or
+ |  modify it under the terms of the GNU Lesser General Public License as
+ |  published by the Free Software Foundation; either version 3 of the
+ |  License, or (at your option) any later version.
+ |
+ |  The Student-Library is distributed in the hope that it will be useful,
+ |  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ |  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ |  GNU Lesser General Public License for more details.
+ |
+ |  You should have received a copy of the GNU Lesser General Public License
+ |  along with the Student-Library; if not, see <http://www.gnu.org/licenses/>.
+\*==========================================================================*/
+
 package student.web;
 
 // Critical
@@ -85,7 +106,8 @@ import student.web.internal.PersistentStorageManager;
  *  which Class the resulting value should belong to.</p>
  *
  *  @author  Stephen Edwards
- *  @version 2009.09.11
+ *  @author Last changed by $Author$
+ *  @version $Revision$, $Date$
  */
 public abstract class Application
 {
@@ -231,7 +253,13 @@ public abstract class Application
     /**
      *  Retrieve the current user, which was passed into
      *  {@link #setCurrentUser(Object)}.
-     *  @param userType The class used for user account objects
+     *  @param <UserType>  This method is a template method, and the type
+     *                     <code>UserType</code> used for the return value is
+     *                     implicitly deduced from the provided argument
+     *                     <code>userType</code>.
+     *  @param userType    The type (class) of the current user object, and
+     *                     also the way you specify the return type of this
+     *                     method.
      *  @return The object representing the current user, or null if the
      *          user has not logged in.
      */
@@ -274,11 +302,17 @@ public abstract class Application
      *  make changes to it, you <b>must</b> use
      *  {@link #setSharedObject(String, Object)} to store the modified
      *  object back, or the changes will be lost.
+     *  @param <ObjectType>  This method is a template method, and the type
+     *                  <code>ObjectType</code> used for the return value is
+     *                  implicitly deduced from the provided argument
+     *                  <code>objectType</code>.
      *  @param objectId The object's unique identifier.  Identifiers must
      *                  be unique across all web applications on this server.
      *                  Identifiers cannot be null or empty.
-     *  @param objectType The class to which the object belongs.  For example,
-     *                  if the object is a string, then use
+     *  @param objectType  The type (class) of the object that is being
+     *                  retrieved, and also the way you specify the return
+     *                  type of this method.  For example,
+     *                  if the object you are retrieving is a string, then use
      *                  <code>String.class</code> for this parameter.  If the
      *                  object being requested in instead a user profile
      *                  object, use <code>UserProfile.class</code> as the
@@ -302,6 +336,10 @@ public abstract class Application
      *  Store an object that is shared among all the applications on
      *  this web server.  Once stored, objects can then be retrieved by
      *  any applications hosted on the same web server.
+     *  @param <ObjectType>  This method is a template method, and the type
+     *                  <code>ObjectType</code> used for the second
+     *                  parameter is implicitly deduced from the provided
+     *                  argument <code>object</code>.
      *  @param objectId The object's unique identifier.  Identifiers must
      *                  be unique across all web applications on this server.
      *                  Identifiers cannot be null or empty.
@@ -355,6 +393,10 @@ public abstract class Application
     /**
      *  Just like {@link #getSharedObject(String, Class)}, except that
      *  it forces the object to be reloaded from persistent storage.
+     *  @param <ObjectType>  This method is a template method, and the type
+     *                  <code>ObjectType</code> used for the return value is
+     *                  implicitly deduced from the provided argument
+     *                  <code>object</code>.
      *  @param objectId The object's unique identifier.  Identifiers must
      *                  be unique across all web applications on this server.
      *                  Identifiers cannot be null or empty.
@@ -395,11 +437,17 @@ public abstract class Application
      *  make changes to it, you <b>must</b> use
      *  {@link #setApplicationObject(String, Object)} to store the modified
      *  object back, or the changes will be lost.
+     *  @param <ObjectType>  This method is a template method, and the type
+     *                  <code>ObjectType</code> used for the return value is
+     *                  implicitly deduced from the provided argument
+     *                  <code>objectType</code>.
      *  @param objectId The object's unique identifier.  Identifiers must
      *                  be unique within this web application.
      *                  Identifiers cannot be null or empty.
-     *  @param objectType The class to which the object belongs.  For example,
-     *                  if the object is a string, then use
+     *  @param objectType  The type (class) of the object that is being
+     *                  retrieved, and also the way you specify the return
+     *                  type of this method.  For example,
+     *                  if the object you are retrieving is a string, then use
      *                  <code>String.class</code> for this parameter.  If the
      *                  object being requested in instead a user profile
      *                  object, use <code>UserProfile.class</code> as the
@@ -423,6 +471,10 @@ public abstract class Application
      *  Store an object that will be available only to this application.
      *  Once stored, objects can then be retrieved by any pages belonging
      *  to this web application.
+     *  @param <ObjectType>  This method is a template method, and the type
+     *                  <code>ObjectType</code> used for the second
+     *                  parameter is implicitly deduced from the provided
+     *                  argument <code>object</code>.
      *  @param objectId The object's unique identifier.  Identifiers must
      *                  be unique within this web application.
      *                  Identifiers cannot be null or empty.
@@ -476,6 +528,10 @@ public abstract class Application
     /**
      *  Just like {@link #getApplicationObject(String, Class)}, except that
      *  it forces the object to be reloaded from persistent storage.
+     *  @param <ObjectType>  This method is a template method, and the type
+     *                  <code>ObjectType</code> used for the return value is
+     *                  implicitly deduced from the provided argument
+     *                  <code>object</code>.
      *  @param objectId The object's unique identifier.  Identifiers must
      *                  be unique within this web application.
      *                  Identifiers cannot be null or empty.
@@ -526,11 +582,17 @@ public abstract class Application
      *  {@link #setSessionObject(String, Object)} to store the modified
      *  object back, or the changes will be lost.
      *  </p>
+     *  @param <ObjectType>  This method is a template method, and the type
+     *                  <code>ObjectType</code> used for the return value is
+     *                  implicitly deduced from the provided argument
+     *                  <code>objectType</code>.
      *  @param objectId The object's unique identifier.  Identifiers must
      *                  be unique within this web application.
      *                  Identifiers cannot be null or empty.
-     *  @param objectType The class to which the object belongs.  For example,
-     *                  if the object is a string, then use
+     *  @param objectType  The type (class) of the object that is being
+     *                  retrieved, and also the way you specify the return
+     *                  type of this method.  For example,
+     *                  if the object you are retrieving is a string, then use
      *                  <code>String.class</code> for this parameter.  If the
      *                  object being requested in instead a user profile
      *                  object, use <code>UserProfile.class</code> as the
@@ -578,6 +640,10 @@ public abstract class Application
      *  their current session.  Once stored, objects can then be retrieved
      *  by any pages belonging to this web application that the current
      *  user visits before they logout.
+     *  @param <ObjectType>  This method is a template method, and the type
+     *                  <code>ObjectType</code> used for the second
+     *                  parameter is implicitly deduced from the provided
+     *                  argument <code>object</code>.
      *  @param objectId The object's unique identifier.  Identifiers must
      *                  be unique within this web application.
      *                  Identifiers cannot be null and empty.

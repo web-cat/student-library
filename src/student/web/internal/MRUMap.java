@@ -1,3 +1,24 @@
+/*==========================================================================*\
+ |  $Id$
+ |*-------------------------------------------------------------------------*|
+ |  Copyright (C) 2009-2010 Virginia Tech
+ |
+ |  This file is part of the Student-Library.
+ |
+ |  The Student-Library is free software; you can redistribute it and/or
+ |  modify it under the terms of the GNU Lesser General Public License as
+ |  published by the Free Software Foundation; either version 3 of the
+ |  License, or (at your option) any later version.
+ |
+ |  The Student-Library is distributed in the hope that it will be useful,
+ |  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ |  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ |  GNU Lesser General Public License for more details.
+ |
+ |  You should have received a copy of the GNU Lesser General Public License
+ |  along with the Student-Library; if not, see <http://www.gnu.org/licenses/>.
+\*==========================================================================*/
+
 package student.web.internal;
 
 import java.lang.ref.ReferenceQueue;
@@ -18,11 +39,12 @@ import java.util.Set;
  *  if the cache is already at capacity.  It uses soft references, so
  *  that memory can be reclaimed by the garbage collector as needed.
  *
- *  @param K The type for keys
- *  @param V The type for values
+ *  @param <K> The type for keys
+ *  @param <V> The type for values
  *
  *  @author  Stephen Edwards
- *  @version 2009.03.28
+ *  @author Last changed by $Author$
+ *  @version $Revision$, $Date$
  */
 public class MRUMap<K, V>
 	implements Map<K, V>
@@ -360,13 +382,15 @@ public class MRUMap<K, V>
 
     // ----------------------------------------------------------
 	/**
-	 * Represents a value and a timestamp bundled together, so they
+	 * Represents a value and a time stamp bundled together, so they
 	 * can be returned as a single value.
-	 * @param V The type of the value
+	 * @param <V> The type of the value
 	 */
 	public static class ValueWithTimestamp<V>
 	{
+	    /** The value to store. */
 	    public V value;
+	    /** The time at which this value was last changed. */
 	    public long timestamp;
 	}
 

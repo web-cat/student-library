@@ -1,3 +1,24 @@
+/*==========================================================================*\
+ |  $Id$
+ |*-------------------------------------------------------------------------*|
+ |  Copyright (C) 2007-2010 Virginia Tech
+ |
+ |  This file is part of the Student-Library.
+ |
+ |  The Student-Library is free software; you can redistribute it and/or
+ |  modify it under the terms of the GNU Lesser General Public License as
+ |  published by the Free Software Foundation; either version 3 of the
+ |  License, or (at your option) any later version.
+ |
+ |  The Student-Library is distributed in the hope that it will be useful,
+ |  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ |  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ |  GNU Lesser General Public License for more details.
+ |
+ |  You should have received a copy of the GNU Lesser General Public License
+ |  along with the Student-Library; if not, see <http://www.gnu.org/licenses/>.
+\*==========================================================================*/
+
 package student;
 
 // -------------------------------------------------------------------------
@@ -16,18 +37,20 @@ package student;
  *  </pre>
  *  <p>Either approach will generate this version information:</p>
  *  <pre>
- *  student.Version: package student, v3.10 2010-02-17
+ *  student.Version: package student, v4.00 $Date$
  *  </pre>
  *
- *  @version 2010.02.17
  *  @author Stephen Edwards
+ *  @version 4.00
+ *  @author Last changed by $Author$
+ *  @version $Revision$, $Date$
  */
 public class Version
 {
     //~ Instance/static variables .............................................
 
     // These fields are used for overridable world startup
-    private static final String version = "v3.10 2010-02-17";
+    private static final String version = "v4.00 $Date$";
 
 
     //~ Constructors ..........................................................

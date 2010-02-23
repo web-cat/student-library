@@ -1,3 +1,24 @@
+/*==========================================================================*\
+ |  $Id$
+ |*-------------------------------------------------------------------------*|
+ |  Copyright (C) 2007-2010 Virginia Tech
+ |
+ |  This file is part of the Student-Library.
+ |
+ |  The Student-Library is free software; you can redistribute it and/or
+ |  modify it under the terms of the GNU Lesser General Public License as
+ |  published by the Free Software Foundation; either version 3 of the
+ |  License, or (at your option) any later version.
+ |
+ |  The Student-Library is distributed in the hope that it will be useful,
+ |  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ |  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ |  GNU Lesser General Public License for more details.
+ |
+ |  You should have received a copy of the GNU Lesser General Public License
+ |  along with the Student-Library; if not, see <http://www.gnu.org/licenses/>.
+\*==========================================================================*/
+
 package student;
 
 import abbot.finder.BasicFinder;
@@ -49,7 +70,8 @@ import student.testingsupport.GUIFilter;
  *  Swing and/or AWT components.
  *
  *  @author  Stephen Edwards
- *  @version 2010.02.18
+ *  @author Last changed by $Author$
+ *  @version $Revision$, $Date$
  */
 public class GUITestCase
     extends TestCase
@@ -163,9 +185,9 @@ public class GUITestCase
      * @param size The desired size of the enclosing frame, or
      *        <code>null</code> to use the component's preferred size.
      */
-    public void showWindow(Window w, Dimension size)
+    public void showWindow(Window window, Dimension size)
     {
-        fixtureHelper.showWindow(w, size, true);
+        fixtureHelper.showWindow(window, size, true);
     }
 
 
@@ -296,8 +318,8 @@ public class GUITestCase
      *             also the way you specify the return type of this method.
      * @return The single component of the desired type that was found
      *         (otherwise, a test case failure results).
-     * @see {@link #getFirstComponentMatching(Class)},
-     *      {@link #getAllComponentsMatching(Class)}
+     * @see #getFirstComponentMatching(Class)
+     * @see #getAllComponentsMatching(Class)
      */
     public <T extends Component> T getComponent(Class<T> type)
     {
@@ -356,8 +378,8 @@ public class GUITestCase
      * @param filter The search criteria.
      * @return The single component matching the criteria specified
      *         (otherwise, a test case failure results).
-     * @see {@link #getFirstComponentMatching(Class,GUIFilter)},
-     *      {@link #getAllComponentsMatching(Class,GUIFilter)}
+     * @see #getFirstComponentMatching(Class,GUIFilter)
+     * @see #getAllComponentsMatching(Class,GUIFilter)
      */
     public <T extends Component> T getComponent(Class<T> type, GUIFilter filter)
     {
@@ -382,8 +404,8 @@ public class GUITestCase
      * @param filter The search criteria.
      * @return The single component matching the provided filter (otherwise, a
      *         test case failure results).
-     * @see {@link #getFirstComponentMatching(GUIFilter)},
-     *      {@link #getAllComponentsMatching(GUIFilter)}
+     * @see #getFirstComponentMatching(GUIFilter)
+     * @see #getAllComponentsMatching(GUIFilter)
      */
     public Component getComponent(GUIFilter filter)
     {
@@ -420,8 +442,8 @@ public class GUITestCase
      *             also the way you specify the return type of this method.
      * @return The first component of the desired type that was found
      *         (a test case failure results if there are none).
-     * @see {@link #getComponent(Class)},
-     *      {@link #getAllComponentsMatching(Class)}
+     * @see #getComponent(Class)
+     * @see #getAllComponentsMatching(Class)
      */
     public <T extends Component> T getFirstComponentMatching(Class<T> type)
     {
@@ -448,8 +470,8 @@ public class GUITestCase
      * @param filter The search criteria.
      * @return The first component that was found matching the criteria
      *         specified (a test case failure results if there are none).
-     * @see {@link #getComponent(Class,GUIFilter)},
-     *      {@link #getAllComponentsMatching(Class,GUIFilter)}
+     * @see #getComponent(Class,GUIFilter)
+     * @see #getAllComponentsMatching(Class,GUIFilter)
      */
     public <T extends Component> T getFirstComponentMatching(
         Class<T> type, GUIFilter filter)
@@ -476,8 +498,8 @@ public class GUITestCase
      * @param filter The search criteria.
      * @return The first component that was found matching the criteria
      *         specified (a test case failure results if there are none).
-     * @see {@link #getComponent(GUIFilter)},
-     *      {@link #getAllComponentsMatching(GUIFilter)}
+     * @see #getComponent(GUIFilter)
+     * @see #getAllComponentsMatching(GUIFilter)
      */
     public Component getFirstComponentMatching(GUIFilter filter)
     {
@@ -512,8 +534,8 @@ public class GUITestCase
      * @return A list of all components of the desired type that were found.
      *         This will be an empty list (not null) if no matching components
      *         are found.
-     * @see {@link #getComponent(Class)},
-     *      {@link #getFirstComponentsMatching(Class)}
+     * @see #getComponent(Class)
+     * @see #getFirstComponentMatching(Class)
      */
     public <T extends Component> List<T> getAllComponentsMatching(
         Class<T> type)
@@ -540,8 +562,8 @@ public class GUITestCase
      * @return A list of all components found matching the criteria specified.
      *         This will be an empty list (not null) if no matching components
      *         are found.
-     * @see {@link #getComponent(Class,GUIFilter)},
-     *      {@link #getAllComponentsMatching(Class,GUIFilter)}
+     * @see #getComponent(Class,GUIFilter)
+     * @see #getAllComponentsMatching(Class,GUIFilter)
      */
     public <T extends Component> List<T> getAllComponentsMatching(
         Class<T> type, GUIFilter filter)
@@ -566,8 +588,8 @@ public class GUITestCase
      * @return A list of all components found matching the criteria specified.
      *         This will be an empty list (not null) if no matching components
      *         are found.
-     * @see {@link #getComponent(GUIFilter)},
-     *      {@link #getAllComponentsMatching(GUIFilter)}
+     * @see #getComponent(GUIFilter)
+     * @see #getAllComponentsMatching(GUIFilter)
      */
     public List<Component> getAllComponentsMatching(GUIFilter filter)
     {
@@ -770,6 +792,7 @@ public class GUITestCase
      * This might also cause a <code>mouseEntered</code> event in a surrounding
      * or neighboring component--use <code>mouseMove()</code> with other
      * specific coordinates if you want a different effect.
+     * @param component The component to exit from.
      */
     public void mouseExit(Component component)
     {
@@ -1067,7 +1090,7 @@ public class GUITestCase
     // ----------------------------------------------------------
     /**
      * Select a given menu item.
-     * @parameter item The menu item to select.
+     * @param item The menu item to select.
      */
     public void selectMenuItem(JMenuItem item)
     {
@@ -1204,7 +1227,6 @@ public class GUITestCase
      * be inadvertently overridden by a derived class.
      */
     protected void fixtureSetUp()
-        throws Throwable
     {
         hierarchy = createHierarchy();
 
@@ -1234,7 +1256,6 @@ public class GUITestCase
      * Components used in the test.
     */
     protected void fixtureTearDown()
-        throws Throwable
     {
         edtExceptionTime = fixtureHelper.getEventDispatchErrorTime();
         edtException = fixtureHelper.getEventDispatchError();
@@ -1295,6 +1316,10 @@ public class GUITestCase
 
 
         // ----------------------------------------------------------
+        /**
+         * Create a new exception object.
+         * @param t The throwable that was thrown in the event dispatch thread
+         */
         public EventDispatchException(Throwable t)
         {
             super(t, "An exception was thrown on the event dispatch thread: "

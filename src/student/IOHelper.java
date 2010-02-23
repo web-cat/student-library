@@ -1,14 +1,35 @@
+/*==========================================================================*\
+ |  $Id$
+ |*-------------------------------------------------------------------------*|
+ |  Copyright (C) 2007-2010 Virginia Tech
+ |
+ |  This file is part of the Student-Library.
+ |
+ |  The Student-Library is free software; you can redistribute it and/or
+ |  modify it under the terms of the GNU Lesser General Public License as
+ |  published by the Free Software Foundation; either version 3 of the
+ |  License, or (at your option) any later version.
+ |
+ |  The Student-Library is distributed in the hope that it will be useful,
+ |  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ |  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ |  GNU Lesser General Public License for more details.
+ |
+ |  You should have received a copy of the GNU Lesser General Public License
+ |  along with the Student-Library; if not, see <http://www.gnu.org/licenses/>.
+\*==========================================================================*/
+
 package student;
 
-import java.util.Scanner;
 import java.io.BufferedReader;
 import java.io.File;
-import java.io.InputStreamReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.io.StringReader;
-import java.net.URL;
 import java.net.MalformedURLException;
+import java.net.URL;
+import java.util.Scanner;
 
 
 // -------------------------------------------------------------------------
@@ -25,7 +46,8 @@ import java.net.MalformedURLException;
  *  (@href{http://www.rdv.vslib.cz/skodak}).
  *  </p>
  *  @author  Stephen Edwards (based on Petr Skoda's original)
- *  @version 2007.08.12
+ *  @author Last changed by $Author$
+ *  @version $Revision$, $Date$
  */
 public class IOHelper
 {

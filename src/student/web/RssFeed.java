@@ -1,22 +1,46 @@
+/*==========================================================================*\
+ |  $Id$
+ |*-------------------------------------------------------------------------*|
+ |  Copyright (C) 2007-2010 Virginia Tech
+ |
+ |  This file is part of the Student-Library.
+ |
+ |  The Student-Library is free software; you can redistribute it and/or
+ |  modify it under the terms of the GNU Lesser General Public License as
+ |  published by the Free Software Foundation; either version 3 of the
+ |  License, or (at your option) any later version.
+ |
+ |  The Student-Library is distributed in the hope that it will be useful,
+ |  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ |  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ |  GNU Lesser General Public License for more details.
+ |
+ |  You should have received a copy of the GNU Lesser General Public License
+ |  along with the Student-Library; if not, see <http://www.gnu.org/licenses/>.
+\*==========================================================================*/
+
 package student.web;
 
-import com.sun.syndication.feed.synd.*;
-import com.sun.syndication.io.*;
-
-import java.io.*;
-import java.net.*;
-import java.util.Date;
-import java.util.ArrayList;
-import java.util.List;
 import static student.testingsupport.SystemIOUtilities.isOnServer;
+import com.sun.syndication.feed.synd.SyndEntry;
+import com.sun.syndication.feed.synd.SyndFeed;
+import com.sun.syndication.feed.synd.SyndFeedImpl;
+import com.sun.syndication.io.SyndFeedInput;
+import java.io.Serializable;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
 
 //-------------------------------------------------------------------------
 /**
  *  This class represents a syndication feed that contains a list of
  *  {@link RssEntry} objects.
  *
- *  @version 2007.09.01
  *  @author Stephen Edwards
+ *  @author Last changed by $Author$
+ *  @version $Revision$, $Date$
  */
 public class RssFeed
     implements RssEntity, Serializable, Cloneable

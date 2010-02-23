@@ -1,3 +1,24 @@
+/*==========================================================================*\
+ |  $Id$
+ |*-------------------------------------------------------------------------*|
+ |  Copyright (C) 2007-2010 Virginia Tech
+ |
+ |  This file is part of the Student-Library.
+ |
+ |  The Student-Library is free software; you can redistribute it and/or
+ |  modify it under the terms of the GNU Lesser General Public License as
+ |  published by the Free Software Foundation; either version 3 of the
+ |  License, or (at your option) any later version.
+ |
+ |  The Student-Library is distributed in the hope that it will be useful,
+ |  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ |  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ |  GNU Lesser General Public License for more details.
+ |
+ |  You should have received a copy of the GNU Lesser General Public License
+ |  along with the Student-Library; if not, see <http://www.gnu.org/licenses/>.
+\*==========================================================================*/
+
 package student;
 import java.util.Iterator;
 
@@ -10,7 +31,8 @@ import java.util.Iterator;
  *  @param <T> The type of elements contained in this sequence
  *
  *  @author  Stephen Edwards
- *  @version 2007.07.26
+ *  @author Last changed by $Author$
+ *  @version $Revision$, $Date$
  */
 public class IterableSequence<T>
     implements Iterable<T>

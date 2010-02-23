@@ -1,16 +1,50 @@
+/*==========================================================================*\
+ |  $Id$
+ |*-------------------------------------------------------------------------*|
+ |  Copyright (C) 2007-2010 Virginia Tech
+ |
+ |  This file is part of the Student-Library.
+ |
+ |  The Student-Library is free software; you can redistribute it and/or
+ |  modify it under the terms of the GNU Lesser General Public License as
+ |  published by the Free Software Foundation; either version 3 of the
+ |  License, or (at your option) any later version.
+ |
+ |  The Student-Library is distributed in the hope that it will be useful,
+ |  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ |  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ |  GNU Lesser General Public License for more details.
+ |
+ |  You should have received a copy of the GNU Lesser General Public License
+ |  along with the Student-Library; if not, see <http://www.gnu.org/licenses/>.
+\*==========================================================================*/
+
 package student.web.internal;
 
-import java.io.Serializable;
-import java.util.Date;
-import java.util.List;
 import com.sun.syndication.feed.WireFeed;
 import com.sun.syndication.feed.module.Module;
 import com.sun.syndication.feed.synd.SyndContent;
 import com.sun.syndication.feed.synd.SyndEntry;
 import com.sun.syndication.feed.synd.SyndFeed;
 import com.sun.syndication.feed.synd.SyndImage;
+import java.io.Serializable;
+import java.util.Date;
+import java.util.List;
 import uk.org.catnip.eddie.FeedData;
 
+//-------------------------------------------------------------------------
+/**
+ *  Just fooling around with a replacement for {@link student.web.RssFeed}
+ *  that uses the more forgiving Eddie library to parse feeds--that way,
+ *  it won't throw errors.
+ *  <p>
+ *  This work is not yet complete!
+ *  </p>
+ *
+ *  @author  Stephen Edwards
+ *  @author Last changed by $Author$
+ *  @version $Revision$, $Date$
+ */
 public class EddieSyndFeed
     implements SyndFeed, Serializable, Cloneable
 {
