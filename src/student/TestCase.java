@@ -3,12 +3,12 @@ package student;
 import java.util.Scanner;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import student.testingsupport.MutableStringBufferInputStream;
+import student.testingsupport.PrintStreamWithHistory;
+import student.testingsupport.PrintWriterWithHistory;
+import student.testingsupport.StringNormalizer;
+import student.testingsupport.SystemIOUtilities;
 import junit.framework.AssertionFailedError;
-import net.sf.webcat.MutableStringBufferInputStream;
-import net.sf.webcat.PrintStreamWithHistory;
-import net.sf.webcat.PrintWriterWithHistory;
-import net.sf.webcat.StringNormalizer;
-import net.sf.webcat.SystemIOUtilities;
 
 //-------------------------------------------------------------------------
 /**
@@ -173,7 +173,7 @@ public class TestCase
     /**
      * Get an output stream suitable for use in test cases.  You can pass
      * this output stream to your own methods, and later call its
-     * {@link net.sf.webcat.PrintWriterWithHistory#getHistory()} method to
+     * {@link student.testingsupport.PrintWriterWithHistory#getHistory()} method to
      * extract all the output in the form of a string.  The contents of this
      * stream get cleared for every test case.
      * @return a {@link java.io.PrintWriter} suitable for use in test cases
@@ -301,7 +301,7 @@ public class TestCase
      * @return the string normalizer
      * @see #assertFuzzyEquals(String, String)
      * @see StringNormalizer
-     * @see net.sf.webcat.StringNormalizer#addStandardRules()
+     * @see student.testingsupport.StringNormalizer#addStandardRules()
      */
     protected StringNormalizer stringNormalizer()
     {

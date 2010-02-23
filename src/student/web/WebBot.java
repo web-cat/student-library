@@ -1,6 +1,6 @@
 package student.web;
 
-import static net.sf.webcat.SystemIOUtilities.isOnServer;
+import static student.testingsupport.SystemIOUtilities.isOnServer;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
@@ -35,7 +35,6 @@ import javax.xml.transform.stream.StreamResult;
 import javax.xml.xpath.XPath;
 import javax.xml.xpath.XPathConstants;
 import javax.xml.xpath.XPathFactory;
-import net.sf.webcat.PrintWriterWithHistory;
 import org.ccil.cowan.tagsoup.Parser;
 import org.w3c.dom.Attr;
 import org.w3c.dom.NamedNodeMap;
@@ -43,6 +42,7 @@ import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.InputSource;
 import student.IOHelper;
+import student.testingsupport.PrintWriterWithHistory;
 import student.web.internal.MutableNamespaceContext;
 
 // -------------------------------------------------------------------------

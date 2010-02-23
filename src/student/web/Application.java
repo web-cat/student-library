@@ -10,8 +10,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
-import net.sf.webcat.ReflectionSupport;
-import net.sf.webcat.SystemIOUtilities;
+import student.testingsupport.SystemIOUtilities;
 import student.web.internal.ApplicationSupportStrategy;
 import student.web.internal.LocalApplicationSupportStrategy;
 import student.web.internal.ObjectFieldExtractor;
@@ -128,10 +127,21 @@ public abstract class Application
         id = identifier;
         if (SystemIOUtilities.isOnServer())
         {
-            support = (ApplicationSupportStrategy)ReflectionSupport.create(
-                "student.web.internal.ServerApplicationSupportStrategy");
+            try
+            {
+                Class<?> strategyClass = Class.forName(
+                    "student.web.internal.ServerApplicationSupportStrategy");
+                support = (ApplicationSupportStrategy)
+                    strategyClass.newInstance();
+            }
+            catch (Exception e)
+            {
+                System.out.println(
+                    "Error initializing application support strategy");
+                e.printStackTrace();
+            }
         }
-        else
+        if (support == null)
         {
             support = new LocalApplicationSupportStrategy();
         }

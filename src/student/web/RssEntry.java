@@ -6,7 +6,7 @@ import java.net.URL;
 import java.net.MalformedURLException;
 import java.util.Date;
 import java.util.List;
-import static net.sf.webcat.SystemIOUtilities.isOnServer;
+import static student.testingsupport.SystemIOUtilities.isOnServer;
 
 //-------------------------------------------------------------------------
 /**

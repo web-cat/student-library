@@ -8,7 +8,7 @@ import java.net.*;
 import java.util.Date;
 import java.util.ArrayList;
 import java.util.List;
-import static net.sf.webcat.SystemIOUtilities.isOnServer;
+import static student.testingsupport.SystemIOUtilities.isOnServer;
 
 //-------------------------------------------------------------------------
 /**
@@ -529,7 +529,7 @@ public class RssFeed
         }
         catch (IllegalArgumentException e)
         {
-            if (!net.sf.webcat.SystemIOUtilities.isOnServer())
+            if (!student.testingsupport.SystemIOUtilities.isOnServer())
             {
                 System.out.println("RSS feed type unrecognized: "
                     + e.getMessage());
@@ -547,7 +547,7 @@ public class RssFeed
 //        }
         catch (Exception e)
         {
-            if (!net.sf.webcat.SystemIOUtilities.isOnServer())
+            if (!student.testingsupport.SystemIOUtilities.isOnServer())
             {
                 System.out.println("Failed readding RSS: " + e.getMessage());
                 e.printStackTrace();
