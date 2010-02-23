@@ -1,20 +1,21 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <classpath>
 	<classpathentry kind="src" path="src"/>
-	<classpathentry combineaccessrules="false" kind="src" path="/Eddie"/>
-	<classpathentry kind="lib" path="/Applications/BlueJ.app/Contents/Resources/Java/userlib/abbot.jar"/>
-	<classpathentry kind="lib" path="/Applications/BlueJ.app/Contents/Resources/Java/userlib/acm.jar"/>
-	<classpathentry kind="lib" path="/Applications/BlueJ.app/Contents/Resources/Java/userlib/bsh.jar"/>
-	<classpathentry kind="lib" path="/Applications/BlueJ.app/Contents/Resources/Java/userlib/gnu-regexp.jar"/>
-	<classpathentry kind="lib" path="/Applications/BlueJ.app/Contents/Resources/Java/userlib/jdom.jar"/>
-	<classpathentry kind="lib" path="/Applications/BlueJ.app/Contents/Resources/Java/userlib/jgraph.jar"/>
-	<classpathentry kind="lib" path="/Applications/BlueJ.app/Contents/Resources/Java/userlib/MRJToolkitStubs.zip"/>
-	<classpathentry exported="true" kind="lib" path="/Applications/BlueJ.app/Contents/Resources/Java/userlib/rome-0.9.jar"/>
-	<classpathentry exported="true" kind="lib" path="/Web-CAT/ExternalJars/Libraries/utils.jar"/>
-	<classpathentry exported="true" kind="lib" path="/Web-CAT/Plugins/JavaTddPlugin/webcat-support-3.2.0.jar"/>
-	<classpathentry kind="lib" path="objectdraw.jar"/>
-	<classpathentry exported="true" kind="lib" path="xpp3_min-1.1.4c.jar"/>
-	<classpathentry exported="true" kind="lib" path="xstream-1.3.1.jar"/>
+	<classpathentry exported="true" kind="lib" path="lib/abbot.jar"/>
+	<classpathentry exported="true" kind="lib" path="lib/costello.jar"/>
+	<classpathentry exported="true" kind="lib" path="lib/eddie-0.2.jar"/>
+	<classpathentry exported="true" kind="lib" path="lib/gnu-regexp-1.1.0.jar"/>
+	<classpathentry exported="true" kind="lib" path="lib/jdom.jar"/>
+	<classpathentry exported="true" kind="lib" path="lib/junit.jar"/>
+	<classpathentry exported="true" kind="lib" path="lib/objectdraw.jar"/>
+	<classpathentry exported="true" kind="lib" path="lib/rome-0.9.jar"/>
+	<classpathentry exported="true" kind="lib" path="lib/tagsoup-1.2.jar"/>
+	<classpathentry exported="true" kind="lib" path="lib/utils.jar"/>
+	<classpathentry exported="true" kind="lib" path="lib/webcat-support-3.2.1.jar"/>
+	<classpathentry exported="true" kind="lib" path="lib/zrss-0.9.5.jar"/>
+	<classpathentry exported="true" kind="lib" path="lib/xpp3_min-1.1.4c.jar"/>
+	<classpathentry exported="true" kind="lib" path="lib/xstream-1.3.1.jar"/>
+	<classpathentry exported="true" kind="lib" path="objectdraw.jar"/>
 	<classpathentry exported="true" kind="con" path="org.eclipse.jdt.junit.JUNIT_CONTAINER/4"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
 	<classpathentry kind="output" path="bin"/>
