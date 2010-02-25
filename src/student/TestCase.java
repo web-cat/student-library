@@ -743,7 +743,7 @@ public class TestCase
      * expression.  A null for the actual value is treated the same as an
      * empty string for the purposes of matching.  The regular expression
      * must match the full string (all characters taken together).  To
-     * match a substring, use {@link #containsRegex(String,String)}
+     * match a substring, use {@link #containsRegex(String,String...)}
      * instead.
      * <p>
      * Note that this predicate uses the opposite parameter ordering
@@ -767,7 +767,7 @@ public class TestCase
      * expression.  A null for the actual value is treated the same as an
      * empty string for the purposes of matching.  The regular expression
      * must match the full string (all characters taken together).  To
-     * match a substring, use {@link #containsRegex(String,Pattern)}
+     * match a substring, use {@link #containsRegex(String,Pattern...)}
      * instead.
      * <p>
      * Note that this predicate uses the opposite parameter ordering
@@ -808,7 +808,7 @@ public class TestCase
      * A null for the actual value is treated the same as an empty string
      * for the purposes of matching.  The regular expression must match
      * the full string (all characters taken together).  To match a substring,
-     * use {@link #fuzzyContainsRegex(String,String)} instead.
+     * use {@link #fuzzyContainsRegex(String,String...)} instead.
      * <p>
      * Note that this predicate uses the opposite parameter ordering
      * from JUnit assertions: The value to test is the <b>first</b>
@@ -836,7 +836,7 @@ public class TestCase
      * A null for the actual value is treated the same as an empty string
      * for the purposes of matching.  The regular expression must match
      * the full string (all characters taken together).  To match a substring,
-     * use {@link #fuzzyContainsRegex(String,String)} instead.
+     * use {@link #fuzzyContainsRegex(String,String...)} instead.
      * <p>Use
      * {@link #stringNormalizer()} to access and modify the
      * {@link StringNormalizer} object's preferences for comparing
