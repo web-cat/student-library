@@ -8,18 +8,26 @@
   <target name="export.jar" depends="compile"
     description="Build a distributable jar file for this library">
     <tstamp/>
+
+    <!-- first, get the fully qualified path name for the classes dir -->
+    <pathconvert property="fully.qualified.build.classes">
+      <dirset dir="${basedir}" file="${build.classes}"/>
+    </pathconvert>
+    <!-- Now, compute which abbot files have been patched, as relative
+         path names in a comma-separated list -->
     <pathconvert property="overrideAbbotFiles" pathsep=",">
       <fileset dir="${build.classes}/" includes="abbot/"/>
-      <mapper type="glob" from="${build.classes}/*" to="*"/>
+      <mapper type="glob" from="${fully.qualified.build.classes}/*" to="*"/>
     </pathconvert>
-    <jar destfile="${jar.file}">
+
+    <!-- Now, build the main jar -->
+    <jar destfile="${jar.file}" update="false">
       <manifest>
         <attribute name="Specification-Version" value="${core.version}"/>
         <attribute name="Implementation-Version"
           value="${core.version} ${DSTAMP}"/>
         <attribute name="Main-Class" value="student.Version"/>
       </manifest>
-      <!-- temporarily, until we can confirm we have the most recent source -->
       <!-- We place the following files in the .jar:
             + all classes, except student/web/internal/tests and student/tests
             + Ostermiller's util.jar files
@@ -34,11 +42,12 @@
         <include name="**/*.class"/>
       </zipfileset>
       <zipfileset src="${build.lib}/abbot.jar"
-                  excludes="${overrideAbbotFiles}">
-        <include name="**/*.class"/>
-      </zipfileset>
+      	          includes="**/*.class"
+                  excludes="${overrideAbbotFiles}"/>
     </jar>
-    <jar destfile="${jar.web.file}">
+
+    <!-- Last, export everything but the excludes into student-web.jar -->
+    <jar destfile="${jar.web.file}" update="false">
       <zipfileset src="${jar.file}" excludes="${student.web.excludes}" />
     </jar>
   </target>
