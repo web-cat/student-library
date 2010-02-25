@@ -499,6 +499,138 @@ public class TestCase
 
     // ----------------------------------------------------------
     /**
+     * There is no assertion to compare ints with doubles, but autoboxing
+     * will allow you to compare them as objects, which is never desired,
+     * so this overloaded method flags the problem as a test case failure
+     * rather than letting it go undiagnosed.
+     * @param expected The expected value
+     * @param actual The actual value
+     */
+    public static void assertEquals(int expected, double actual)
+    {
+        fail("Your test case calls assertEquals() with an int (" + expected
+            + ") and a double (" + actual + "), but comparing them directly "
+            + "may give incorrect results.  Instead, use a type cast to call "
+            + "either assertEquals(int, int) or assertEquals(double, double, "
+            + "double).  Don't forget that comparing doubles takes a third "
+            + "argument indicating how close they have to be to be considered "
+            + "equal.");
+    }
+
+
+    // ----------------------------------------------------------
+    /**
+     * There is no assertion to compare ints with doubles, but autoboxing
+     * will allow you to compare them as objects, which is never desired,
+     * so this overloaded method flags the problem as a test case failure
+     * rather than letting it go undiagnosed.
+     * @param message  The message to use if the assertion fails
+     * @param expected The expected value
+     * @param actual   The actual value
+     */
+    public static void assertEquals(String message, int expected, double actual)
+    {
+        fail("Your test case calls assertEquals() with an int (" + expected
+            + ") and a double (" + actual + "), but comparing them directly "
+            + "may give incorrect results.  Instead, use a type cast to call "
+            + "either assertEquals(String, int, int) or assertEquals(String, "
+            + "double, double, "
+            + "double).  Don't forget that comparing doubles takes a third "
+            + "argument indicating how close they have to be to be considered "
+            + "equal.");
+    }
+
+
+    // ----------------------------------------------------------
+    /**
+     * There is no assertion to compare ints with doubles, but autoboxing
+     * will allow you to compare them as objects, which is never desired,
+     * so this overloaded method flags the problem as a test case failure
+     * rather than letting it go undiagnosed.
+     * @param expected The expected value
+     * @param actual The actual value
+     */
+    public static void assertEquals(double expected, int actual)
+    {
+        fail("Your test case calls assertEquals() with a double (" + expected
+            + ") and an int (" + actual + "), but comparing them directly "
+            + "may give incorrect results.  Instead, use a type cast to call "
+            + "either assertEquals(int, int) or assertEquals(double, double, "
+            + "double).  Don't forget that comparing doubles takes a third "
+            + "argument indicating how close they have to be to be considered "
+            + "equal.");
+    }
+
+
+    // ----------------------------------------------------------
+    /**
+     * There is no assertion to compare ints with doubles, but autoboxing
+     * will allow you to compare them as objects, which is never desired,
+     * so this overloaded method flags the problem as a test case failure
+     * rather than letting it go undiagnosed.
+     * @param message  The message to use if the assertion fails
+     * @param expected The expected value
+     * @param actual   The actual value
+     */
+    public static void assertEquals(String message, double expected, int actual)
+    {
+        fail("Your test case calls assertEquals() with a double (" + expected
+            + ") and an int (" + actual + "), but comparing them directly "
+            + "may give incorrect results.  Instead, use a type cast to call "
+            + "either assertEquals(String, int, int) or assertEquals(String, "
+            + "double, double, "
+            + "double).  Don't forget that comparing doubles takes a third "
+            + "argument indicating how close they have to be to be considered "
+            + "equal.");
+    }
+
+
+    // ----------------------------------------------------------
+    /**
+     * The assertion to compare two doubles requires three arguments, but
+     * autoboxing will instead the wrong assertion if you only provide two
+     * arguments.  This overloaded method flags the problem as a test case
+     * failure rather than letting it go undiagnosed.
+     * @param expected The expected value
+     * @param actual   The actual value
+     */
+    public static void assertEquals(double expected, double actual)
+    {
+        fail("Your test case calls assertEquals() with two doubles (" + expected
+            + " and " + actual + "), but comparing them directly "
+            + "may give incorrect results.  Instead, use assertEquals("
+            + "double, double, "
+            + "double).  Don't forget that comparing doubles takes a third "
+            + "argument indicating how close they have to be to be considered "
+            + "equal.");
+    }
+
+
+    // ----------------------------------------------------------
+    /**
+     * The assertion to compare two doubles requires three arguments, but
+     * autoboxing will instead the wrong assertion if you only provide two
+     * arguments.  This overloaded method flags the problem as a test case
+     * failure rather than letting it go undiagnosed.
+     * @param message  The message to use if the assertion fails
+     * @param expected The expected value
+     * @param actual   The actual value
+     */
+    public static void assertEquals(
+        String message, double expected, double actual)
+    {
+        fail("Your test case calls assertEquals() with two doubles (" + expected
+            + " and " + actual + "), but comparing them directly "
+            + "may give incorrect results.  Instead, use assertEquals(String, "
+            + "double, double, "
+            + "double).  Don't forget that comparing doubles takes a third "
+            + "argument indicating how close they have to be to be considered "
+            + "equal.");
+    }
+
+
+    // ----------------------------------------------------------
+    /**
      * Takes a string and, if it is too long, shortens it by replacing the
      * middle with an ellipsis.  For example, calling <code>compact("hello
      * there", 6, 3)</code> will return "hel...ere".
