@@ -245,18 +245,11 @@ public class FlexibleFieldSetConverter
                 {
                     if (fields.containsKey(fieldName))
                     {
-                        // Be sure to ignore values of unrecognized types,
-                        // which are placeholders for objects created from
-                        // classes that are not available in the current
-                        // class loader
-                        if (! (value instanceof UnrecognizedClass))
-                        {
-                            reflectionProvider.writeField(
-                                result,
-                                fieldName,
-                                fields.get(fieldName),
-                                definedIn);
-                        }
+                        reflectionProvider.writeField(
+                            result,
+                            fieldName,
+                            fields.get(fieldName),
+                            definedIn);
                     }
                     else
                     {
