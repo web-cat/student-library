@@ -276,12 +276,14 @@ public class TestCase
                         + "in() before its contents have been set");
                 }
             };
-            tcIn = new Scanner(tcInBuf);
         }
         else
         {
             tcInBuf.resetContents(contents);
         }
+        // Note that this doesn't reset the existing scanner if any
+        // code still has a reference to it.
+        tcIn = new Scanner(tcInBuf);
     }
 
 
