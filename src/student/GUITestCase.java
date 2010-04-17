@@ -663,7 +663,7 @@ public class GUITestCase
      * @param x    The x-coordinate of the click location.
      * @param y    The y-coordinate of the click location.
      */
-    public void doubeClick(Component component, int x, int y)
+    public void doubleClick(Component component, int x, int y)
     {
         click(component, x, y, InputEvent.BUTTON1_MASK, 2);
     }
