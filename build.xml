@@ -55,7 +55,7 @@
 
   <target name="find.external.jars"
   	description="Downloads all of the external jar dependencies"
-  	depends="get.objectdraw, get.xstream, get.junit, get.abbot,
+  	depends="get.objectdraw, get.acm, get.xstream, get.junit, get.abbot,
   	         get.ostermiller, get.zrss, get.tagsoup,
   	         get.eddie" />
 
@@ -96,6 +96,18 @@
   <target name="get.objectdraw" depends="check.objectdraw" if="need.objectdraw">
     <get usetimestamp="true" dest="${build.lib}/objectdraw.jar"
       src="${objectdraw.download.url}" />
+  </target>
+
+  <target name="check.acm">
+    <condition property="need.acm">
+      <not>
+        <available file="${build.lib}/acm.jar" />
+      </not>
+    </condition>
+  </target>
+  <target name="get.acm" depends="check.acm" if="need.acm">
+    <get usetimestamp="true" dest="${build.lib}/acm.jar"
+      src="${acm.download.url}" />
   </target>
 
   <target name="check.xstream">
