@@ -41,7 +41,7 @@ package student;
  *  </pre>
  *
  *  @author Stephen Edwards
- *  @version 4.00
+ *  @version 4.01
  *  @author Last changed by $Author$
  *  @version $Revision$, $Date$
  */
@@ -50,7 +50,7 @@ public class Version
     //~ Instance/static variables .............................................
 
     // These fields are used for overridable world startup
-    private static final String version = "v4.00 $Date$";
+    private static final String version = "v4.01 $Date$";
 
 
     //~ Constructors ..........................................................
