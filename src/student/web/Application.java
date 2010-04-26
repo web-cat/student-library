@@ -548,7 +548,7 @@ public abstract class Application
         assert !(object instanceof Class) :
             "The object to reload cannot be a class; perhaps you wanted "
             + "to provide an instance of this class instead?";
-        return reloadApplicationObject(id + SEPARATOR + objectId, object);
+        return reloadPersistentObject(id + SEPARATOR + objectId, object);
     }
 
 
