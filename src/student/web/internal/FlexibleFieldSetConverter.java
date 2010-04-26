@@ -108,15 +108,20 @@ public class FlexibleFieldSetConverter
                 + "to your application");
         }
         writer.addAttribute("fieldset", "true");
+        String path = getPath(writer);
+        Object oldSnapshotFromPath = oldSnapshots.get(path);
         Map<String, Object> fields = objectToFieldMap(source);
-        if (oldSnapshots != null && oldSnapshots.containsKey(source))
+        if (oldSnapshots != null && oldSnapshots.containsKey(source)
+            && oldSnapshotFromPath != null
+            && snapshots != null
+            && oldSnapshotFromPath.equals(snapshots.get(path)))
         {
             fields = difference(oldSnapshots.get(source), fields);
         }
         Map<String, Object> toStore = fields;
 //        System.out.println("Field changes for object " + source);
 //        System.out.println("    " + fields);
-        String path = getPath(writer);
+
         if (snapshots != null && path != null && snapshots.containsKey(path))
         {
             toStore = new TreeMap<String, Object>(snapshots.get(path));
