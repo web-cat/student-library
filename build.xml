@@ -42,8 +42,7 @@
         <include name="**/*.class"/>
       </zipfileset>
       <zipfileset src="${build.lib}/abbot.jar"
-      	          includes="**/*.class"
-                  excludes="${overrideAbbotFiles}"/>
+                  excludes="META-INF/,${overrideAbbotFiles}"/>
     </jar>
 
     <!-- Last, export everything but the excludes into student-web.jar -->
