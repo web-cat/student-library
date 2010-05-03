@@ -31,7 +31,7 @@ import com.thoughtworks.xstream.io.HierarchicalStreamReader;
 import com.thoughtworks.xstream.io.HierarchicalStreamWriter;
 import com.thoughtworks.xstream.io.path.PathTracker;
 import com.thoughtworks.xstream.mapper.Mapper;
-import java.util.HashMap;
+import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.TreeMap;
 
@@ -91,7 +91,7 @@ public class FlexibleFieldSetConverter
     // ----------------------------------------------------------
     public void clearSnapshots()
     {
-        snapshots = new HashMap<Object, Map<String, Object>>();
+        snapshots = new IdentityHashMap<Object, Map<String, Object>>();
     }
 
 
@@ -324,7 +324,7 @@ public class FlexibleFieldSetConverter
             System.out.println("cannot access pathTracker");
             e.printStackTrace();
         }
-        return path;
+        return path.intern();
     }
 
 

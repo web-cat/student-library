@@ -28,8 +28,8 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
-import java.util.HashMap;
 import java.util.HashSet;
+import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.WeakHashMap;
@@ -255,7 +255,7 @@ public class PersistentStorageManager
             id,
             sanitizeId(id),
             object,
-            new HashMap<Object, Map<String, Object>>(),
+            new IdentityHashMap<Object, Map<String, Object>>(),
             0L);
         storePersistentObjectChanges(id, stored, loader);
         return stored;
