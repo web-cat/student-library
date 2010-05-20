@@ -21,6 +21,39 @@
 
 package student;
 
+import java.awt.Color;
+import java.awt.Component;
+import java.awt.Dimension;
+import java.awt.Frame;
+import java.awt.Point;
+import java.awt.Window;
+import java.awt.event.InputEvent;
+import java.awt.event.KeyEvent;
+import java.io.File;
+import java.io.PrintStream;
+import java.io.PrintWriter;
+import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Modifier;
+import java.security.AccessController;
+import java.security.PrivilegedAction;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+
+import javax.swing.JButton;
+import javax.swing.JColorChooser;
+import javax.swing.JComboBox;
+import javax.swing.JFileChooser;
+import javax.swing.JList;
+import javax.swing.JMenuItem;
+import javax.swing.JOptionPane;
+import javax.swing.JTextField;
+import javax.swing.SwingUtilities;
+import javax.swing.text.JTextComponent;
+
+import net.sf.webcat.ReflectionSupport;
+import student.testingsupport.GUIFilter;
 import abbot.finder.BasicFinder;
 import abbot.finder.ComponentFinder;
 import abbot.finder.ComponentNotFoundException;
@@ -38,28 +71,6 @@ import abbot.tester.JTextComponentTester;
 import abbot.tester.Robot;
 import abbot.tester.WindowTracker;
 import abbot.util.AWTFixtureHelper;
-import java.awt.Component;
-import java.awt.Dimension;
-import java.awt.Frame;
-import java.awt.Point;
-import java.awt.Window;
-import java.awt.event.InputEvent;
-import java.awt.event.KeyEvent;
-import java.io.PrintStream;
-import java.io.PrintWriter;
-import java.lang.reflect.Field;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Modifier;
-import java.security.AccessController;
-import java.security.PrivilegedAction;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import javax.swing.JComboBox;
-import javax.swing.JList;
-import javax.swing.JMenuItem;
-import javax.swing.text.JTextComponent;
-import student.testingsupport.GUIFilter;
 
 //-------------------------------------------------------------------------
 /**
@@ -1303,6 +1314,57 @@ public class GUITestCase
     {
         return hierarchy;
     }
+    
+    public void showMessageDialog(final Component parent, final Object message)
+    {
+        try
+        {
+            SwingUtilities.invokeAndWait(new Runnable()
+            {
+                public void run()
+                {
+                    JOptionPane.showMessageDialog(parent, message);       
+                }
+            });
+        }
+        catch ( InterruptedException e )
+        {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+        catch ( InvocationTargetException e )
+        {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+    }
+    
+    private String answer;
+    public String showInputDialog(final Object message)
+    {
+        try
+        {
+            SwingUtilities.invokeAndWait(new Runnable()
+            {
+                public void run()
+                {
+                    answer = JOptionPane.showInputDialog(message);
+                }
+                
+            });
+        }
+        catch ( InterruptedException e )
+        {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+        catch ( InvocationTargetException e )
+        {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+        return answer;
+    }
 
 
     // ----------------------------------------------------------
@@ -1345,6 +1407,209 @@ public class GUITestCase
         public void printStackTrace(PrintWriter p)
         {
             getTargetException().printStackTrace(p);
+        }
+    }
+    
+    /**
+     * Calls a runnable using SwingUtilities.invokeAndWait so the runnable runs 
+     * in the event thread.
+     * @param r The runnable to run
+     */
+    public void callGUIIOMethod(Runnable r)
+    {
+        try
+        {
+            SwingUtilities.invokeAndWait(r);
+        }
+        catch ( InterruptedException e )
+        {
+            e.printStackTrace();
+        }
+        catch ( InvocationTargetException e )
+        {
+            e.printStackTrace();
+        }
+    }
+    
+    /**
+     * Calls a method and runs it in the event thread using reflection
+     * @param reciever the object to call the method on
+     * @param methodName the name of the method to call
+     * @param params any parameters to the method
+     */
+    public void callGUIIOMethod(final Object reciever, final String methodName, final Object ... params)
+    {
+        callGUIIOMethod(new Runnable()
+        {
+            public void run()
+            {
+                ReflectionSupport.invoke(reciever, methodName, params);   
+            }   
+        });
+    }
+    /**
+     * Calls a method and runs in the event thread
+     * @param receiver the object to call the method on
+     * @param returnType the return type of the method
+     * @param methodName the name of the method
+     * @param params any parameters to the method
+     * @return
+     */
+    public <T> T callGUIIOMethod(final Object receiver, final Class<T> returnType, final String methodName, final Object ... params)
+    {
+        class RunnableWithResult implements Runnable
+        {
+            private Object result;
+            
+            public void run()
+            {
+                result = ReflectionSupport.invoke(receiver, returnType, methodName, params);
+            }
+        
+            public Object getResult()
+            {
+                return result;
+            }
+        }
+
+        RunnableWithResult runnable = new RunnableWithResult();
+        callGUIIOMethod(runnable);
+        return (T) runnable.getResult();
+    }
+    
+    /**
+     * Assuming that a JFileChoosers is currently open, selects the given file
+     * and closes the JFileChooser
+     * @param fileName the name of the file to choose
+     */
+    public void selectFileInChooser(String fileName)
+    {
+        final JFileChooser chooser = getComponent(JFileChooser.class);
+        final File file = new File(fileName);
+      
+        try
+        {
+            SwingUtilities.invokeAndWait(new Runnable()
+            {
+                public void run()
+                {
+                    chooser.setSelectedFile(file);
+                    chooser.approveSelection();            
+                }
+            });
+        }
+        catch ( InterruptedException e )
+        {
+            e.printStackTrace();
+        }
+        catch ( InvocationTargetException e )
+        {
+            e.printStackTrace();
+        }
+    }
+    
+    /**
+     * Assuming that a JColorChooser is currently open, chooses the given
+     * color and closes the JColorChooser
+     * @param color the color to choose in the JColorChooser
+     */
+    public void selectColorInChooser(final Color color)
+    {
+        final JColorChooser chooser = getComponent(JColorChooser.class);
+        final JButton okButton = getComponent(JButton.class, where.textIs("OK"));
+        
+        try
+        {
+            SwingUtilities.invokeAndWait(new Runnable()
+            {
+                public void run()
+                {
+                    chooser.setColor(color);
+                    okButton.doClick();
+                }
+            });
+        }
+        catch ( InterruptedException e )
+        {
+            e.printStackTrace();
+        }
+        catch ( InvocationTargetException e )
+        {
+            e.printStackTrace();
+        }
+        
+    }
+    
+    /**
+     * Assuming that a confirmation style JOptionPane is currenlty open,
+     * clicks the button corresponding to the optionCode given
+     * @param optionCode The option code to determine which button to click
+     *  JOptionPane.YES_OPTION for the yes button, JOptionPane.NO_OPTION for
+     *  the no button, or JOptionPane.CANCEL_OPTION for cancel
+     */
+    public void selectConfirmDialogOption(final int optionCode)
+    {
+        final JButton yesButton = getComponent(JButton.class, where.textIs("Yes"));
+        final JButton noButton = getComponent(JButton.class, where.textIs("No"));
+        final JButton cancelButton = getComponent(JButton.class, where.textIs("Cancel"));
+        try
+        {
+            SwingUtilities.invokeAndWait(new Runnable()
+            {
+
+                public void run()
+                {   
+                    if(optionCode == JOptionPane.YES_OPTION)
+                        yesButton.doClick();
+                    else if(optionCode == JOptionPane.NO_OPTION)
+                        noButton.doClick();
+                    else
+                        cancelButton.doClick();
+                }
+                
+            });
+        }
+        catch ( InterruptedException e )
+        {
+            e.printStackTrace();
+        }
+        catch ( InvocationTargetException e )
+        {
+            e.printStackTrace();
+        }
+    }
+    
+    /**
+     * Assuming an input style JOptionPane is currently open, enters the given text
+     * and closes the JOptionPane
+     * @param text the text to enter into the JOptionPane
+     */
+    public void setInputDialogText(final String text)
+    {
+        JOptionPane pane = getComponent(JOptionPane.class);
+        JTextField f = getComponent(JTextField.class);
+        f.setText(text);
+        final JButton okButton = getComponent(JButton.class, where.textIs("OK"));
+        
+        try
+        {
+            SwingUtilities.invokeAndWait(new Runnable()
+            {
+
+                public void run()
+                {
+                    okButton.doClick();
+                }
+                
+            });
+        }
+        catch ( InterruptedException e )
+        {
+            e.printStackTrace();
+        }
+        catch ( InvocationTargetException e )
+        {
+            e.printStackTrace();
         }
     }
 
