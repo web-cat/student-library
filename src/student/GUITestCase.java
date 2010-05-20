@@ -25,6 +25,7 @@ import java.awt.Color;
 import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.Frame;
+import java.awt.GridBagLayout;
 import java.awt.Point;
 import java.awt.Window;
 import java.awt.event.InputEvent;
@@ -48,6 +49,7 @@ import javax.swing.JFileChooser;
 import javax.swing.JList;
 import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
+import javax.swing.JPanel;
 import javax.swing.JTextField;
 import javax.swing.SwingUtilities;
 import javax.swing.text.JTextComponent;
@@ -431,7 +433,7 @@ public class GUITestCase
         }
         catch (MultipleComponentsFoundException e)
         {
-            fail("Found " + e.getComponents().length + "components matching: "
+            fail("Found " + e.getComponents().length + " components matching: "
                 + filter);
         }
         return result;
@@ -1494,7 +1496,7 @@ public class GUITestCase
                 public void run()
                 {
                     chooser.setSelectedFile(file);
-                    chooser.approveSelection();            
+                    chooser.approveSelection();  
                 }
             });
         }
@@ -1517,6 +1519,7 @@ public class GUITestCase
     {
         final JColorChooser chooser = getComponent(JColorChooser.class);
         final JButton okButton = getComponent(JButton.class, where.textIs("OK"));
+        System.out.println(okButton.getParent());
         
         try
         {
@@ -1549,9 +1552,14 @@ public class GUITestCase
      */
     public void selectConfirmDialogOption(final int optionCode)
     {
-        final JButton yesButton = getComponent(JButton.class, where.textIs("Yes"));
-        final JButton noButton = getComponent(JButton.class, where.textIs("No"));
-        final JButton cancelButton = getComponent(JButton.class, where.textIs("Cancel"));
+        final JOptionPane pane = getComponent(JOptionPane.class);
+        final JPanel panel = getComponent(JPanel.class, where.nameIs("OptionPane.buttonArea"));
+        final JButton yesButton = getComponent(JButton.class, where.textIs("Yes")
+            .and.parentIs(panel));
+        final JButton noButton = getComponent(JButton.class, where.textIs("No")
+            .and.parentIs(panel));
+        final JButton cancelButton = getComponent(JButton.class, where.textIs("Cancel")
+            .and.parentIs(panel));
         try
         {
             SwingUtilities.invokeAndWait(new Runnable()
@@ -1586,8 +1594,22 @@ public class GUITestCase
      */
     public void setInputDialogText(final String text)
     {
-        JOptionPane pane = getComponent(JOptionPane.class);
-        JTextField f = getComponent(JTextField.class);
+        final JOptionPane pane = getComponent(JOptionPane.class);
+        
+        //The JOptionPane has 2 panels, 1 for buttons and one for everything else
+        List<JPanel> panels = getAllComponentsMatching(JPanel.class, where.parentIs(pane));
+        
+        //First we want the one that has no name, the other is named OptionPane.buttonArea
+        final JPanel firstPanel = (panels.get(0).getName() == null ? panels.get(0) : panels.get(1));
+        
+        //The panel we actually want is one of the children of firstPanel so get all those
+        panels = getAllComponentsMatching(JPanel.class, where.parentIs(firstPanel));
+        
+        //firstPanel has 2 children panels. the one we want has a GridBagLayout
+        final JPanel secondPanel = (panels.get(0).getLayout() instanceof GridBagLayout ? panels.get(0) : panels.get(1));
+        
+        //All that just in case theres another JTextField on the GUI somewhere
+        JTextField f = getComponent(JTextField.class, where.parentIs(secondPanel));
         f.setText(text);
         final JButton okButton = getComponent(JButton.class, where.textIs("OK"));
         
