@@ -426,6 +426,18 @@ public abstract class GUIFilter
         {
             return applySelfTo(GUIFilter.isContainedWithin(region));
         }
+        
+        /**
+        * Create a filter that checks a component's parent
+        * @param parent the parent component of the component being checked
+        * @return A new filter that succeeds only on components that
+        *         are children of parent
+        * 
+        */
+        public GUIFilter parentIs(final Component parent)
+        {
+            return applySelfTo(GUIFilter.parentIs(parent));
+        }
 
 
         // ----------------------------------------------------------
@@ -879,6 +891,18 @@ public abstract class GUIFilter
             public boolean test(Component component)
             {
                 return aClass.isAssignableFrom(component.getClass());
+            }
+        };
+        return gf;
+    }
+    
+    private static GUIFilter parentIs(final Component parent)
+    {
+        GUIFilter gf = new GUIFilter("parent is " + parent)
+        {
+            public boolean test(Component component)
+            {
+                return component.getParent() == parent;
             }
         };
         return gf;
