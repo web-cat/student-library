@@ -25,7 +25,6 @@ import java.awt.Color;
 import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.Frame;
-import java.awt.GridBagLayout;
 import java.awt.Point;
 import java.awt.Window;
 import java.awt.event.InputEvent;
@@ -73,6 +72,7 @@ import abbot.tester.JTextComponentTester;
 import abbot.tester.Robot;
 import abbot.tester.WindowTracker;
 import abbot.util.AWTFixtureHelper;
+import acm.util.JTFTools;
 
 //-------------------------------------------------------------------------
 /**
@@ -1508,6 +1508,8 @@ public class GUITestCase
         {
             e.printStackTrace();
         }
+        JTFTools.pause(50);
+
     }
     
     /**
@@ -1518,8 +1520,10 @@ public class GUITestCase
     public void selectColorInChooser(final Color color)
     {
         final JColorChooser chooser = getComponent(JColorChooser.class);
-        final JButton okButton = getComponent(JButton.class, where.textIs("OK"));
-        System.out.println(okButton.getParent());
+        JPanel panel = (JPanel)chooser.getParent();
+        JPanel panel2 = getComponent(JPanel.class, where.parentIs(panel));
+        
+        final JButton okButton = getComponent(JButton.class, where.textIs("OK").and.parentIs(panel2));
         
         try
         {
@@ -1540,6 +1544,8 @@ public class GUITestCase
         {
             e.printStackTrace();
         }
+        JTFTools.pause(50);
+
         
     }
     
@@ -1552,7 +1558,6 @@ public class GUITestCase
      */
     public void selectConfirmDialogOption(final int optionCode)
     {
-        final JOptionPane pane = getComponent(JOptionPane.class);
         final JPanel panel = getComponent(JPanel.class, where.nameIs("OptionPane.buttonArea"));
         final JButton yesButton = getComponent(JButton.class, where.textIs("Yes")
             .and.parentIs(panel));
@@ -1585,6 +1590,9 @@ public class GUITestCase
         {
             e.printStackTrace();
         }
+        JTFTools.pause(50);
+
+        
     }
     
     /**
@@ -1593,25 +1601,17 @@ public class GUITestCase
      * @param text the text to enter into the JOptionPane
      */
     public void setInputDialogText(final String text)
-    {
-        final JOptionPane pane = getComponent(JOptionPane.class);
+    {        
+        //grab the text field on the JOptionPane by name
+        JTextField f = getComponent(JTextField.class, where.nameIs("OptionPane.textField"));
         
-        //The JOptionPane has 2 panels, 1 for buttons and one for everything else
-        List<JPanel> panels = getAllComponentsMatching(JPanel.class, where.parentIs(pane));
-        
-        //First we want the one that has no name, the other is named OptionPane.buttonArea
-        final JPanel firstPanel = (panels.get(0).getName() == null ? panels.get(0) : panels.get(1));
-        
-        //The panel we actually want is one of the children of firstPanel so get all those
-        panels = getAllComponentsMatching(JPanel.class, where.parentIs(firstPanel));
-        
-        //firstPanel has 2 children panels. the one we want has a GridBagLayout
-        final JPanel secondPanel = (panels.get(0).getLayout() instanceof GridBagLayout ? panels.get(0) : panels.get(1));
-        
-        //All that just in case theres another JTextField on the GUI somewhere
-        JTextField f = getComponent(JTextField.class, where.parentIs(secondPanel));
+        //grab the panel that holds the buttons by name
+        //we need this so we can use the parentIs() filter to find the button
+        //in case there are other buttons with text "OK"
+        JPanel panel = getComponent(JPanel.class, where.nameIs("OptionPane.buttonArea"));
         f.setText(text);
-        final JButton okButton = getComponent(JButton.class, where.textIs("OK"));
+        
+        final JButton okButton = getComponent(JButton.class, where.textIs("OK").and.parentIs(panel));
         
         try
         {
@@ -1633,6 +1633,8 @@ public class GUITestCase
         {
             e.printStackTrace();
         }
+        
+        JTFTools.pause(50);
     }
 
 
