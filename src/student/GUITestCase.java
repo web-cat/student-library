@@ -1508,7 +1508,7 @@ public class GUITestCase
         {
             e.printStackTrace();
         }
-        JTFTools.pause(50);
+        sleep();
 
     }
     
@@ -1544,8 +1544,7 @@ public class GUITestCase
         {
             e.printStackTrace();
         }
-        JTFTools.pause(50);
-
+        sleep();
         
     }
     
@@ -1590,8 +1589,7 @@ public class GUITestCase
         {
             e.printStackTrace();
         }
-        JTFTools.pause(50);
-
+        sleep();
         
     }
     
@@ -1634,7 +1632,7 @@ public class GUITestCase
             e.printStackTrace();
         }
         
-        JTFTools.pause(50);
+        sleep();
     }
 
 
