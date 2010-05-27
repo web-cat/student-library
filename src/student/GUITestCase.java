@@ -1470,11 +1470,15 @@ public class GUITestCase
      */
     public void selectColorInChooser(final Color color)
     {
+        //get the JColorChooser itself
         final JColorChooser chooser = getComponent(JColorChooser.class);
-        JPanel panel = (JPanel)chooser.getParent();
-        JPanel panel2 = getComponent(JPanel.class, where.parentIs(panel));
-        
-        final JButton okButton = getComponent(JButton.class, where.textIs("OK").and.parentIs(panel2));
+        //the button panel is actually a sibling component of the color chooser
+        //so first get the color chooser's parent
+        JPanel chooserParent = (JPanel)chooser.getParent();
+        //then find the button panel by using chooserParent 
+        JPanel buttonPanel = getComponent(JPanel.class, where.parentIs(chooserParent));
+        //finally find the button labeled "OK" on the buttonPanel
+        final JButton okButton = getComponent(JButton.class, where.textIs("OK").and.parentIs(buttonPanel));
         
         try
         {
