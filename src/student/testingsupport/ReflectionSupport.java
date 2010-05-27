@@ -316,6 +316,15 @@ public class ReflectionSupport
 
 
     // ----------------------------------------------------------
+    /**
+     * Determine whether it is appropriate to attempt to "auto-box" an
+     * actual argument of type <code>actual</code> into a formal parameter
+     * type <code>formal</code>.
+     * @param actual The type of the actual value.
+     * @param formal The type of the formal parameter.
+     * @return True if it is appropriate to auto-box the actual into the
+     * type of the formal.
+     */
     public static boolean canAutoBoxFromActualToFormal(
         Class<?> actual, Class<?> formal)
     {
