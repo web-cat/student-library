@@ -1301,6 +1301,7 @@ public class GUITestCase
                 throw new RuntimeException(e);
             }
         }
+        getRobot().waitForIdle();
     }
 
 
