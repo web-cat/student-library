@@ -438,6 +438,17 @@ public abstract class GUIFilter
         {
             return applySelfTo(GUIFilter.parentIs(parent));
         }
+        
+        /**
+         * Create a filter that checks a component's ancestor
+         * @param ancestor one of the ancestors of the component being checked
+         * @return A new filter that succeeds only on components that
+         *         are descendants of ancestor
+         */
+        public GUIFilter ancestorIs(final Component ancestor)
+        {
+            return applySelfTo(GUIFilter.ancestorIs(ancestor));
+        }
 
 
         // ----------------------------------------------------------
@@ -903,6 +914,27 @@ public abstract class GUIFilter
             public boolean test(Component component)
             {
                 return component.getParent() == parent;
+            }
+        };
+        return gf;
+    }
+    
+    private static GUIFilter ancestorIs(final Component ancestor)
+    {
+        GUIFilter gf = new GUIFilter("ancestor is " + ancestor)
+        {
+            public boolean test(Component component)
+            {
+                Component c = component;
+                while(c != null)
+                {
+                    if(c.getParent() == ancestor)
+                        return true;
+                    else 
+                        c = c.getParent();
+                }
+                return false;
+                
             }
         };
         return gf;
