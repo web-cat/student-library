@@ -52,10 +52,25 @@ public class AnimatedIcon
     private final static int DEFAULT_DELAY = 500;
     private final static int DEFAULT_CYCLES = -1;
 
+    /** A constant representing alignment with the top edge of a container. */
     public final static float TOP = 0.0f;
+
+    /** A constant representing alignment with the left edge of a container. */
     public final static float LEFT = 0.0f;
+
+    /** A constant representing alignment in the middle of a container. */
     public final static float CENTER = 0.5f;
+
+    /**
+     * A constant representing alignment with the bottom edge of a
+     * container.
+     */
     public final static float BOTTOM = 1.0f;
+
+    /**
+     * A constant representing alignment with the right edge of a
+     * container.
+     */
     public final static float RIGHT = 1.0f;
 
     private JComponent component;
@@ -142,7 +157,7 @@ public class AnimatedIcon
     /**
      *  Add Icons to be used in the animation.
      *
-     *  @param icon  the icons to be added
+     *  @param icons  the icons to be added
      */
     public void addIcon(Icon... icons)
     {
@@ -510,7 +525,7 @@ public class AnimatedIcon
      *  Typically this method, along with the isCycleCompleted() method, would
      *  be extended to provide a custom animation sequence.
      *
-     *  @param index  the index of the Icon currently displayed
+     *  @param currentIndex  the index of the Icon currently displayed
      *  @param iconCount  the number of Icons to be displayed
      *  @return  the index of the next Icon to be displayed
      */
@@ -530,7 +545,7 @@ public class AnimatedIcon
      *  Typically this method, along with the getNextIconIndex() method, would
      *  be extended to provide a custom animation sequence.
      *
-     *  @param index  the index of the Icon currently displayed
+     *  @param currentIndex  the index of the Icon currently displayed
      *  @param iconCount the number of Icons to be displayed
      *  @return  the index of the next Icon to be displayed
      */
