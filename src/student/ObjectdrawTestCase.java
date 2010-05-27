@@ -99,7 +99,7 @@ public class ObjectdrawTestCase
      *             also the way you specify the return type of this method.
      * @return The single instance of the desired type that was found
      *         (otherwise, a test case failure results).
-     * @see #getFirstDrawabletMatching(Class)
+     * @see #getFirstDrawableMatching(Class)
      * @see #getAllDrawablesMatching(Class)
      */
     public <T extends DrawableInterface> T getDrawable(Class<T> type)
@@ -298,7 +298,7 @@ public class ObjectdrawTestCase
     {
         @SuppressWarnings("unchecked")
         List<T> result =
-            (List<T>)getAllDrawablesMatching(type, where.typeIs(type));
+            (List<T>)getAllDrawablesMatching(where.typeIs(type));
         return result;
     }
 
