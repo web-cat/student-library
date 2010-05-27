@@ -48,7 +48,7 @@ import objectdraw.*;
  *  import static student.testingsupport.ODFilter.ClientImports.*;
  *  </pre>
  *  <p>
- *  Note that the {@link student.ODTestCase} class already re-exports the
+ *  Note that the {@link student.ObjectdrawTestCase} class already re-exports the
  *  items defined in the {@link ClientImports} nested class, so OD test
  *  cases should <em>not</em> include the static import.
  *  </p>
@@ -62,7 +62,7 @@ import objectdraw.*;
  *  Often, a filter object is created solely for the purpose of passing
  *  the filter into some other operation, such as a search operation.  For
  *  example, the student.ODTestCase class provides a
- *  {@link student.ODTestCase#getDrawable(Class,ODFilter) getDrawable()}
+ *  {@link student.ObjectdrawTestCase#getDrawable(Class,ObjectdrawFilter) getDrawable()}
  *  method that takes a filter as a parameter.  For the examples below, we
  *  will use <code>getDrawable()</code> as the context, specifying each
  *  filter as an argument value in a call to that method.
@@ -130,7 +130,7 @@ import objectdraw.*;
  *  @author Last changed by $Author$
  *  @version $Revision$, $Date$
  */
-public abstract class ODFilter
+public abstract class ObjectdrawFilter
 {
     //~ Instance/static variables .............................................
 
@@ -147,7 +147,7 @@ public abstract class ODFilter
      * @param description A string description of this filter, used in
      *                    {@link #toString()}.
      */
-    protected ODFilter(String description)
+    protected ObjectdrawFilter(String description)
     {
         this.description = description;
     }
@@ -167,7 +167,7 @@ public abstract class ODFilter
      * This operator is implemented as a public field so that the simple
      * <code>.and.</code> notation can be used as a connective between
      * filters.  If you want to use parentheses for grouping to define
-     * the right argument, see {@link #and(ODFilter)} instead.
+     * the right argument, see {@link #and(ObjectdrawFilter)} instead.
      */
     public final BinaryOperator and = new BinaryOperator() {
         // ----------------------------------------------------------
@@ -195,7 +195,7 @@ public abstract class ODFilter
      * This operator is implemented as a public field so that the simple
      * <code>.or.</code> notation can be used as a connective between
      * filters.  If you want to use parentheses for grouping to define
-     * the right argument, see {@link #or(ODFilter)} instead.
+     * the right argument, see {@link #or(ObjectdrawFilter)} instead.
      */
     public final BinaryOperator or = new BinaryOperator() {
         // ----------------------------------------------------------
@@ -236,9 +236,9 @@ public abstract class ODFilter
          *         <code>getText()</code> is a valid method and 
          *         returns the specified text.
          */
-        public ODFilter textIs(final String text)
+        public ObjectdrawFilter textIs(final String text)
         {
-            return applySelfTo(ODFilter.textIs(text));
+            return applySelfTo(ObjectdrawFilter.textIs(text));
         }
 
 
@@ -251,9 +251,9 @@ public abstract class ODFilter
          * @return A new filter that only succeeds on instances of the
          *         given class.
          */
-        public ODFilter typeIs(final Class<? extends DrawableInterface> aClass)
+        public ObjectdrawFilter typeIs(final Class<? extends DrawableInterface> aClass)
         {
-            return applySelfTo(ODFilter.typeIs(aClass));
+            return applySelfTo(ObjectdrawFilter.typeIs(aClass));
         }
 
 
@@ -264,9 +264,9 @@ public abstract class ODFilter
          * @return A new filter that succeeds only on shapes that have
          *         the given width.
          */
-        public ODFilter widthIs(final int value)
+        public ObjectdrawFilter widthIs(final int value)
         {
-            return applySelfTo(ODFilter.widthIs(value));
+            return applySelfTo(ObjectdrawFilter.widthIs(value));
         }
 
 
@@ -277,9 +277,9 @@ public abstract class ODFilter
          * @return A new filter that succeeds only on shapes that have
          *         the given height.
          */
-        public ODFilter heightIs(final int value)
+        public ObjectdrawFilter heightIs(final int value)
         {
-            return applySelfTo(ODFilter.heightIs(value));
+            return applySelfTo(ObjectdrawFilter.heightIs(value));
         }
 
 
@@ -291,9 +291,9 @@ public abstract class ODFilter
          * @return A new filter that succeeds only on shapes that have
          *         the given size.
          */
-        public ODFilter sizeIs(final int width, final int height)
+        public ObjectdrawFilter sizeIs(final int width, final int height)
         {
-            return applySelfTo(ODFilter.sizeIs(width, height));
+            return applySelfTo(ObjectdrawFilter.sizeIs(width, height));
         }
 
 
@@ -305,9 +305,9 @@ public abstract class ODFilter
          * @return A new filter that succeeds only on shapes that have
          *         the given size.
          */
-        public ODFilter sizeIsWithin(final int maxWidth, final int maxHeight)
+        public ObjectdrawFilter sizeIsWithin(final int maxWidth, final int maxHeight)
         {
-            return applySelfTo(ODFilter.sizeIsWithin(maxWidth, maxHeight));
+            return applySelfTo(ObjectdrawFilter.sizeIsWithin(maxWidth, maxHeight));
         }
 
 
@@ -318,9 +318,9 @@ public abstract class ODFilter
          * @return A new filter that succeeds only on shapes that have
          *         the given x-coordinate.
          */
-        public ODFilter xLocationIs(final int x)
+        public ObjectdrawFilter xLocationIs(final int x)
         {
-            return applySelfTo(ODFilter.xLocationIs(x));
+            return applySelfTo(ObjectdrawFilter.xLocationIs(x));
         }
 
 
@@ -331,9 +331,9 @@ public abstract class ODFilter
          * @return A new filter that succeeds only on shapes that have
          *         the given y-coordinate.
          */
-        public ODFilter yLocationIs(final int y)
+        public ObjectdrawFilter yLocationIs(final int y)
         {
-            return applySelfTo(ODFilter.yLocationIs(y));
+            return applySelfTo(ObjectdrawFilter.yLocationIs(y));
         }
 
 
@@ -345,9 +345,9 @@ public abstract class ODFilter
          * @return A new filter that succeeds only on shapes that have
          *         the given location.
          */
-        public ODFilter locationIs(final int x, final int y)
+        public ObjectdrawFilter locationIs(final int x, final int y)
         {
-            return applySelfTo(ODFilter.locationIs(x, y));
+            return applySelfTo(ObjectdrawFilter.locationIs(x, y));
         }
 
 
@@ -359,9 +359,9 @@ public abstract class ODFilter
          * @return A new filter that succeeds only on components that have
          *         a location within the given region.
          */
-        public ODFilter isLocatedWithin(final Rectangle region)
+        public ObjectdrawFilter isLocatedWithin(final Rectangle region)
         {
-            return applySelfTo(ODFilter.isLocatedWithin(region));
+            return applySelfTo(ObjectdrawFilter.isLocatedWithin(region));
         }
 
 
@@ -376,9 +376,9 @@ public abstract class ODFilter
          *         lie entirely within the given region, as determined by
          *         {@link Rectangle#contains(Rectangle)}.
          */
-        public ODFilter isContainedWithin(final Rectangle region)
+        public ObjectdrawFilter isContainedWithin(final Rectangle region)
         {
-            return applySelfTo(ODFilter.isContainedWithin(region));
+            return applySelfTo(ObjectdrawFilter.isContainedWithin(region));
         }
         
         // ----------------------------------------------------------
@@ -388,9 +388,9 @@ public abstract class ODFilter
          * @return A new filter that succeeds only on shapes that are
          *  colored color.
          */
-        public ODFilter colorIs(final Color color)
+        public ObjectdrawFilter colorIs(final Color color)
         {
-            return applySelfTo(ODFilter.colorIs(color));
+            return applySelfTo(ObjectdrawFilter.colorIs(color));
         }
         
         // ----------------------------------------------------------
@@ -400,9 +400,9 @@ public abstract class ODFilter
          * @return A new filter that succeeds only if the shape's hidden value
          * matches hidden.
          */
-        public ODFilter hiddenIs(final boolean hidden)
+        public ObjectdrawFilter hiddenIs(final boolean hidden)
         {
-            return applySelfTo(ODFilter.hiddenIs(hidden));
+            return applySelfTo(ObjectdrawFilter.hiddenIs(hidden));
         }
         
         // ----------------------------------------------------------
@@ -412,9 +412,9 @@ public abstract class ODFilter
          * @param y the required y-coordinate
          * @return A new filter that succeeds only lines that start at (x, y)
          */
-        public ODFilter lineStartLocationIs(final int x, final int y)
+        public ObjectdrawFilter lineStartLocationIs(final int x, final int y)
         {
-            return applySelfTo(ODFilter.lineStartPointIs(new Location(x, y)));
+            return applySelfTo(ObjectdrawFilter.lineStartPointIs(new Location(x, y)));
         }
         
         /**
@@ -422,9 +422,9 @@ public abstract class ODFilter
          * @param location the required Location
          * @return A new filter that succeeds only for lines that start at location
          */
-        public ODFilter lineStartLocationIs(final Location location)
+        public ObjectdrawFilter lineStartLocationIs(final Location location)
         {
-            return applySelfTo(ODFilter.lineStartPointIs(location));
+            return applySelfTo(ObjectdrawFilter.lineStartPointIs(location));
         }
         
         /**
@@ -433,9 +433,9 @@ public abstract class ODFilter
          * @param y the required y-coordinate
          * @return A new filter that succeeds only for lines that end at (x, y)
          */
-        public ODFilter lineEndLocationIs(final int x, final int y)
+        public ObjectdrawFilter lineEndLocationIs(final int x, final int y)
         {
-            return applySelfTo(ODFilter.lineEndPointIs(new Location(x, y)));
+            return applySelfTo(ObjectdrawFilter.lineEndPointIs(new Location(x, y)));
         }
         
         /**
@@ -443,9 +443,9 @@ public abstract class ODFilter
          * @param location the required Location
          * @return A new filter that succeeds only lines that end at location.
          */
-        public ODFilter lineEndLocationIs(final Location l)
+        public ObjectdrawFilter lineEndLocationIs(final Location l)
         {
-            return applySelfTo(ODFilter.lineEndPointIs(l));
+            return applySelfTo(ObjectdrawFilter.lineEndPointIs(l));
         }
         
         
@@ -461,7 +461,7 @@ public abstract class ODFilter
          * @return A new compound filter that includes the given argument
          *         as one subfilter, after applying this operator to it.
          */
-        protected abstract ODFilter applySelfTo(final ODFilter otherFilter);
+        protected abstract ObjectdrawFilter applySelfTo(final ObjectdrawFilter otherFilter);
 
     }
 
@@ -488,7 +488,7 @@ public abstract class ODFilter
          * @return A new filter that represents a combination of the left
          *         filter with "NOT otherFilter".
          */
-        public ODFilter not(final ODFilter otherFilter)
+        public ObjectdrawFilter not(final ObjectdrawFilter otherFilter)
         {
             return applySelfTo(primitiveNot(otherFilter));
         }
@@ -506,14 +506,14 @@ public abstract class ODFilter
          *         of the first and second filters.
          */
         @Override
-        protected ODFilter applySelfTo(final ODFilter otherFilter)
+        protected ObjectdrawFilter applySelfTo(final ObjectdrawFilter otherFilter)
         {
-            return new ODFilter(description(
-                ODFilter.this.toString(), otherFilter.toString()))
+            return new ObjectdrawFilter(description(
+                ObjectdrawFilter.this.toString(), otherFilter.toString()))
             {
                 public boolean test(DrawableInterface shape)
                 {
-                    return combine(ODFilter.this.test(shape),
+                    return combine(ObjectdrawFilter.this.test(shape),
                         otherFilter.test(shape));
                 }
             };
@@ -566,15 +566,15 @@ public abstract class ODFilter
      * to be used in expressions like
      * <code>where.nameIs("abc").and(enabledIs(true).or.hasFocusIs(true))</code>.
      * If you wish to use the <code>.and.</code> notation instead, leaving
-     * off the parentheses, see {@link BinaryOperator#and(ODFilter)}.
+     * off the parentheses, see {@link BinaryOperator#and(ObjectdrawFilter)}.
      *
      * @param otherFilter  The second argument to "and".
      * @return A new filter object that represents "this AND otherFilter".
      */
-    public final ODFilter and(final ODFilter otherFilter)
+    public final ObjectdrawFilter and(final ObjectdrawFilter otherFilter)
     {
-        final ODFilter self = this;
-        ODFilter gf =  new ODFilter("(" + this + " AND " + otherFilter + ")")
+        final ObjectdrawFilter self = this;
+        ObjectdrawFilter gf =  new ObjectdrawFilter("(" + this + " AND " + otherFilter + ")")
         {
             public boolean test(DrawableInterface shape)
             {
@@ -592,15 +592,15 @@ public abstract class ODFilter
      * to be used in expressions like
      * <code>where.heightIs(10).or(hiddenIs(true).and.widthIs(20))</code>.
      * If you wish to use the <code>.or.</code> notation instead, leaving
-     * off the parentheses, see {@link BinaryOperator#or(ODFilter)}.
+     * off the parentheses, see {@link BinaryOperator#or(ObjectdrawFilter)}.
      *
      * @param otherFilter  The second argument to "or".
      * @return A new filter object that represents "this OR otherFilter".
      */
-    public final ODFilter or(final ODFilter otherFilter)
+    public final ObjectdrawFilter or(final ObjectdrawFilter otherFilter)
     {
-        final ODFilter self = this;
-        ODFilter gf = new ODFilter("(" + this + " OR " + otherFilter + ")")
+        final ObjectdrawFilter self = this;
+        ObjectdrawFilter gf = new ObjectdrawFilter("(" + this + " OR " + otherFilter + ")")
         {
             public boolean test(DrawableInterface shape)
             {
@@ -643,7 +643,7 @@ public abstract class ODFilter
         public static final Operator where = new Operator() {
             // ----------------------------------------------------------
             @Override
-            protected ODFilter applySelfTo(ODFilter filter)
+            protected ObjectdrawFilter applySelfTo(ObjectdrawFilter filter)
             {
                 return filter;
             }
@@ -661,7 +661,7 @@ public abstract class ODFilter
          * @return A new filter that represents a combination of the left
          *         filter with "NOT otherFilter".
          */
-        public static ODFilter not(final ODFilter otherFilter)
+        public static ObjectdrawFilter not(final ObjectdrawFilter otherFilter)
         {
             return primitiveNot(otherFilter);
         }
@@ -671,9 +671,9 @@ public abstract class ODFilter
     //~ Private Methods/Declarations ..........................................
 
     // ----------------------------------------------------------
-    private static ODFilter textIs(final String text)
+    private static ObjectdrawFilter textIs(final String text)
     {
-        ODFilter gf = new ODFilter("text = \"" + text + "\"")
+        ObjectdrawFilter gf = new ObjectdrawFilter("text = \"" + text + "\"")
         {
             public boolean test(DrawableInterface shape)
             {
@@ -697,9 +697,9 @@ public abstract class ODFilter
 
 
     // ----------------------------------------------------------
-    private static final ODFilter widthIs(final int value)
+    private static final ObjectdrawFilter widthIs(final int value)
     {
-        ODFilter gf = new ODFilter("width = " + value)
+        ObjectdrawFilter gf = new ObjectdrawFilter("width = " + value)
         {
             public boolean test(DrawableInterface shape)
             {
@@ -713,9 +713,9 @@ public abstract class ODFilter
 
 
     // ----------------------------------------------------------
-    private static final ODFilter heightIs(final int value)
+    private static final ObjectdrawFilter heightIs(final int value)
     {
-        ODFilter gf = new ODFilter("height = " + value)
+        ObjectdrawFilter gf = new ObjectdrawFilter("height = " + value)
         {
             public boolean test(DrawableInterface shape)
             {
@@ -729,9 +729,9 @@ public abstract class ODFilter
 
 
     // ----------------------------------------------------------
-    private static final ODFilter sizeIs(final int width, final int height)
+    private static final ObjectdrawFilter sizeIs(final int width, final int height)
     {
-        ODFilter gf = new ODFilter("size = (" + width + ", " + height + ")")
+        ObjectdrawFilter gf = new ObjectdrawFilter("size = (" + width + ", " + height + ")")
         {
             public boolean test(DrawableInterface shape)
             {
@@ -746,10 +746,10 @@ public abstract class ODFilter
 
 
     // ----------------------------------------------------------
-    private static final ODFilter sizeIsWithin(
+    private static final ObjectdrawFilter sizeIsWithin(
         final int maxWidth, final int maxHeight)
     {
-        ODFilter gf = new ODFilter(
+        ObjectdrawFilter gf = new ObjectdrawFilter(
             "sizeIsWithin(" + maxWidth + ", " + maxHeight + ")")
         {
             public boolean test(DrawableInterface shape)
@@ -765,9 +765,9 @@ public abstract class ODFilter
 
 
     // ----------------------------------------------------------
-    private static final ODFilter xLocationIs(final int value)
+    private static final ObjectdrawFilter xLocationIs(final int value)
     {
-        ODFilter gf = new ODFilter("xLocation = " + value)
+        ObjectdrawFilter gf = new ObjectdrawFilter("xLocation = " + value)
         {
             public boolean test(DrawableInterface shape)
             {
@@ -781,9 +781,9 @@ public abstract class ODFilter
 
 
     // ----------------------------------------------------------
-    private static final ODFilter yLocationIs(final int value)
+    private static final ObjectdrawFilter yLocationIs(final int value)
     {
-        ODFilter gf = new ODFilter("yLocation = " + value)
+        ObjectdrawFilter gf = new ObjectdrawFilter("yLocation = " + value)
         {
             public boolean test(DrawableInterface shape)
             {
@@ -797,9 +797,9 @@ public abstract class ODFilter
 
 
     // ----------------------------------------------------------
-    private static final ODFilter locationIs(final int x, final int y)
+    private static final ObjectdrawFilter locationIs(final int x, final int y)
     {
-        ODFilter gf = new ODFilter("location = (" + x + ", " + y + ")")
+        ObjectdrawFilter gf = new ObjectdrawFilter("location = (" + x + ", " + y + ")")
         {
             public boolean test(DrawableInterface shape)
             {
@@ -816,9 +816,9 @@ public abstract class ODFilter
 
 
     // ----------------------------------------------------------
-    private static final ODFilter isLocatedWithin(final Rectangle region)
+    private static final ObjectdrawFilter isLocatedWithin(final Rectangle region)
     {
-        ODFilter gf = new ODFilter("isLocatedWithin(" + region + ")")
+        ObjectdrawFilter gf = new ObjectdrawFilter("isLocatedWithin(" + region + ")")
         {
             public boolean test(DrawableInterface shape)
             {
@@ -832,9 +832,9 @@ public abstract class ODFilter
 
 
     // ----------------------------------------------------------
-    private static final ODFilter isContainedWithin(final Rectangle region)
+    private static final ObjectdrawFilter isContainedWithin(final Rectangle region)
     {
-        ODFilter gf = new ODFilter("isContainedWithin(" + region + ")")
+        ObjectdrawFilter gf = new ObjectdrawFilter("isContainedWithin(" + region + ")")
         {
             public boolean test(DrawableInterface shape)
             {
@@ -850,9 +850,9 @@ public abstract class ODFilter
         return gf;
     }
     
-    private static final ODFilter hiddenIs(final boolean hidden)
+    private static final ObjectdrawFilter hiddenIs(final boolean hidden)
     {
-        ODFilter gf = new ODFilter("hidden is " + hidden + ".")
+        ObjectdrawFilter gf = new ObjectdrawFilter("hidden is " + hidden + ".")
         {
             public boolean test(DrawableInterface shape)
             {
@@ -864,9 +864,9 @@ public abstract class ODFilter
 
 
     // ----------------------------------------------------------
-    private static ODFilter typeIs(final Class<? extends DrawableInterface> aClass)
+    private static ObjectdrawFilter typeIs(final Class<? extends DrawableInterface> aClass)
     {
-        ODFilter gf = new ODFilter("type = " + aClass.getSimpleName())
+        ObjectdrawFilter gf = new ObjectdrawFilter("type = " + aClass.getSimpleName())
         {
             public boolean test(DrawableInterface shape)
             {
@@ -876,9 +876,9 @@ public abstract class ODFilter
         return gf;
     }
     
-    private static ODFilter colorIs(final Color color)
+    private static ObjectdrawFilter colorIs(final Color color)
     {
-        ODFilter odf = new ODFilter("color = " + color)
+        ObjectdrawFilter odf = new ObjectdrawFilter("color = " + color)
         {
             public boolean test(DrawableInterface shape)
             {
@@ -888,9 +888,9 @@ public abstract class ODFilter
         return odf;
     }
     
-    private static ODFilter lineStartPointIs(final Location l)
+    private static ObjectdrawFilter lineStartPointIs(final Location l)
     {
-        ODFilter odf = new ODFilter("line start point is (" 
+        ObjectdrawFilter odf = new ObjectdrawFilter("line start point is (" 
             + l.getX() + ", " + l.getY() +")")
         {
             public boolean test(DrawableInterface shape)
@@ -903,9 +903,9 @@ public abstract class ODFilter
         return odf;
     }
     
-    private static ODFilter lineEndPointIs(final Location l)
+    private static ObjectdrawFilter lineEndPointIs(final Location l)
     {
-        ODFilter odf = new ODFilter("line end point is (" 
+        ObjectdrawFilter odf = new ObjectdrawFilter("line end point is (" 
             + l.getX() + ", " + l.getY() +")")
         {
             public boolean test(DrawableInterface shape)
@@ -920,9 +920,9 @@ public abstract class ODFilter
 
 
     // ----------------------------------------------------------
-    private static final ODFilter primitiveNot(final ODFilter otherFilter)
+    private static final ObjectdrawFilter primitiveNot(final ObjectdrawFilter otherFilter)
     {
-        return new ODFilter("(NOT " + otherFilter + ")")
+        return new ObjectdrawFilter("(NOT " + otherFilter + ")")
         {
             public boolean test(DrawableInterface shape)
             {
