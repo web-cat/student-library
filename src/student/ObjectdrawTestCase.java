@@ -22,7 +22,7 @@ import junit.framework.Assert;
 import student.TestCase;
 import student.GUITestCase.EventDispatchException;
 import student.testingsupport.GUIFilter;
-import student.testingsupport.ODFilter;
+import student.testingsupport.ObjectdrawFilter;
 import abbot.finder.BasicFinder;
 import abbot.finder.ComponentFinder;
 import abbot.finder.ComponentNotFoundException;
@@ -35,9 +35,9 @@ import abbot.util.AWTFixtureHelper;
 import acm.graphics.GCanvas;
 import acm.program.GraphicsProgram;
 
-public class ODTestCase extends GUITestCase
+public class ObjectdrawTestCase extends GUITestCase
 {
-    public final ODFilter.Operator where = ODFilter.ClientImports.where;
+    public final ObjectdrawFilter.Operator where = ObjectdrawFilter.ClientImports.where;
     /**
      * Helper method to retrieve the JDrawingCanvas object associated
      * with the {@link WindowController} being tested.
@@ -78,7 +78,7 @@ public class ODTestCase extends GUITestCase
     
     /**
      * Look up a DrawableInterface in the GUI being tested by specifying its class
-     * and a {@link ODFilter}.
+     * and a {@link ObjectdrawFilter}.
      * This method expects exactly one DrawableInterface to match your criteria.
      * If no matching DrawableInterface exists, the test case will fail with an
      * appropriate message.  If more than one matching DrawableInterface exists,
@@ -92,10 +92,10 @@ public class ODTestCase extends GUITestCase
      * @param filter The search criteria.
      * @return The single DrawableInterface matching the criteria specified
      *         (otherwise, a test case failure results).
-     * @see #getFirstDrawableMatching(Class,ODFilter)
-     * @see #getAllDrawablesMatching(Class,ODFilter)
+     * @see #getFirstDrawableMatching(Class,ObjectdrawFilter)
+     * @see #getAllDrawablesMatching(Class,ObjectdrawFilter)
      */
-    public <T extends DrawableInterface> T getDrawable(Class<T> type, ODFilter filter)
+    public <T extends DrawableInterface> T getDrawable(Class<T> type, ObjectdrawFilter filter)
     {
         return (T)getDrawable(filter.and.typeIs(type));
     }
@@ -103,7 +103,7 @@ public class ODTestCase extends GUITestCase
     /**
      * Look up a DrawableInterface in the GUI being tested, using a filter to
      * specify which component you want.  This method is more general
-     * than {@link #getDrawable(Class, ODFilter)}, since no class needs to be
+     * than {@link #getDrawable(Class, ObjectdrawFilter)}, since no class needs to be
      * specified, but that also means the return type is less specific
      * (it is always <code>DrawableInterface</code>).
      * This method expects the given filter
@@ -114,10 +114,10 @@ public class ODTestCase extends GUITestCase
      * @param filter The search criteria.
      * @return The single DrawableInterface matching the provided filter (otherwise, a
      *         test case failure results).
-     * @see #getFirstDrawableMatching(ODFilter)
-     * @see #getAllDrawablesMatching(ODFilter)
+     * @see #getFirstDrawableMatching(ObjectdrawFilter)
+     * @see #getAllDrawablesMatching(ObjectdrawFilter)
      */
-    public DrawableInterface getDrawable(ODFilter filter)
+    public DrawableInterface getDrawable(ObjectdrawFilter filter)
     {
         IllegalStateException ise;
 
@@ -159,7 +159,7 @@ public class ODTestCase extends GUITestCase
     
      /**
      * Look up a DrawableInterface in the GUI being tested by specifying its class
-     * and an {@link ODFilter}.
+     * and an {@link ObjectdrawFilter}.
      * This method expects the given criteria to identify at least one such
      * DrawableInterface.  If no matching DrawableInterface exists, the test case will fail
      * with an appropriate message.  If more than one matching DrawableInterface
@@ -173,18 +173,18 @@ public class ODTestCase extends GUITestCase
      * @param filter The search criteria.
      * @return The first DrawableInterface that was found matching the criteria
      *         specified (a test case failure results if there are none).
-     * @see #getDrawable(Class,ODFilter)
-     * @see #getAllDrawablesMatching(Class,ODFilter)
+     * @see #getDrawable(Class,ObjectdrawFilter)
+     * @see #getAllDrawablesMatching(Class,ObjectdrawFilter)
      */
-    public <T extends DrawableInterface> T getFirstDrawableMatching(Class<T> type, ODFilter filter)
+    public <T extends DrawableInterface> T getFirstDrawableMatching(Class<T> type, ObjectdrawFilter filter)
     {
         return (T)getFirstDrawableMatching(filter.and.typeIs(type));
     }
     
     /**
      * Look up a DrawableInterface in the GUI being tested by specifying
-     * an {@link ODFilter}.  This method is more general
-     * than {@link #getFirstDrawableMatching(Class,ODFilter)}, since no
+     * an {@link ObjectdrawFilter}.  This method is more general
+     * than {@link #getFirstDrawableMatching(Class,ObjectdrawFilter)}, since no
      * class needs to be specified, but that also means the return type
      * is less specific (it is always <code>DrawableInterface</code>).
      * This method expects the given criteria to identify at least one such
@@ -195,10 +195,10 @@ public class ODTestCase extends GUITestCase
      * @param filter The search criteria.
      * @return The first DrawableInterface that was found matching the criteria
      *         specified (a test case failure results if there are none).
-     * @see #getDrawable(ODFilter)
-     * @see #getAllDrawablesMatching(ODFilter)
+     * @see #getDrawable(ObjectdrawFilter)
+     * @see #getAllDrawablesMatching(ObjectdrawFilter)
      */
-    public DrawableInterface getFirstDrawableMatching(ODFilter filter)
+    public DrawableInterface getFirstDrawableMatching(ObjectdrawFilter filter)
     {
         DrawableIterator iter = getCanvas().getDrawableIterator();
         while(iter.hasNext())
@@ -234,7 +234,7 @@ public class ODTestCase extends GUITestCase
     
     /**
      * Look up all DrawableInterfaces in the GUI being tested by specifying their
-     * class and an {@link ODFilter}.  All matching objects are returned in
+     * class and an {@link ObjectdrawFilter}.  All matching objects are returned in
      * a list.
      * @param <T>  This method is a template method, and the type T used as
      *             the <code>List</code> element type in
@@ -247,10 +247,10 @@ public class ODTestCase extends GUITestCase
      * @return A list of all DrawableInterfaces found matching the criteria specified.
      *         This will be an empty list (not null) if no matching DrawableInterfaces
      *         are found.
-     * @see #getDrawable(Class,ODFilter)
-     * @see #getAllDrawablesMatching(Class,ODFilter)
+     * @see #getDrawable(Class,ObjectdrawFilter)
+     * @see #getAllDrawablesMatching(Class,ObjectdrawFilter)
      */
-    public <T extends DrawableInterface> T[] getAllDrawablesMatching(Class<T> type, ODFilter filter)
+    public <T extends DrawableInterface> T[] getAllDrawablesMatching(Class<T> type, ObjectdrawFilter filter)
     {
         DrawableInterface[] dis = getAllDrawablesMatching(filter.and.typeIs(type));
 
@@ -265,20 +265,20 @@ public class ODTestCase extends GUITestCase
     
     /**
      * Look up all DrawableInterfaces in the GUI being tested by specifying
-     * a {@link ODFilter}.
+     * a {@link ObjectdrawFilter}.
      * All matching objects are returned in a list.
      * This method is more general than
-     * {@link #getAllDrawablesMatching(Class,ODFilter)}, since no
+     * {@link #getAllDrawablesMatching(Class,ObjectdrawFilter)}, since no
      * class needs to be specified, but that also means the return type
      * is less specific (it is always <code>DrawableInterface</code>).
      * @param filter The search criteria.
      * @return A list of all DrawableInterfaces found matching the criteria specified.
      *         This will be an empty list (not null) if no matching DrawableInterfaces
      *         are found.
-     * @see #getDrawable(ODFilter)
-     * @see #getAllDrawablesMatching(ODFilter)
+     * @see #getDrawable(ObjectdrawFilter)
+     * @see #getAllDrawablesMatching(ObjectdrawFilter)
      */
-    public DrawableInterface[] getAllDrawablesMatching(ODFilter filter)
+    public DrawableInterface[] getAllDrawablesMatching(ObjectdrawFilter filter)
     {
         ArrayList<DrawableInterface> matches = new ArrayList<DrawableInterface>();
         DrawableIterator iter = getCanvas().getDrawableIterator();
