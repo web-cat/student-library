@@ -1317,57 +1317,7 @@ public class GUITestCase
         return hierarchy;
     }
     
-    public void showMessageDialog(final Component parent, final Object message)
-    {
-        try
-        {
-            SwingUtilities.invokeAndWait(new Runnable()
-            {
-                public void run()
-                {
-                    JOptionPane.showMessageDialog(parent, message);       
-                }
-            });
-        }
-        catch ( InterruptedException e )
-        {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        }
-        catch ( InvocationTargetException e )
-        {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        }
-    }
     
-    private String answer;
-    public String showInputDialog(final Object message)
-    {
-        try
-        {
-            SwingUtilities.invokeAndWait(new Runnable()
-            {
-                public void run()
-                {
-                    answer = JOptionPane.showInputDialog(message);
-                }
-                
-            });
-        }
-        catch ( InterruptedException e )
-        {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        }
-        catch ( InvocationTargetException e )
-        {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        }
-        return answer;
-    }
-
 
     // ----------------------------------------------------------
     /**
@@ -1449,6 +1399,7 @@ public class GUITestCase
             }   
         });
     }
+    
     /**
      * Calls a method and runs in the event thread
      * @param receiver the object to call the method on
@@ -1549,7 +1500,7 @@ public class GUITestCase
     }
     
     /**
-     * Assuming that a confirmation style JOptionPane is currenlty open,
+     * Assuming that a confirmation style JOptionPane is currently open,
      * clicks the button corresponding to the optionCode given
      * @param optionCode The option code to determine which button to click
      *  JOptionPane.YES_OPTION for the yes button, JOptionPane.NO_OPTION for
@@ -1568,7 +1519,6 @@ public class GUITestCase
         {
             SwingUtilities.invokeAndWait(new Runnable()
             {
-
                 public void run()
                 {   
                     if(optionCode == JOptionPane.YES_OPTION)
@@ -1601,13 +1551,12 @@ public class GUITestCase
     public void setInputDialogText(final String text)
     {        
         //grab the text field on the JOptionPane by name
-        JTextField f = getComponent(JTextField.class, where.nameIs("OptionPane.textField"));
+        final JTextField f = getComponent(JTextField.class, where.nameIs("OptionPane.textField"));
         
         //grab the panel that holds the buttons by name
         //we need this so we can use the parentIs() filter to find the button
         //in case there are other buttons with text "OK"
         JPanel panel = getComponent(JPanel.class, where.nameIs("OptionPane.buttonArea"));
-        f.setText(text);
         
         final JButton okButton = getComponent(JButton.class, where.textIs("OK").and.parentIs(panel));
         
@@ -1615,12 +1564,11 @@ public class GUITestCase
         {
             SwingUtilities.invokeAndWait(new Runnable()
             {
-
                 public void run()
                 {
+                    f.setText(text);
                     okButton.doClick();
-                }
-                
+                }   
             });
         }
         catch ( InterruptedException e )
