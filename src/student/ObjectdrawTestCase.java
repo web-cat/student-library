@@ -35,7 +35,7 @@ import student.testingsupport.ObjectdrawFilter;
 //-------------------------------------------------------------------------
 /**
  *  This class provides enhancements to {@link GUITestCase} to support
- *  testing of objectdraw graphics programs that use {@link GObject}
+ *  testing of objectdraw graphics programs that use {@link DrawableInterface}
  *  instances.
  *
  *  @author  Stephen Edwards
@@ -288,7 +288,7 @@ public class ObjectdrawTestCase
      *             and also the way you specify the type of elements in
      *             the list returned by this method.
      * @return A list of all objects of the desired type that were found.
-     *         This will be an empty list (not null) if no matching components
+     *         This will be an empty list (not null) if no matching objects
      *         are found.
      * @see #getDrawable(Class)
      * @see #getFirstDrawableMatching(Class)
