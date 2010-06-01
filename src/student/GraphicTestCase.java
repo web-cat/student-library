@@ -83,10 +83,10 @@ public class GraphicTestCase
 	/**
      * Look up a {@link GObject} on the canvas of the {@link GraphicsProgram}
      * being tested by specifying its class.  This method expects the given
-     * class to identify a unique component, meaning that there should only
+     * class to identify a unique GObject, meaning that there should only
      * be one instance of the given class on the canvas.
      * If no matching GObject exists, the test case will fail with an
-     * appropriate message.  If more than one matching component exists,
+     * appropriate message.  If more than one matching GObject exists,
      * the test case will fail with an appropriate message.
      *
      * @param <T>  This method is a template method, and the type T used for
@@ -237,7 +237,7 @@ public class GraphicTestCase
      * class needs to be specified, but that also means the return type
      * is less specific (it is always <code>GObject</code>).
      * This method expects the given criteria to identify at least one such
-     * GObject.  If no matching component exists, the test case will fail
+     * GObject.  If no matching GObject exists, the test case will fail
      * with an appropriate message.  If more than one matching GObject
      * exists, the first one found will be returned (although client code
      * should not expect a specific search order).
@@ -335,7 +335,7 @@ public class GraphicTestCase
      *
      * @param filter The search criteria.
      * @return A list of all GObjects found matching the criteria specified.
-     *         This will be an empty list (not null) if no matching components
+     *         This will be an empty list (not null) if no matching GObjects
      *         are found.
      * @see #getGObject(GObjectFilter)
      * @see #getAllGObjectsMatching(GObjectFilter)
