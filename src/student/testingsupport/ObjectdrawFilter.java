@@ -45,18 +45,18 @@ import objectdraw.*;
  *  following static import directive:
  *  </p>
  *  <pre>
- *  import static student.testingsupport.ODFilter.ClientImports.*;
+ *  import static student.testingsupport.ObjectdrawFilter.ClientImports.*;
  *  </pre>
  *  <p>
  *  Note that the {@link student.ObjectdrawTestCase} class already re-exports the
- *  items defined in the {@link ClientImports} nested class, so OD test
+ *  items defined in the {@link ClientImports} nested class, so Objectdraw test
  *  cases should <em>not</em> include the static import.
  *  </p>
  *  <p>
  *  The expressions that you can create with this class are designed to
  *  represent "filters" or boolean predicates that can be applied to a
- *  DrawableInterface, returning true if the component "matches" the filter or false
- *  if the component does not match.
+ *  DrawableInterface, returning true if the object "matches" the filter or false
+ *  if the object does not match.
  *  </p>
  *  <p>
  *  Often, a filter object is created solely for the purpose of passing
@@ -574,14 +574,14 @@ public abstract class ObjectdrawFilter
     public final ObjectdrawFilter and(final ObjectdrawFilter otherFilter)
     {
         final ObjectdrawFilter self = this;
-        ObjectdrawFilter gf =  new ObjectdrawFilter("(" + this + " AND " + otherFilter + ")")
+        ObjectdrawFilter odf =  new ObjectdrawFilter("(" + this + " AND " + otherFilter + ")")
         {
             public boolean test(DrawableInterface shape)
             {
                return self.test(shape) && otherFilter.test(shape);
             }
         };
-        return gf;
+        return odf;
     }
 
 
@@ -600,14 +600,14 @@ public abstract class ObjectdrawFilter
     public final ObjectdrawFilter or(final ObjectdrawFilter otherFilter)
     {
         final ObjectdrawFilter self = this;
-        ObjectdrawFilter gf = new ObjectdrawFilter("(" + this + " OR " + otherFilter + ")")
+        ObjectdrawFilter odf = new ObjectdrawFilter("(" + this + " OR " + otherFilter + ")")
         {
             public boolean test(DrawableInterface shape)
             {
                 return self.test(shape) || otherFilter.test(shape);
             }
         };
-        return gf;
+        return odf;
     }
 
 
@@ -673,7 +673,7 @@ public abstract class ObjectdrawFilter
     // ----------------------------------------------------------
     private static ObjectdrawFilter textIs(final String text)
     {
-        ObjectdrawFilter gf = new ObjectdrawFilter("text = \"" + text + "\"")
+        ObjectdrawFilter odf = new ObjectdrawFilter("text = \"" + text + "\"")
         {
             public boolean test(DrawableInterface shape)
             {
@@ -689,7 +689,7 @@ public abstract class ObjectdrawFilter
                 }
             }
         };
-        return gf;
+        return odf;
     }
 
 
@@ -699,7 +699,7 @@ public abstract class ObjectdrawFilter
     // ----------------------------------------------------------
     private static final ObjectdrawFilter widthIs(final int value)
     {
-        ObjectdrawFilter gf = new ObjectdrawFilter("width = " + value)
+        ObjectdrawFilter odf = new ObjectdrawFilter("width = " + value)
         {
             public boolean test(DrawableInterface shape)
             {
@@ -708,14 +708,14 @@ public abstract class ObjectdrawFilter
                     false;
             }
         };
-        return gf;
+        return odf;
     }
 
 
     // ----------------------------------------------------------
     private static final ObjectdrawFilter heightIs(final int value)
     {
-        ObjectdrawFilter gf = new ObjectdrawFilter("height = " + value)
+        ObjectdrawFilter odf = new ObjectdrawFilter("height = " + value)
         {
             public boolean test(DrawableInterface shape)
             {
@@ -724,14 +724,14 @@ public abstract class ObjectdrawFilter
                     false;
             }
         };
-        return gf;
+        return odf;
     }
 
 
     // ----------------------------------------------------------
     private static final ObjectdrawFilter sizeIs(final int width, final int height)
     {
-        ObjectdrawFilter gf = new ObjectdrawFilter("size = (" + width + ", " + height + ")")
+        ObjectdrawFilter odf = new ObjectdrawFilter("size = (" + width + ", " + height + ")")
         {
             public boolean test(DrawableInterface shape)
             {
@@ -741,7 +741,7 @@ public abstract class ObjectdrawFilter
                         false;
             }
         };
-        return gf;
+        return odf;
     }
 
 
@@ -749,7 +749,7 @@ public abstract class ObjectdrawFilter
     private static final ObjectdrawFilter sizeIsWithin(
         final int maxWidth, final int maxHeight)
     {
-        ObjectdrawFilter gf = new ObjectdrawFilter(
+        ObjectdrawFilter odf = new ObjectdrawFilter(
             "sizeIsWithin(" + maxWidth + ", " + maxHeight + ")")
         {
             public boolean test(DrawableInterface shape)
@@ -760,14 +760,14 @@ public abstract class ObjectdrawFilter
                         false;
             }
         };
-        return gf;
+        return odf;
     }
 
 
     // ----------------------------------------------------------
     private static final ObjectdrawFilter xLocationIs(final int value)
     {
-        ObjectdrawFilter gf = new ObjectdrawFilter("xLocation = " + value)
+        ObjectdrawFilter odf = new ObjectdrawFilter("xLocation = " + value)
         {
             public boolean test(DrawableInterface shape)
             {
@@ -776,14 +776,14 @@ public abstract class ObjectdrawFilter
                         false;
             }
         };
-        return gf;
+        return odf;
     }
 
 
     // ----------------------------------------------------------
     private static final ObjectdrawFilter yLocationIs(final int value)
     {
-        ObjectdrawFilter gf = new ObjectdrawFilter("yLocation = " + value)
+        ObjectdrawFilter odf = new ObjectdrawFilter("yLocation = " + value)
         {
             public boolean test(DrawableInterface shape)
             {
@@ -792,14 +792,14 @@ public abstract class ObjectdrawFilter
                         false;
             }
         };
-        return gf;
+        return odf;
     }
 
 
     // ----------------------------------------------------------
     private static final ObjectdrawFilter locationIs(final int x, final int y)
     {
-        ObjectdrawFilter gf = new ObjectdrawFilter("location = (" + x + ", " + y + ")")
+        ObjectdrawFilter odf = new ObjectdrawFilter("location = (" + x + ", " + y + ")")
         {
             public boolean test(DrawableInterface shape)
             {
@@ -811,14 +811,14 @@ public abstract class ObjectdrawFilter
                
             }
         };
-        return gf;
+        return odf;
     }
 
 
     // ----------------------------------------------------------
     private static final ObjectdrawFilter isLocatedWithin(final Rectangle region)
     {
-        ObjectdrawFilter gf = new ObjectdrawFilter("isLocatedWithin(" + region + ")")
+        ObjectdrawFilter odf = new ObjectdrawFilter("isLocatedWithin(" + region + ")")
         {
             public boolean test(DrawableInterface shape)
             {
@@ -827,14 +827,14 @@ public abstract class ObjectdrawFilter
                         false;
             }
         };
-        return gf;
+        return odf;
     }
 
 
     // ----------------------------------------------------------
     private static final ObjectdrawFilter isContainedWithin(final Rectangle region)
     {
-        ObjectdrawFilter gf = new ObjectdrawFilter("isContainedWithin(" + region + ")")
+        ObjectdrawFilter odf = new ObjectdrawFilter("isContainedWithin(" + region + ")")
         {
             public boolean test(DrawableInterface shape)
             {
@@ -847,33 +847,33 @@ public abstract class ObjectdrawFilter
                             false;
             }
         };
-        return gf;
+        return odf;
     }
     
     private static final ObjectdrawFilter hiddenIs(final boolean hidden)
     {
-        ObjectdrawFilter gf = new ObjectdrawFilter("hidden is " + hidden + ".")
+        ObjectdrawFilter odf = new ObjectdrawFilter("hidden is " + hidden + ".")
         {
             public boolean test(DrawableInterface shape)
             {
                 return shape.isHidden() == hidden;
             }
         };
-        return gf;
+        return odf;
     }
 
 
     // ----------------------------------------------------------
     private static ObjectdrawFilter typeIs(final Class<? extends DrawableInterface> aClass)
     {
-        ObjectdrawFilter gf = new ObjectdrawFilter("type = " + aClass.getSimpleName())
+        ObjectdrawFilter odf = new ObjectdrawFilter("type = " + aClass.getSimpleName())
         {
             public boolean test(DrawableInterface shape)
             {
                 return aClass.isAssignableFrom(shape.getClass());
             }
         };
-        return gf;
+        return odf;
     }
     
     private static ObjectdrawFilter colorIs(final Color color)
