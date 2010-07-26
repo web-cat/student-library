@@ -21,22 +21,15 @@
 
 package student.testingsupport;
 
-import java.awt.Color;
-import java.awt.Component;
-import java.awt.Rectangle;
-
-import student.testingsupport.GUIFilter.BinaryOperator;
-import student.testingsupport.GUIFilter.ClientImports;
-
-
-
-
 import acm.graphics.GFillable;
 import acm.graphics.GLabel;
 import acm.graphics.GLine;
 import acm.graphics.GObject;
 import acm.graphics.GPoint;
+import java.awt.Color;
+import java.awt.Rectangle;
 
+//-------------------------------------------------------------------------
 /**
  *  This class Represents a filter or query that can be used to describe
  *  a {@link GObject} when searching.  Note that the methods and fields
@@ -80,9 +73,9 @@ import acm.graphics.GPoint;
  *  The basic principles for using this class are as follows:
  *  </p>
  *  <ul>
- *  <li><p>Never try to create a GObjectFilter object directly.  Instead, always
- *         write something that looks like a boolean expression, and that
- *         starts with the operator <code>where</code>:</p>
+ *  <li><p>Never try to create a GObjectFilter object directly.  Instead,
+ *         always write something that looks like a boolean expression, and
+ *         that starts with the operator <code>where</code>:</p>
  *  <pre>
  *  GRect rect = getGObject(GRect.class, where.locationIs(25, 25));
  *  </pre></li>
@@ -123,7 +116,7 @@ import acm.graphics.GPoint;
  *  GRect rect = getGObject(GRect.class,
  *      where.locationIs(25, 25).or(where.visibilityIs(true).and.filledIs(true)));
  *      // now means (location = (25, 25) or (visibility = true and filled = true))
- *      //because of the extra parentheses used
+ *      // because of the extra parentheses used
  *  </pre></li>
  *  <li><p>Finally, you can even use "not" (logical negation), but it is
  *  called like a method, so parentheses (and thus a leading <code>where)
@@ -141,9 +134,14 @@ import acm.graphics.GPoint;
  */
 public abstract class GObjectFilter
 {
-    
+    //~ Instance/static variables .............................................
+
     private String description;
-    
+
+
+    //~ Constructor ...........................................................
+
+    // ----------------------------------------------------------
     /**
      * Creates a new filter object.  This constructor is not public, since
      * all filters are expected to be created using operators rather than
@@ -155,33 +153,16 @@ public abstract class GObjectFilter
     {
         this.description = description;
     }
-    
-    /**
-     * The "or" operator for combining filters, designed to be used in
-     * expressions like <code>where.locationIs(25, 25).or.textIs("def")</code>.
-     * This operator is implemented as a public field so that the simple
-     * <code>.or.</code> notation can be used as a connective between
-     * filters.  If you want to use parentheses for grouping to define
-     * the right argument, see {@link #or(GUIFilter)} instead.
-     */
-    public final BinaryOperator or = new BinaryOperator() {
-        // ----------------------------------------------------------
-        @Override
-        protected boolean combine(boolean leftResult, boolean rightResult)
-        {
-            return leftResult || rightResult;
-        }
 
-        // ----------------------------------------------------------
-        @Override
-        protected String description(
-            String leftDescription, String rightDescription)
-        {
-            return "(" + leftDescription + " OR " + rightDescription + ")";
-        }
 
-    };
-    
+    //~ Public Fields .........................................................
+
+    // These fields are public to afford a more natural syntax, although they
+    // can never be manipulated since they are final and have no mutators.
+    // They are instance fields instead of static fields, because that is
+    // necessary for their semantics.
+
+    // ----------------------------------------------------------
     /**
      * The "and" operator for combining filters, designed to be used in
      * expressions like <code>where.nameIs("...").and.enabledIs(true)</code>.
@@ -209,6 +190,37 @@ public abstract class GObjectFilter
     };
 
 
+    // ----------------------------------------------------------
+    /**
+     * The "or" operator for combining filters, designed to be used in
+     * expressions like <code>where.locationIs(25, 25).or.textIs("def")</code>.
+     * This operator is implemented as a public field so that the simple
+     * <code>.or.</code> notation can be used as a connective between
+     * filters.  If you want to use parentheses for grouping to define
+     * the right argument, see {@link #or(GObjectFilter)} instead.
+     */
+    public final BinaryOperator or = new BinaryOperator() {
+        // ----------------------------------------------------------
+        @Override
+        protected boolean combine(boolean leftResult, boolean rightResult)
+        {
+            return leftResult || rightResult;
+        }
+
+        // ----------------------------------------------------------
+        @Override
+        protected String description(
+            String leftDescription, String rightDescription)
+        {
+            return "(" + leftDescription + " OR " + rightDescription + ")";
+        }
+
+    };
+
+
+    //~ Public Methods ........................................................
+
+    // ----------------------------------------------------------
     /**
      *  This base class represents an operator used to create a query.
      *  As the base class for all operators, it defines the primitive
@@ -223,47 +235,50 @@ public abstract class GObjectFilter
          * the given point.
          * @param point the required point
          * @return A new filter that succeeds only on GObjects that
-         * cointain point.
+         * contain the point.
          */
         public GObjectFilter cointainsPoint(GPoint point)
         {
             return applySelfTo(GObjectFilter.containsPoint(point));
         }
-        
+
+
         // ----------------------------------------------------------
         /**
          * Create a filter that checks that a GObject contains
          * the given point.
-         * @param x The required x coordinate, relative to the 
+         * @param x The required x coordinate, relative to the
          * GObject's parent.
          * @param y The required y coordinate, relative to the
          * GObject's parent.
-         * @return A new filter that succeeds only on GObjects that 
+         * @return A new filter that succeeds only on GObjects that
          * contain the point (x, y).
          */
         public GObjectFilter cointainsPoint(double x, double y)
         {
             return applySelfTo(GObjectFilter.containsPoint(new GPoint(x, y)));
         }
-        
+
+
         // ----------------------------------------------------------
         /**
          * Create a filter that checks that a GObject is within 50
          * pixels of the given point.
          * @param point The required point.
-         * @return A new filter that succeeds only on GObjects that are 
+         * @return A new filter that succeeds only on GObjects that are
          * located with 50 pixels of point.
          */
         public GObjectFilter isNear(GPoint point)
         {
             return applySelfTo(GObjectFilter.isNear(point));
         }
-        
+
+
         // ----------------------------------------------------------
         /**
          * Create a filter that checks that a GObject is within 50
          * pixels of the given point.
-         * @param x The required x coordinate, relative to the 
+         * @param x The required x coordinate, relative to the
          * GObject's parent.
          * @param y The required y coordinate, relative to the
          * GObject's parent.
@@ -274,13 +289,14 @@ public abstract class GObjectFilter
         {
             return applySelfTo(GObjectFilter.isNear(new GPoint(x, y)));
         }
-        
+
+
         // ----------------------------------------------------------
         /**
          * Create a filter that checks that a GObject is within
          * distance pixels of the given point.
          * @param point The required point.
-         * @param distance The distance used to judge whether the 
+         * @param distance The distance used to judge whether the
          * GObject is near the given point
          * @return A new filter that succeeds only on GObjects that are
          * within distance pixels of the given point.
@@ -289,83 +305,91 @@ public abstract class GObjectFilter
         {
             return applySelfTo(GObjectFilter.isNear(point, distance));
         }
-        
+
+
         // ----------------------------------------------------------
         /**
          * Create a filter that checks that a GObject is within
          * distance pixels of the given point.
-         * @param x The required x coordinate, relative to the 
+         * @param x The required x coordinate, relative to the
          * GObject's parent.
          * @param y The required y coordinate, relative to the
          * GObject's parent
-         * @param distance The distance used to judge whether the 
-         * GObject is near the given point 
+         * @param distance The distance used to judge whether the
+         * GObject is near the given point
          * @return A new filter that succeeds only on GObjects that are
-         * within distance pixels of the point (x, y). 
+         * within distance pixels of the point (x, y).
          */
         public GObjectFilter isNear(double x, double y, double distance)
         {
-            return applySelfTo(GObjectFilter.isNear(new GPoint(x, y), distance));
+            return applySelfTo(
+                GObjectFilter.isNear(new GPoint(x, y), distance));
         }
-        
+
+
         // ----------------------------------------------------------
         /**
          * Create a filter that checks that a GOBject is a line
          * that starts at point.
          * @param point The required point.
-         * @return A new filter that succeeds only on GObjects 
-         * that are lines starting at point. 
+         * @return A new filter that succeeds only on GObjects
+         * that are lines starting at point.
          */
         public GObjectFilter lineStartPointIs(GPoint point)
         {
             return applySelfTo(GObjectFilter.lineStartPointIs(point));
         }
-        
+
+
         // ----------------------------------------------------------
         /**
          * Create a filter that checks that a GPoint is a line
          * that starts at the point (x, y).
-         * @param x The required x coordinate, relative to the 
+         * @param x The required x coordinate, relative to the
          * GObject's parent.
          * @param y The required y coordinate, relative to the
          * GObject's parent
-         * @return A new filter that succeeds only on GObjects 
+         * @return A new filter that succeeds only on GObjects
          * that are lines starting at the point (x, y).
          */
         public GObjectFilter lineStartPointIs(double x, double y)
         {
-            return applySelfTo(GObjectFilter.lineStartPointIs(new GPoint(x, y)));
+            return applySelfTo(
+                GObjectFilter.lineStartPointIs(new GPoint(x, y)));
         }
-        
+
+
         // ----------------------------------------------------------
         /**
          * Create a filter that checks that a GOBject is a line
          * that ends at point.
          * @param point The required point.
-         * @return A new filter that succeeds only on GObjects 
-         * that are lines ending at point. 
+         * @return A new filter that succeeds only on GObjects
+         * that are lines ending at point.
          */
         public GObjectFilter lineEndPointIs(GPoint point)
         {
             return applySelfTo(GObjectFilter.lineEndPointIs(point));
         }
-        
+
+
         // ----------------------------------------------------------
         /**
          * Create a filter that checks that a GPoint is a line
          * that ends at the point (x, y).
-         * @param x The required x coordinate, relative to the 
+         * @param x The required x coordinate, relative to the
          * GObject's parent.
          * @param y The required y coordinate, relative to the
          * GObject's parent
-         * @return A new filter that succeeds only on GObjects 
+         * @return A new filter that succeeds only on GObjects
          * that are lines endin at the point (x, y).
          */
         public GObjectFilter lineEndPointIs(double x, double y)
         {
             return applySelfTo(GObjectFilter.lineEndPointIs(new GPoint(x, y)));
         }
-        
+
+
         // ----------------------------------------------------------
         /**
          * Create a filter that checks a GObject's size.
@@ -388,11 +412,14 @@ public abstract class GObjectFilter
          * @return A new filter that succeeds only on GObjects that are
          *         eqal to or smaller than the given size.
          */
-        public GObjectFilter sizeIsWithin(final double maxWidth, final double maxHeight)
+        public GObjectFilter sizeIsWithin(
+            final double maxWidth, final double maxHeight)
         {
-            return applySelfTo(GObjectFilter.sizeIsWithin(maxWidth, maxHeight));
+            return applySelfTo(
+                GObjectFilter.sizeIsWithin(maxWidth, maxHeight));
         }
-        
+
+
         // ----------------------------------------------------------
         /**
          * Create a filter that checks a GObject's location relative to
@@ -406,16 +433,17 @@ public abstract class GObjectFilter
          */
         public GObjectFilter locationIs(final double x, final double y)
         {
-            return applySelfTo(GObjectFilter.locationIs(x, y));
+            return locationIs(new GPoint(x, y));
         }
-        
+
+
         // ----------------------------------------------------------
         /**
          * Create a filter that checks a GObject's location relative to
          * its parent.
          * @param point The required point, relative to the
          *          GObject's parent.
-         * 
+         *
          * @return A new filter that succeeds only on GObjects that have
          *         the given location.
          */
@@ -423,7 +451,8 @@ public abstract class GObjectFilter
         {
             return applySelfTo(GObjectFilter.locationIs(point));
         }
-        
+
+
         // ----------------------------------------------------------
         /**
          * Create a filter that checks whether a GObject's location (its
@@ -456,7 +485,8 @@ public abstract class GObjectFilter
         {
             return applySelfTo(GObjectFilter.isContainedWithin(region));
         }
-       
+
+
         // ----------------------------------------------------------
         /**
          * Create a filter that checks a GObject's x-coordinate.
@@ -482,7 +512,8 @@ public abstract class GObjectFilter
         public GObjectFilter yLocationIs(final double y)
         {
             return applySelfTo(GObjectFilter.yLocationIs(y));
-        }  
+        }
+
 
         // ----------------------------------------------------------
         /**
@@ -497,6 +528,7 @@ public abstract class GObjectFilter
             return applySelfTo(GObjectFilter.textIs(text));
         }
 
+
         // ----------------------------------------------------------
         /**
          * Create a filter that checks the class of a GObject.
@@ -510,6 +542,7 @@ public abstract class GObjectFilter
             return applySelfTo(GObjectFilter.typeIs(aClass));
         }
 
+
         // ----------------------------------------------------------
         /**
          * Create a filter that checks a GObject's width.
@@ -522,6 +555,7 @@ public abstract class GObjectFilter
             return applySelfTo(GObjectFilter.widthIs(value));
         }
 
+
         // ----------------------------------------------------------
         /**
          * Create a filter that checks a GObject's height.
@@ -533,42 +567,46 @@ public abstract class GObjectFilter
         {
             return applySelfTo(GObjectFilter.heightIs(value));
         }
-        
+
+
         // ----------------------------------------------------------
         /**
          * Create a filter that checks a GObject's color.
          * @param color The required Color.
-         * @return A new filter that succeeds only on GObjects that are 
-         * Color color. 
+         * @return A new filter that succeeds only on GObjects that are
+         * Color color.
          */
         public GObjectFilter colorIs(final Color color)
         {
             return applySelfTo(GObjectFilter.colorIs(color));
         }
-        
+
+
         // ----------------------------------------------------------
         /**
          * Create a filter that checks whether a GObject is filled.
          * @param filled The required boolean value.
          * @return A new filter that succeeds only on GObjects whose
-         * filled value is equal to filled. 
+         * filled value is equal to filled.
          */
         public GObjectFilter filledIs(final boolean filled)
         {
             return applySelfTo(GObjectFilter.filledIs(filled));
         }
-        
+
+
         // ----------------------------------------------------------
         /**
          * Create a filter that checks a GObject's visibilty.
-         * @param visiblility The required boolean value.
+         * @param visibility The required boolean value.
          * @return A new filter that succeeds only on GObjects whos
-         * visibility value is equal to visibility. 
+         * visibility value is equal to visibility.
          */
         public GObjectFilter visibilityIs(final boolean visibility)
         {
             return applySelfTo(GObjectFilter.visibilityIs(visibility));
         }
+
 
         // ----------------------------------------------------------
         /**
@@ -580,10 +618,12 @@ public abstract class GObjectFilter
          * @return A new compound filter that includes the given argument
          *         as one subfilter, after applying this operator to it.
          */
-        protected abstract GObjectFilter applySelfTo(final GObjectFilter otherFilter);
+        protected abstract GObjectFilter applySelfTo(
+            final GObjectFilter otherFilter);
+    }
 
-    }  
-    
+
+    // ----------------------------------------------------------
     /**
      * A non-static subclass for binary operators that implicitly
      * captures the outer filter to which it belongs, using it as
@@ -592,28 +632,6 @@ public abstract class GObjectFilter
     public abstract class BinaryOperator
         extends Operator
     {
-//            // ----------------------------------------------------------
-//            /**
-//             * The "not" operator for negating the right-hand filter argument
-//             * in a binary filter operation, designed to be used in
-//             * expressions like
-//             * <code>where.nameIs("abc").and.not.enabledIs(true)</code>.
-//             * This operator is implemented as a public field so that the simple
-//             * <code>.not.</code> notation can be used.  If you want to use
-//             * parentheses for grouping to define the argument, see
-//             * {@link BinaryOperator#not(GObjectFilter)} instead.
-//             */
-//            public final Operator not = new Operator() {
-//                // ----------------------------------------------------------
-//                @Override
-//                protected GObjectFilter applySelfTo(final GObjectFilter otherFilter)
-//                {
-//                    return BinaryOperator.this.applySelfTo(
-//                        primitiveNot(otherFilter));
-//                }
-//            };
-
-
         // ----------------------------------------------------------
         /**
          * The "not" operator for negating an existing filter, when you
@@ -685,7 +703,9 @@ public abstract class GObjectFilter
         protected abstract String description(
             String leftDescription, String rightDescription);
     }
-    
+
+
+    // ----------------------------------------------------------
     /**
      * Get a string representation of this filter.
      * @return A string representation of this filter.
@@ -694,7 +714,9 @@ public abstract class GObjectFilter
     {
         return description;
     }
-    
+
+
+    // ----------------------------------------------------------
     /**
      * The "and" operator for combining filters, when you want to use
      * parentheses to group its righthand argument.  This method is designed
@@ -706,18 +728,22 @@ public abstract class GObjectFilter
      * @param otherFilter  The second argument to "and".
      * @return A new filter object that represents "this AND otherFilter".
      */
-    public final GObjectFilter and(final GObjectFilter otherFilter) 
+    public final GObjectFilter and(final GObjectFilter otherFilter)
     {
         final GObjectFilter self = this;
-        GObjectFilter f =  new GObjectFilter("(" + this + " AND " + otherFilter + ")"){
-            public boolean test(GObject gobj)  
+        GObjectFilter f =
+            new GObjectFilter("(" + this + " AND " + otherFilter + ")")
             {
-               return self.test(gobj) && otherFilter.test(gobj);    
-            }
-        };
+                public boolean test(GObject gobj)
+                {
+                    return self.test(gobj) && otherFilter.test(gobj);
+                }
+            };
         return f;
     }
-    
+
+
+    // ----------------------------------------------------------
     /**
      * The "or" operator for combining filters, when you want to use
      * parentheses to group its righthand argument.  This method is designed
@@ -732,15 +758,19 @@ public abstract class GObjectFilter
     public final GObjectFilter or(final GObjectFilter otherFilter)
     {
         final GObjectFilter self = this;
-        GObjectFilter f = new GObjectFilter("(" + this + " OR " + otherFilter + ")"){
-            public boolean test(GObject gobj)
+        GObjectFilter f =
+            new GObjectFilter("(" + this + " OR " + otherFilter + ")")
             {
-                return self.test(gobj) || otherFilter.test(gobj);
-            }
-        };
+                public boolean test(GObject gobj)
+                {
+                    return self.test(gobj) || otherFilter.test(gobj);
+                }
+            };
         return f;
     }
-    
+
+
+    // ----------------------------------------------------------
     /**
      * Evaluate whether a GObject matches this filter.  This operation is
      * intended to be overridden by each subclass to implement the actual
@@ -749,10 +779,19 @@ public abstract class GObjectFilter
      * @return true if the GObject matches this filter
      */
     public abstract boolean test(GObject gobj);
-    
 
-    
-    
+
+    // ----------------------------------------------------------
+    /**
+     * This class represents the "where" operator that is used to begin
+     * a filter expression.  Client classes that wish to support filter
+     * syntax should declare a final field (static or instance) like
+     * this:
+     * <pre>
+     * public static final GObjectFilter.WhereOperator where =
+     *     new GObjectFilter.WhereOperator();
+     * </pre>
+     */
     public static class ClientImports
     {
         // ----------------------------------------------------------
@@ -786,10 +825,15 @@ public abstract class GObjectFilter
             return primitiveNot(otherFilter);
         }
     }
-   
+
+
+    //~ Private Methods/Declarations ..........................................
+
+    // ----------------------------------------------------------
     private static final GObjectFilter containsPoint(final GPoint point)
     {
-        GObjectFilter f = new GObjectFilter("containsPoint (" + point.getX() + ", " + point.getY() + " )")
+        GObjectFilter f = new GObjectFilter(
+            "containsPoint (" + point.getX() + ", " + point.getY() + " )")
         {
             public boolean test(GObject gobj)
             {
@@ -798,233 +842,257 @@ public abstract class GObjectFilter
         };
         return f;
     }
-    
-    private static final GObjectFilter containsPoint(double x, double y)
-    {
-        return containsPoint(new GPoint(x, y));
-    }
-    
+
+
+    // ----------------------------------------------------------
     private static final GObjectFilter isNear(final GPoint point)
     {
-        GObjectFilter f = new GObjectFilter("isNear (" + point.getX() + ", " + point.getY() + ")"){
+        GObjectFilter f = new GObjectFilter(
+            "isNear (" + point.getX() + ", " + point.getY() + ")")
+        {
           public boolean test(GObject gobj)
           {
-              double distance = Math.sqrt(Math.pow(point.getX() - gobj.getX(), 2) + 
-                  Math.pow(point.getX() - gobj.getX(), 2));
+              double distance =
+                  Math.sqrt(Math.pow(point.getX() - gobj.getX(), 2)
+                  + Math.pow(point.getX() - gobj.getX(), 2));
               return distance < 50;
           }
         };
         return f;
     }
-    
-    private static final GObjectFilter isnear(double x, double y)
+
+
+    // ----------------------------------------------------------
+    private static final GObjectFilter isNear(
+        final GPoint point, final double distance)
     {
-        return isNear(new GPoint(x,y));
-    }
-    
-    private static final GObjectFilter isNear(final GPoint point, final double distance)
-    {
-        GObjectFilter f = new GObjectFilter("within " + distance + " pixels of (" + point.getX() + ", " + point.getY() + ")"){
+        GObjectFilter f = new GObjectFilter("within " + distance
+            + " pixels of (" + point.getX() + ", " + point.getY() + ")")
+        {
             public boolean test(GObject gobj)
             {
-                double d = Math.sqrt(Math.pow(point.getX() - gobj.getX(), 2) + 
-                    Math.pow(point.getX() - gobj.getX(), 2));
+                double d =
+                    Math.sqrt(Math.pow(point.getX() - gobj.getX(), 2)
+                    + Math.pow(point.getX() - gobj.getX(), 2));
                 return d < distance;
             }
           };
           return f;
     }
-    
-    private static final GObjectFilter isNear(double x, double y, double distance)
-    {
-        return isNear(new GPoint(x, y), distance);
-    }
-    
+
+
+    // ----------------------------------------------------------
     private static final GObjectFilter lineStartPointIs(final GPoint point)
     {
-        GObjectFilter f =  new GObjectFilter("line starting at (" + point.getX() + ", " + point.getY() + ")"){
+        GObjectFilter f =  new GObjectFilter(
+            "line starts at (" + point.getX() + ", " + point.getY() + ")")
+        {
             public boolean test(GObject gobj)
             {
-                if(!(gobj instanceof GLine))
-                    return false;
-                return ((GLine)gobj).getStartPoint().equals(point);
+                return (gobj instanceof GLine)
+                    && ((GLine)gobj).getStartPoint().equals(point);
             }
         };
         return f;
     }
-    
-    private static final GObjectFilter lineStartPointIs(double x, double y)
-    {
-        return lineStartPointIs(new GPoint(x, y));
-    }
-    
+
+
+    // ----------------------------------------------------------
     private static final GObjectFilter lineEndPointIs(final GPoint point)
     {
-        GObjectFilter f = new GObjectFilter("line ending at (" + point.getX() + ", " + point.getY() + ")"){
+        GObjectFilter f = new GObjectFilter(
+            "line ending at (" + point.getX() + ", " + point.getY() + ")")
+        {
             public boolean test(GObject gobj)
             {
-                if(!(gobj instanceof GLine))
-                    return false;
-                return ((GLine)gobj).getEndPoint().equals(point);
+                return (gobj instanceof GLine)
+                    && ((GLine)gobj).getEndPoint().equals(point);
             }
         };
         return f;
     }
-    
-    private static final GObjectFilter lineEndPointIs(double x, double y)
+
+
+    // ----------------------------------------------------------
+    private static final GObjectFilter sizeIs(
+        final double width, final double height)
     {
-        return lineEndPointIs(new GPoint(x, y));
-    }
-    
-    private static final GObjectFilter sizeIs(final double width, final double height)
-    {
-        GObjectFilter f = new GObjectFilter("size = (" + width + ", " + height + ")"){
+        GObjectFilter f = new GObjectFilter(
+            "size = (" + width + ", " + height + ")")
+        {
             public boolean test(GObject gobj)
             {
-                if(gobj.getWidth() == width && gobj.getHeight() == height)
-                    return true;
-                return false;
+                return gobj.getWidth() == width && gobj.getHeight() == height;
             }
         };
         return f;
     }
-    
-    private static final GObjectFilter sizeIsWithin(final double maxWidth, final double maxHeight)
+
+
+    // ----------------------------------------------------------
+    private static final GObjectFilter sizeIsWithin(
+        final double maxWidth, final double maxHeight)
     {
-        GObjectFilter f = new GObjectFilter("sizeIsWithin(" + maxWidth + ", " + maxHeight + ")"){
+        GObjectFilter f = new GObjectFilter(
+            "sizeIsWithin(" + maxWidth + ", " + maxHeight + ")")
+        {
             public boolean test(GObject gobj)
             {
-                return gobj.getWidth() <= maxWidth 
+                return gobj.getWidth() <= maxWidth
                     && gobj.getHeight() <= maxHeight;
             }
         };
         return f;
     }
-    
+
+
+    // ----------------------------------------------------------
     private static final GObjectFilter locationIs(final GPoint point)
     {
-        GObjectFilter f =  new GObjectFilter("location = (" + point.getX() + ", " + point.getY() + ")"){
+        GObjectFilter f =  new GObjectFilter(
+            "location = (" + point.getX() + ", " + point.getY() + ")")
+        {
             public boolean test(GObject gobj)
             {
                 GPoint loc = gobj.getLocation();
-                if(loc.getX() == point.getX() && loc.getY() == point.getY())
-                    return true;
-                return false;
+                return loc.getX() == point.getX()
+                    && loc.getY() == point.getY();
             }
         };
         return f;
     }
-    
-    private static final GObjectFilter locationIs(double x, double y)
-    {
-        return locationIs(new GPoint(x, y));  
-    }
-    
+
+
+    // ----------------------------------------------------------
     private static final GObjectFilter isLocatedWithin(final Rectangle region)
     {
-        GObjectFilter f = new GObjectFilter("isLocatedWithin(" + region + ")"){
-
+        GObjectFilter f = new GObjectFilter("isLocatedWithin(" + region + ")")
+        {
             @Override
-            public boolean test( GObject gobj )
-            {
-                return region.contains(gobj.getLocation().toPoint());
-            }  
-        };
-        return f; 
-    }
-    
-    private static final GObjectFilter isContainedWithin(final Rectangle region)
-    {
-        GObjectFilter f = new GObjectFilter("isLocatedWithin(" + region + ")"){
-
-            @Override
-            public boolean test( GObject gobj )
-            {
-                return region.contains(gobj.getBounds().toRectangle());
-            }  
-        };
-        return f; 
-    }
-    
-    private static final GObjectFilter xLocationIs(final double x)
-    {
-        GObjectFilter f = new GObjectFilter("xLocation = " + x){
-
-            @Override
-            public boolean test( GObject gobj )
-            {
-                return gobj.getX() == x;
-            }     
-        };
-        return f;
-    }
-    
-    private static final GObjectFilter yLocationIs(final double y)
-    {
-        GObjectFilter f = new GObjectFilter("yLocation = " + y){
-
-            @Override
-            public boolean test( GObject gobj )
-            {
-                return gobj.getX() == y;
-            }     
-        };
-        return f;
-    }
-    
-    private static final GObjectFilter textIs(final String text)
-    {
-        GObjectFilter f = new GObjectFilter("text = \"" + text + "\""){
             public boolean test(GObject gobj)
             {
-                return gobj instanceof GLabel ? ((GLabel)gobj).getLabel().equals(text) : false;
+                return region.contains(gobj.getLocation().toPoint());
             }
         };
         return f;
     }
-    
+
+    // ----------------------------------------------------------
+    private static final GObjectFilter isContainedWithin(
+        final Rectangle region)
+    {
+        GObjectFilter f = new GObjectFilter("isLocatedWithin(" + region + ")")
+        {
+            @Override
+            public boolean test(GObject gobj)
+            {
+                return region.contains(gobj.getBounds().toRectangle());
+            }
+        };
+        return f;
+    }
+
+
+    // ----------------------------------------------------------
+    private static final GObjectFilter xLocationIs(final double x)
+    {
+        GObjectFilter f = new GObjectFilter("xLocation = " + x)
+        {
+            @Override
+            public boolean test(GObject gobj)
+            {
+                return gobj.getX() == x;
+            }
+        };
+        return f;
+    }
+
+
+    // ----------------------------------------------------------
+    private static final GObjectFilter yLocationIs(final double y)
+    {
+        GObjectFilter f = new GObjectFilter("yLocation = " + y)
+        {
+            @Override
+            public boolean test(GObject gobj)
+            {
+                return gobj.getX() == y;
+            }
+        };
+        return f;
+    }
+
+
+    // ----------------------------------------------------------
+    private static final GObjectFilter textIs(final String text)
+    {
+        GObjectFilter f = new GObjectFilter("text = \"" + text + "\"")
+        {
+            public boolean test(GObject gobj)
+            {
+                if (gobj instanceof GLabel)
+                {
+                    return (text == null)
+                        ? text == ((GLabel)gobj).getLabel()
+                        : text.equals(((GLabel)gobj).getLabel());
+                }
+                else
+                {
+                    return false;
+                }
+            }
+        };
+        return f;
+    }
+
+
+    // ----------------------------------------------------------
     private static final GObjectFilter widthIs(final double width)
     {
-        GObjectFilter f = new GObjectFilter("width = " + width){
+        GObjectFilter f = new GObjectFilter("width = " + width)
+        {
             public boolean test( GObject gobj )
             {
-                if(gobj.getWidth() == width)
-                    return true;
-                return false;
-            } 
-        };
-        return f;
-    }
-    
-    private static final GObjectFilter heightIs(final double height)
-    {
-        GObjectFilter f = new GObjectFilter("height = " + height){
-            public boolean test( GObject gobj )
-            {
-                if(gobj.getHeight() == height)
-                    return true;
-                return false;
-            }    
-        };
-        return f;
-    }
-    
-    private static final GObjectFilter colorIs(final Color color)
-    {
-        GObjectFilter f = new GObjectFilter("color = " + color){
-            public boolean test( GObject gobj )
-            {
-                if(gobj.getColor().equals(color))
-                    return true;
-                return false;
+                return gobj.getWidth() == width;
             }
         };
         return f;
     }
-    
-    private static final GObjectFilter typeIs(final Class c)
+
+
+    // ----------------------------------------------------------
+    private static final GObjectFilter heightIs(final double height)
     {
-        GObjectFilter f = new GObjectFilter("type = " + c.getSimpleName()){
+        GObjectFilter f = new GObjectFilter("height = " + height)
+        {
+            public boolean test( GObject gobj )
+            {
+                return gobj.getHeight() == height;
+            }
+        };
+        return f;
+    }
+
+
+    // ----------------------------------------------------------
+    private static final GObjectFilter colorIs(final Color color)
+    {
+        GObjectFilter f = new GObjectFilter("color = " + color)
+        {
+            public boolean test( GObject gobj )
+            {
+                return gobj.getColor().equals(color);
+            }
+        };
+        return f;
+    }
+
+
+    // ----------------------------------------------------------
+    private static final GObjectFilter typeIs(final Class<? extends GObject> c)
+    {
+        GObjectFilter f = new GObjectFilter("type = " + c.getSimpleName())
+        {
             public boolean test(GObject gobj)
             {
                 return c.isAssignableFrom(gobj.getClass());
@@ -1032,23 +1100,28 @@ public abstract class GObjectFilter
         };
         return f;
     }
-    
+
+
+    // ----------------------------------------------------------
     private static final GObjectFilter filledIs(final boolean filled)
     {
-        GObjectFilter f = new GObjectFilter("filled = " + filled) {
-        public boolean test(GObject gobj)
+        GObjectFilter f = new GObjectFilter("filled = " + filled)
         {
-           return GFillable.class.isAssignableFrom(gobj.getClass()) && ((GFillable)gobj).isFilled();
-        }     
-      };
-      return f;
-    }        
-   
+            public boolean test(GObject gobj)
+            {
+                return gobj instanceof GFillable
+                    && ((GFillable)gobj).isFilled() == filled;
+            }
+        };
+        return f;
+    }
 
+
+    // ----------------------------------------------------------
     private static final GObjectFilter visibilityIs(final boolean visibility)
     {
-        GObjectFilter f = new GObjectFilter("visibility = " + visibility) {
-    
+        GObjectFilter f = new GObjectFilter("visibility = " + visibility)
+        {
             public boolean test(GObject gobj)
             {
                 return gobj.isVisible();
@@ -1056,9 +1129,11 @@ public abstract class GObjectFilter
         };
     return f;
     }
-    
-    
-    private static final GObjectFilter primitiveNot(final GObjectFilter otherFilter)
+
+
+    // ----------------------------------------------------------
+    private static final GObjectFilter primitiveNot(
+        final GObjectFilter otherFilter)
     {
         return new GObjectFilter("(NOT " + otherFilter + ")")
         {
@@ -1067,5 +1142,6 @@ public abstract class GObjectFilter
                 return !otherFilter.test(gobj);
             }
         };
-    }    
+    }
+
 }

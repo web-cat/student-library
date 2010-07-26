@@ -426,19 +426,19 @@ public abstract class GUIFilter
         {
             return applySelfTo(GUIFilter.isContainedWithin(region));
         }
-        
+
         /**
         * Create a filter that checks a component's parent
         * @param parent the parent component of the component being checked
         * @return A new filter that succeeds only on components that
         *         are children of parent
-        * 
+        *
         */
         public GUIFilter parentIs(final Component parent)
         {
             return applySelfTo(GUIFilter.parentIs(parent));
         }
-        
+
         /**
          * Create a filter that checks a component's ancestor
          * @param ancestor one of the ancestors of the component being checked
@@ -475,28 +475,6 @@ public abstract class GUIFilter
     public abstract class BinaryOperator
         extends Operator
     {
-//        // ----------------------------------------------------------
-//        /**
-//         * The "not" operator for negating the right-hand filter argument
-//         * in a binary filter operation, designed to be used in
-//         * expressions like
-//         * <code>where.nameIs("abc").and.not.enabledIs(true)</code>.
-//         * This operator is implemented as a public field so that the simple
-//         * <code>.not.</code> notation can be used.  If you want to use
-//         * parentheses for grouping to define the argument, see
-//         * {@link BinaryOperator#not(GUIFilter)} instead.
-//         */
-//        public final Operator not = new Operator() {
-//            // ----------------------------------------------------------
-//            @Override
-//            protected GUIFilter applySelfTo(final GUIFilter otherFilter)
-//            {
-//                return BinaryOperator.this.applySelfTo(
-//                    primitiveNot(otherFilter));
-//            }
-//        };
-
-
         // ----------------------------------------------------------
         /**
          * The "not" operator for negating an existing filter, when you
@@ -701,7 +679,7 @@ public abstract class GUIFilter
             {
                 if (component.getName() == null)
                 {
-                    return false;
+                    return name == null;
                 }
                 else
                 {
@@ -726,7 +704,7 @@ public abstract class GUIFilter
                     m = component.getClass().getMethod("getText");
                     return ((String)m.invoke(component)).equals(text);
                 }
-                catch ( Exception e )
+                catch (Exception e)
                 {
                     return false;
                 }
@@ -906,7 +884,9 @@ public abstract class GUIFilter
         };
         return gf;
     }
-    
+
+
+    // ----------------------------------------------------------
     private static GUIFilter parentIs(final Component parent)
     {
         GUIFilter gf = new GUIFilter("parent is " + parent)
@@ -918,7 +898,9 @@ public abstract class GUIFilter
         };
         return gf;
     }
-    
+
+
+    // ----------------------------------------------------------
     private static GUIFilter ancestorIs(final Component ancestor)
     {
         GUIFilter gf = new GUIFilter("ancestor is " + ancestor)
@@ -926,15 +908,11 @@ public abstract class GUIFilter
             public boolean test(Component component)
             {
                 Component c = component;
-                while(c != null)
+                while (c != null && c != ancestor)
                 {
-                    if(c.getParent() == ancestor)
-                        return true;
-                    else 
-                        c = c.getParent();
+                    c = c.getParent();
                 }
-                return false;
-                
+                return c != null;
             }
         };
         return gf;

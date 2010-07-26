@@ -22,24 +22,27 @@
 package student.testingsupport;
 
 import java.awt.Color;
-import java.awt.Component;
 import java.awt.Rectangle;
 import java.lang.reflect.Method;
-import objectdraw.*;
+import objectdraw.Drawable1DInterface;
+import objectdraw.Drawable2DInterface;
+import objectdraw.DrawableInterface;
+import objectdraw.Location;
 
 //-------------------------------------------------------------------------
 /**
  *  This class Represents a filter or query that can be used to describe
- *  a {@link DrawableInterface} when searching.  Note that the methods and fields
- *  in this class are designed specifically to support a natural, readable,
- *  boolean expression "mini-language" for use in describing a single
- *  {@link DrawableInterface} (or group of {@link DrawableInterface}s) by its (or their)
- *  properties.  As a result, it does violate some conventions regarding
- *  the use of public fields (although note that all here are immutable)
- *  and occasionally even the naming conventions for constants (e.g.,
- *  <code>where</code>).  However, breaking these conventions is necessary
- *  in this class in order to support the more natural syntax for filter
- *  expressions, and so was deemed a better design choice.
+ *  a {@link DrawableInterface} when searching.  Note that the methods and
+ *  fields in this class are designed specifically to support a natural,
+ *  readable, boolean expression "mini-language" for use in describing a
+ *  single {@link DrawableInterface} (or group of {@link DrawableInterface}s)
+ *  by its (or their) properties.  As a result, it does violate some
+ *  conventions regarding the use of public fields (although note that all
+ *  here are immutable) and occasionally even the naming conventions for
+ *  constants (e.g., <code>where</code>).  However, breaking these
+ *  conventions is necessary in this class in order to support the more
+ *  natural syntax for filter expressions, and so was deemed a better
+ *  design choice.
  *  <p>
  *  Client classes that wish to use these filters should add the
  *  following static import directive:
@@ -233,7 +236,7 @@ public abstract class ObjectdrawFilter
          * shape's <code>getText()</code> method, if it has one.
          * @param text The text to look for
          * @return A new filter that succeeds only on shape where
-         *         <code>getText()</code> is a valid method and 
+         *         <code>getText()</code> is a valid method and
          *         returns the specified text.
          */
         public ObjectdrawFilter textIs(final String text)
@@ -242,7 +245,7 @@ public abstract class ObjectdrawFilter
         }
 
 
-        
+
         // ----------------------------------------------------------
         /**
          * Create a filter that checks the class of a shape.
@@ -251,7 +254,8 @@ public abstract class ObjectdrawFilter
          * @return A new filter that only succeeds on instances of the
          *         given class.
          */
-        public ObjectdrawFilter typeIs(final Class<? extends DrawableInterface> aClass)
+        public ObjectdrawFilter typeIs(
+            final Class<? extends DrawableInterface> aClass)
         {
             return applySelfTo(ObjectdrawFilter.typeIs(aClass));
         }
@@ -305,9 +309,11 @@ public abstract class ObjectdrawFilter
          * @return A new filter that succeeds only on shapes that have
          *         the given size.
          */
-        public ObjectdrawFilter sizeIsWithin(final int maxWidth, final int maxHeight)
+        public ObjectdrawFilter sizeIsWithin(
+            final int maxWidth, final int maxHeight)
         {
-            return applySelfTo(ObjectdrawFilter.sizeIsWithin(maxWidth, maxHeight));
+            return applySelfTo(
+                ObjectdrawFilter.sizeIsWithin(maxWidth, maxHeight));
         }
 
 
@@ -339,9 +345,9 @@ public abstract class ObjectdrawFilter
 
         // ----------------------------------------------------------
         /**
-         * Create a filter that checks a shape's location
-         * @param x The required x-coordinate
-         * @param y The required y-coordinate
+         * Create a filter that checks a shape's location.
+         * @param x The required x-coordinate.
+         * @param y The required y-coordinate.
          * @return A new filter that succeeds only on shapes that have
          *         the given location.
          */
@@ -355,7 +361,7 @@ public abstract class ObjectdrawFilter
         /**
          * Create a filter that checks whether a shape's location (its
          * top left corner) lies within a specific rectangle.
-         * @param region A rectangle defining a region 
+         * @param region A rectangle defining a region.
          * @return A new filter that succeeds only on components that have
          *         a location within the given region.
          */
@@ -368,10 +374,10 @@ public abstract class ObjectdrawFilter
         // ----------------------------------------------------------
         /**
          * Create a filter that checks whether a shape's bounding box
-         * lies within a specific rectangle--that is, whether the entire 
-         * shape's area rather than just its top left corner, lies within 
+         * lies within a specific rectangle--that is, whether the entire
+         * shape's area rather than just its top left corner, lies within
          * the specified region.
-         * @param region A rectangle defining a region 
+         * @param region A rectangle defining a region.
          * @return A new filter that succeeds only on shapes that
          *         lie entirely within the given region, as determined by
          *         {@link Rectangle#contains(Rectangle)}.
@@ -380,75 +386,91 @@ public abstract class ObjectdrawFilter
         {
             return applySelfTo(ObjectdrawFilter.isContainedWithin(region));
         }
-        
+
+
         // ----------------------------------------------------------
         /**
-         * Create a filter that checks a shape's color
-         * @param color the color to check for
-         * @return A new filter that succeeds only on shapes that are
-         *  colored color.
+         * Create a filter that checks a shape's color.
+         * @param color the color to check for.
+         * @return A new filter that succeeds only on shapes that have the
+         * specified color.
          */
         public ObjectdrawFilter colorIs(final Color color)
         {
             return applySelfTo(ObjectdrawFilter.colorIs(color));
         }
-        
+
+
         // ----------------------------------------------------------
         /**
-         * Create a filter that checks whether a shape is hidden
-         * @param hidden a boolean indicating the hidden state to check for
-         * @return A new filter that succeeds only if the shape's hidden value
-         * matches hidden.
+         * Create a filter that checks whether a shape is hidden.
+         * @param hidden a boolean indicating the hidden state to check for.
+         * @return A new filter that succeeds only if the shape's hidden
+         * value matches hidden.
          */
         public ObjectdrawFilter hiddenIs(final boolean hidden)
         {
             return applySelfTo(ObjectdrawFilter.hiddenIs(hidden));
         }
-        
+
+
         // ----------------------------------------------------------
         /**
-         * Create a filter that checks whether a line starts at a given coordinate
-         * @param x the required x-coordinate
-         * @param y the required y-coordinate
-         * @return A new filter that succeeds only lines that start at (x, y)
+         * Create a filter that checks whether a line starts at a given
+         * coordinate.
+         * @param x the required x-coordinate.
+         * @param y the required y-coordinate.
+         * @return A new filter that succeeds only for lines that start at
+         * (x, y).
          */
         public ObjectdrawFilter lineStartLocationIs(final int x, final int y)
         {
-            return applySelfTo(ObjectdrawFilter.lineStartPointIs(new Location(x, y)));
+            return applySelfTo(
+                ObjectdrawFilter.lineStartPointIs(new Location(x, y)));
         }
-        
+
+
+        // ----------------------------------------------------------
         /**
-         * Create a filter that checks whether a line starts at a given location
-         * @param location the required Location
-         * @return A new filter that succeeds only for lines that start at location
+         * Create a filter that checks whether a line starts at a given
+         * location.
+         * @param location the required Location.
+         * @return A new filter that succeeds only for lines that start at
+         * the specified location.
          */
         public ObjectdrawFilter lineStartLocationIs(final Location location)
         {
             return applySelfTo(ObjectdrawFilter.lineStartPointIs(location));
         }
-        
+
+
+        // ----------------------------------------------------------
         /**
-         * Create a filter that checks whether a line ends at a given coordinate
-         * @param x the required x-coordinate
-         * @param y the required y-coordinate
-         * @return A new filter that succeeds only for lines that end at (x, y)
+         * Create a filter that checks whether a line ends at a given
+         * coordinate.
+         * @param x the required x-coordinate.
+         * @param y the required y-coordinate.
+         * @return A new filter that succeeds only for lines that end
+         * at (x, y).
          */
         public ObjectdrawFilter lineEndLocationIs(final int x, final int y)
         {
-            return applySelfTo(ObjectdrawFilter.lineEndPointIs(new Location(x, y)));
+            return applySelfTo(
+                ObjectdrawFilter.lineEndPointIs(new Location(x, y)));
         }
-        
+
+
+        // ----------------------------------------------------------
         /**
-         * Create a filter that checks whether a line starts at a given location
+         * Create a filter that checks whether a line starts at a given
+         * location.
          * @param location the required Location
          * @return A new filter that succeeds only lines that end at location.
          */
-        public ObjectdrawFilter lineEndLocationIs(final Location l)
+        public ObjectdrawFilter lineEndLocationIs(final Location location)
         {
-            return applySelfTo(ObjectdrawFilter.lineEndPointIs(l));
+            return applySelfTo(ObjectdrawFilter.lineEndPointIs(location));
         }
-        
-        
 
 
         // ----------------------------------------------------------
@@ -461,7 +483,8 @@ public abstract class ObjectdrawFilter
          * @return A new compound filter that includes the given argument
          *         as one subfilter, after applying this operator to it.
          */
-        protected abstract ObjectdrawFilter applySelfTo(final ObjectdrawFilter otherFilter);
+        protected abstract ObjectdrawFilter applySelfTo(
+            final ObjectdrawFilter otherFilter);
 
     }
 
@@ -574,7 +597,8 @@ public abstract class ObjectdrawFilter
     public final ObjectdrawFilter and(final ObjectdrawFilter otherFilter)
     {
         final ObjectdrawFilter self = this;
-        ObjectdrawFilter odf =  new ObjectdrawFilter("(" + this + " AND " + otherFilter + ")")
+        ObjectdrawFilter odf =  new ObjectdrawFilter(
+            "(" + this + " AND " + otherFilter + ")")
         {
             public boolean test(DrawableInterface shape)
             {
@@ -600,7 +624,8 @@ public abstract class ObjectdrawFilter
     public final ObjectdrawFilter or(final ObjectdrawFilter otherFilter)
     {
         final ObjectdrawFilter self = this;
-        ObjectdrawFilter odf = new ObjectdrawFilter("(" + this + " OR " + otherFilter + ")")
+        ObjectdrawFilter odf = new ObjectdrawFilter(
+            "(" + this + " OR " + otherFilter + ")")
         {
             public boolean test(DrawableInterface shape)
             {
@@ -613,11 +638,11 @@ public abstract class ObjectdrawFilter
 
     // ----------------------------------------------------------
     /**
-     * Evaluate whether a DrawableInterface matches this filter.  This operation is
-     * intended to be overridden by each subclass to implement the actual
-     * check that a specific kind of filter performs.
-     * @param shape The DrawableInterface to check
-     * @return true if the component matches this filter
+     * Evaluate whether a DrawableInterface object matches this filter.  This
+     * operation is intended to be overridden by each subclass to implement
+     * the actual check that a specific kind of filter performs.
+     * @param shape The DrawableInterface object to check.
+     * @return true if the component matches this filter.
      */
     public abstract boolean test(DrawableInterface shape);
 
@@ -629,8 +654,8 @@ public abstract class ObjectdrawFilter
      * syntax should declare a final field (static or instance) like
      * this:
      * <pre>
-     * public static final ODFilter.WhereOperator where =
-     *     new ODFilter.WhereOperator();
+     * public static final ObjectdrawFilter.WhereOperator where =
+     *     new ObjectdrawFilter.WhereOperator();
      * </pre>
      */
     public static class ClientImports
@@ -693,9 +718,6 @@ public abstract class ObjectdrawFilter
     }
 
 
-
-
-
     // ----------------------------------------------------------
     private static final ObjectdrawFilter widthIs(final int value)
     {
@@ -703,9 +725,8 @@ public abstract class ObjectdrawFilter
         {
             public boolean test(DrawableInterface shape)
             {
-                return (shape instanceof Drawable2DInterface) ?
-                ((Drawable2DInterface)shape).getWidth() == value : 
-                    false;
+                return (shape instanceof Drawable2DInterface)
+                    && ((Drawable2DInterface)shape).getWidth() == value;
             }
         };
         return odf;
@@ -719,9 +740,8 @@ public abstract class ObjectdrawFilter
         {
             public boolean test(DrawableInterface shape)
             {
-                return (shape instanceof Drawable2DInterface) ? 
-                ((Drawable2DInterface)shape).getHeight() == value :
-                    false;
+                return (shape instanceof Drawable2DInterface)
+                    && ((Drawable2DInterface)shape).getHeight() == value;
             }
         };
         return odf;
@@ -729,16 +749,17 @@ public abstract class ObjectdrawFilter
 
 
     // ----------------------------------------------------------
-    private static final ObjectdrawFilter sizeIs(final int width, final int height)
+    private static final ObjectdrawFilter sizeIs(
+        final int width, final int height)
     {
-        ObjectdrawFilter odf = new ObjectdrawFilter("size = (" + width + ", " + height + ")")
+        ObjectdrawFilter odf = new ObjectdrawFilter(
+            "size = (" + width + ", " + height + ")")
         {
             public boolean test(DrawableInterface shape)
             {
-                return (shape instanceof Drawable2DInterface) ?
-                    ((Drawable2DInterface)shape).getWidth() == width
-                    && ((Drawable2DInterface)shape).getHeight() == height :
-                        false;
+                return (shape instanceof Drawable2DInterface)
+                    && ((Drawable2DInterface)shape).getWidth() == width
+                    && ((Drawable2DInterface)shape).getHeight() == height;
             }
         };
         return odf;
@@ -754,10 +775,9 @@ public abstract class ObjectdrawFilter
         {
             public boolean test(DrawableInterface shape)
             {
-                return (shape instanceof Drawable2DInterface) ? 
-                    ((Drawable2DInterface)shape).getWidth() <= maxWidth
-                    && ((Drawable2DInterface)shape).getHeight() <= maxHeight :
-                        false;
+                return (shape instanceof Drawable2DInterface)
+                    && ((Drawable2DInterface)shape).getWidth() <= maxWidth
+                    && ((Drawable2DInterface)shape).getHeight() <= maxHeight;
             }
         };
         return odf;
@@ -771,9 +791,8 @@ public abstract class ObjectdrawFilter
         {
             public boolean test(DrawableInterface shape)
             {
-                return(shape instanceof Drawable2DInterface) ? 
-                    ((Drawable2DInterface)shape).getX() == value :
-                        false;
+                return(shape instanceof Drawable2DInterface)
+                    && ((Drawable2DInterface)shape).getX() == value;
             }
         };
         return odf;
@@ -787,9 +806,8 @@ public abstract class ObjectdrawFilter
         {
             public boolean test(DrawableInterface shape)
             {
-                return (shape instanceof Drawable2DInterface) ?
-                    ((Drawable2DInterface)shape).getY() == value :
-                        false;
+                return (shape instanceof Drawable2DInterface)
+                    && ((Drawable2DInterface)shape).getY() == value;
             }
         };
         return odf;
@@ -799,16 +817,14 @@ public abstract class ObjectdrawFilter
     // ----------------------------------------------------------
     private static final ObjectdrawFilter locationIs(final int x, final int y)
     {
-        ObjectdrawFilter odf = new ObjectdrawFilter("location = (" + x + ", " + y + ")")
+        ObjectdrawFilter odf = new ObjectdrawFilter(
+            "location = (" + x + ", " + y + ")")
         {
             public boolean test(DrawableInterface shape)
             {
-                
-                return (shape instanceof Drawable2DInterface) ?
-                    ((Drawable2DInterface)shape).getX() == x 
-                    && ((Drawable2DInterface)shape).getY() == y :
-                        false;
-               
+                return (shape instanceof Drawable2DInterface)
+                    && ((Drawable2DInterface)shape).getX() == x
+                    && ((Drawable2DInterface)shape).getY() == y;
             }
         };
         return odf;
@@ -816,15 +832,17 @@ public abstract class ObjectdrawFilter
 
 
     // ----------------------------------------------------------
-    private static final ObjectdrawFilter isLocatedWithin(final Rectangle region)
+    private static final ObjectdrawFilter isLocatedWithin(
+        final Rectangle region)
     {
-        ObjectdrawFilter odf = new ObjectdrawFilter("isLocatedWithin(" + region + ")")
+        ObjectdrawFilter odf = new ObjectdrawFilter(
+            "isLocatedWithin(" + region + ")")
         {
             public boolean test(DrawableInterface shape)
             {
-                return (shape instanceof Drawable2DInterface) ?
-                    region.contains(((Drawable2DInterface)shape).getLocation().toPoint()) :
-                        false;
+                return (shape instanceof Drawable2DInterface)
+                    && region.contains(
+                        ((Drawable2DInterface)shape).getLocation().toPoint());
             }
         };
         return odf;
@@ -832,27 +850,31 @@ public abstract class ObjectdrawFilter
 
 
     // ----------------------------------------------------------
-    private static final ObjectdrawFilter isContainedWithin(final Rectangle region)
+    private static final ObjectdrawFilter isContainedWithin(
+        final Rectangle region)
     {
-        ObjectdrawFilter odf = new ObjectdrawFilter("isContainedWithin(" + region + ")")
+        ObjectdrawFilter odf = new ObjectdrawFilter(
+            "isContainedWithin(" + region + ")")
         {
             public boolean test(DrawableInterface shape)
             {
-                return (shape instanceof Drawable2DInterface) ?
-                    region.contains(new Rectangle(
-                        (int)((Drawable2DInterface)shape).getX(), 
-                        (int)((Drawable2DInterface)shape).getY(), 
+                return (shape instanceof Drawable2DInterface)
+                    && region.contains(new Rectangle(
+                        (int)((Drawable2DInterface)shape).getX(),
+                        (int)((Drawable2DInterface)shape).getY(),
                         (int)((Drawable2DInterface)shape).getWidth(),
-                        (int)((Drawable2DInterface)shape).getHeight())):
-                            false;
+                        (int)((Drawable2DInterface)shape).getHeight()));
             }
         };
         return odf;
     }
-    
+
+
+    // ----------------------------------------------------------
     private static final ObjectdrawFilter hiddenIs(final boolean hidden)
     {
-        ObjectdrawFilter odf = new ObjectdrawFilter("hidden is " + hidden + ".")
+        ObjectdrawFilter odf = new ObjectdrawFilter(
+            "hidden = " + hidden)
         {
             public boolean test(DrawableInterface shape)
             {
@@ -864,9 +886,11 @@ public abstract class ObjectdrawFilter
 
 
     // ----------------------------------------------------------
-    private static ObjectdrawFilter typeIs(final Class<? extends DrawableInterface> aClass)
+    private static ObjectdrawFilter typeIs(
+        final Class<? extends DrawableInterface> aClass)
     {
-        ObjectdrawFilter odf = new ObjectdrawFilter("type = " + aClass.getSimpleName())
+        ObjectdrawFilter odf = new ObjectdrawFilter(
+            "type = " + aClass.getSimpleName())
         {
             public boolean test(DrawableInterface shape)
             {
@@ -875,7 +899,9 @@ public abstract class ObjectdrawFilter
         };
         return odf;
     }
-    
+
+
+    // ----------------------------------------------------------
     private static ObjectdrawFilter colorIs(final Color color)
     {
         ObjectdrawFilter odf = new ObjectdrawFilter("color = " + color)
@@ -887,32 +913,18 @@ public abstract class ObjectdrawFilter
         };
         return odf;
     }
-    
-    private static ObjectdrawFilter lineStartPointIs(final Location l)
+
+
+    // ----------------------------------------------------------
+    private static ObjectdrawFilter lineStartPointIs(final Location location)
     {
-        ObjectdrawFilter odf = new ObjectdrawFilter("line start point is (" 
-            + l.getX() + ", " + l.getY() +")")
+        ObjectdrawFilter odf = new ObjectdrawFilter("line starts at ("
+            + location.getX() + ", " + location.getY() +")")
         {
             public boolean test(DrawableInterface shape)
             {
-                return (shape instanceof Drawable1DInterface) ?
-                    ((Drawable1DInterface)shape).getStart().equals(l) :
-                    false;
-            }
-        };
-        return odf;
-    }
-    
-    private static ObjectdrawFilter lineEndPointIs(final Location l)
-    {
-        ObjectdrawFilter odf = new ObjectdrawFilter("line end point is (" 
-            + l.getX() + ", " + l.getY() +")")
-        {
-            public boolean test(DrawableInterface shape)
-            {
-                return (shape instanceof Drawable1DInterface) ?
-                    ((Drawable1DInterface)shape).getEnd().equals(l) :
-                        false;
+                return (shape instanceof Drawable1DInterface)
+                    && ((Drawable1DInterface)shape).getStart().equals(location);
             }
         };
         return odf;
@@ -920,7 +932,24 @@ public abstract class ObjectdrawFilter
 
 
     // ----------------------------------------------------------
-    private static final ObjectdrawFilter primitiveNot(final ObjectdrawFilter otherFilter)
+    private static ObjectdrawFilter lineEndPointIs(final Location location)
+    {
+        ObjectdrawFilter odf = new ObjectdrawFilter("line ends at ("
+            + location.getX() + ", " + location.getY() +")")
+        {
+            public boolean test(DrawableInterface shape)
+            {
+                return (shape instanceof Drawable1DInterface)
+                    && ((Drawable1DInterface)shape).getEnd().equals(location);
+            }
+        };
+        return odf;
+    }
+
+
+    // ----------------------------------------------------------
+    private static final ObjectdrawFilter primitiveNot(
+        final ObjectdrawFilter otherFilter)
     {
         return new ObjectdrawFilter("(NOT " + otherFilter + ")")
         {
