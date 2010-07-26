@@ -1225,7 +1225,11 @@ public class GUITestCase
      * method is executed on the GUI event thread, and return its value.
      * This version is intended for calling methods that have a non-void
      * return type.
-     * @param reciever The object to which the method belongs.
+     * @param <T>  This method is a template method, and the type T is
+     *             implicitly deduced from the <code>returnType</code>
+     *             argument.
+     * @param receiver The object to which the method belongs.
+     * @param returnType The expected type of the method's return value.
      * @param methodName The name of the method to call.
      * @param params A list of zero or more parameters to pass to the method.
      * @return The return value of the method.
