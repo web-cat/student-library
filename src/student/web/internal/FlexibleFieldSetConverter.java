@@ -31,308 +31,380 @@ import com.thoughtworks.xstream.io.HierarchicalStreamReader;
 import com.thoughtworks.xstream.io.HierarchicalStreamWriter;
 import com.thoughtworks.xstream.io.path.PathTracker;
 import com.thoughtworks.xstream.mapper.Mapper;
+
+import java.lang.reflect.Constructor;
+import java.lang.reflect.Method;
 import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.TreeMap;
 
+import student.web.internal.TemplateManager.Template;
+import student.web.internal.TemplateManager.Template.Field;
+
 //-------------------------------------------------------------------------
 /**
- *  A custom XStream converter class that stores each object as a map from
- *  field names to field values.
- *
- * @author  Stephen Edwards
- * @author  Last changed by $Author$
+ * A custom XStream converter class that stores each object as a map from field
+ * names to field values.
+ * 
+ * @author Stephen Edwards
+ * @author Last changed by $Author$
  * @version $Revision$, $Date$
  */
-public class FlexibleFieldSetConverter
-    extends ReflectionConverter
+public class FlexibleFieldSetConverter extends ReflectionConverter
 {
-    private TreeMapConverter mapConverter;
-    private ReflectionProvider pjProvider = null;
-    private Map<Object, Map<String, Object>> snapshots;
-    private Map<Object, Map<String, Object>> oldSnapshots;
+	private TreeMapConverter mapConverter;
+	private ReflectionProvider pjProvider = null;
+	private Map<Object, Map<String, Object>> snapshots;
+	private Map<Object, Map<String, Object>> oldSnapshots;
 
+	public class IllegalPersistException extends RuntimeException
+	{
 
-    // ----------------------------------------------------------
-    public FlexibleFieldSetConverter(Mapper mapper, ReflectionProvider rp)
-    {
-        super(mapper, rp);
-        mapConverter = new TreeMapConverter(mapper);
-        if (!(reflectionProvider instanceof PureJavaReflectionProvider))
-        {
-            pjProvider = new PureJavaReflectionProvider();
-        }
-        clearSnapshots();
-    }
+		public IllegalPersistException(String message)
+		{
+			super(message);
+		}
 
+	}
 
-    // ----------------------------------------------------------
-    public Map<Object, Map<String, Object>> getSnapshots()
-    {
-        return snapshots;
-    }
+	// ----------------------------------------------------------
+	public FlexibleFieldSetConverter(Mapper mapper, ReflectionProvider rp)
+	{
+		super(mapper, rp);
+		mapConverter = new TreeMapConverter(mapper);
+		if (!(reflectionProvider instanceof PureJavaReflectionProvider))
+		{
+			pjProvider = new PureJavaReflectionProvider();
+		}
+		clearSnapshots();
+	}
 
+	// ----------------------------------------------------------
+	public Map<Object, Map<String, Object>> getSnapshots()
+	{
+		return snapshots;
+	}
 
-    // ----------------------------------------------------------
-    public void setSnapshots(Map<Object, Map<String, Object>> newSnapshots)
-    {
-        snapshots = newSnapshots;
-    }
+	// ----------------------------------------------------------
+	public void setSnapshots(Map<Object, Map<String, Object>> newSnapshots)
+	{
+		snapshots = newSnapshots;
+	}
 
+	// ----------------------------------------------------------
+	public void setOldSnapshots(Map<Object, Map<String, Object>> formerSnapshots)
+	{
+		oldSnapshots = formerSnapshots;
+	}
 
-    // ----------------------------------------------------------
-    public void setOldSnapshots(
-        Map<Object, Map<String, Object>> formerSnapshots)
-    {
-        oldSnapshots = formerSnapshots;
-    }
+	// ----------------------------------------------------------
+	public void clearSnapshots()
+	{
+		snapshots = new IdentityHashMap<Object, Map<String, Object>>();
+	}
 
+	// ----------------------------------------------------------
+	public void marshal(Object source, HierarchicalStreamWriter writer, MarshallingContext context)
+	{
+		if (source instanceof student.web.Application)
+		{
+			throw new IllegalArgumentException(
+					"You cannot store an object that contains a reference " + "to your application");
+		}
+		writer.addAttribute("fieldset", "true");
+		String path = getPath(writer);
+		Object oldSnapshotFromPath = oldSnapshots.get(path);
+		Map<String, Object> fields = objectToFieldMap(source);
+		checkFields(source.getClass().getName(), fields);
+		if (oldSnapshots != null && oldSnapshots.containsKey(source) && oldSnapshotFromPath != null
+				&& snapshots != null && oldSnapshotFromPath.equals(snapshots.get(path)))
+		{
+			fields = difference(oldSnapshots.get(source), fields);
+		}
+		Map<String, Object> toStore = fields;
+		// System.out.println("Field changes for object " + source);
+		// System.out.println("    " + fields);
 
-    // ----------------------------------------------------------
-    public void clearSnapshots()
-    {
-        snapshots = new IdentityHashMap<Object, Map<String, Object>>();
-    }
+		if (snapshots != null && path != null && snapshots.containsKey(path))
+		{
+			toStore = new TreeMap<String, Object>(snapshots.get(path));
+			toStore.putAll(fields);
+		}
+		mapConverter.marshal(toStore, writer, context);
+	}
 
+	private void checkFields(String source, Map<String, Object> fields)
+	{
+		TemplateManager tm = TemplateManager.getInstance();
+		if (tm.isEnabled())
+		{
+			Template classTemplate = tm.getTemplate(source);
+			if (classTemplate == null)
+			{
+				return;
+			}
+			
+			//Check for every required template field.
+			for(Field templateField : classTemplate.getFields())
+			{
+				if(!fields.containsKey(templateField.getName()))
+				{
+					if(!templateField.isNullable())
+					{
+						throw new IllegalPersistException("Your class must contain " +
+								"the Field named \""+templateField.getName()+"\".  " +
+								"Please add this to your class definition.");
+					}
+				}
+			}
+			//Check all present fields to ensure they are nullable
+			for (String classField : fields.keySet())
+			{
+				Object value = fields.get(classField);
+				if (value == null)
+				{
+					Field templateField = classTemplate.getField(classField);
+					if (templateField != null)
+					{
+							if (!templateField.isNullable())
+							{
+								throw new IllegalPersistException("You cannot store the field "
+									+ classField + " as null.  Make sure the field contains some data");
+							}
+					}
+					else
+					{
+						Field defaultField = classTemplate.getDefault();
+						if(defaultField.isNullable())
+						{
+							continue;
+						}
+						throw new IllegalPersistException("Your implementation of " + source
+								+ "must contain a value for the field " + classField
+								+ ".");
+					}
+				}
+			}
+		}
 
-    // ----------------------------------------------------------
-    public void marshal(
-        Object source,
-        HierarchicalStreamWriter writer,
-        MarshallingContext context)
-    {
-        if (source instanceof student.web.Application)
-        {
-            throw new IllegalArgumentException(
-                "You cannot store an object that contains a reference "
-                + "to your application");
-        }
-        writer.addAttribute("fieldset", "true");
-        String path = getPath(writer);
-        Object oldSnapshotFromPath = oldSnapshots.get(path);
-        Map<String, Object> fields = objectToFieldMap(source);
-        if (oldSnapshots != null && oldSnapshots.containsKey(source)
-            && oldSnapshotFromPath != null
-            && snapshots != null
-            && oldSnapshotFromPath.equals(snapshots.get(path)))
-        {
-            fields = difference(oldSnapshots.get(source), fields);
-        }
-        Map<String, Object> toStore = fields;
-//        System.out.println("Field changes for object " + source);
-//        System.out.println("    " + fields);
+	}
 
-        if (snapshots != null && path != null && snapshots.containsKey(path))
-        {
-            toStore = new TreeMap<String, Object>(snapshots.get(path));
-            toStore.putAll(fields);
-        }
-        mapConverter.marshal(toStore, writer, context);
-    }
+	// ----------------------------------------------------------
+	public Object unmarshal(HierarchicalStreamReader reader, UnmarshallingContext context)
+	{
+		Object result = null;
+		String path = getPath(reader);
+		Map<String, Object> fields = null;
+		if (reader.getAttribute("fieldset") != null)
+		{
+			// System.out.println("attempting to unmarshal [fieldset] " + path);
+			@SuppressWarnings("unchecked")
+			Map<String, Object> realFields = (Map<String, Object>) mapConverter.unmarshal(reader,
+					context);
+			fields = realFields;
+		}
+		else
+		{
+			System.out.println("attempting to unmarshal " + path);
+			result = super.unmarshal(reader, context);
+			if (result instanceof TreeMap
+					&& !TreeMap.class.isAssignableFrom(context.getRequiredType()))
+			{
+				@SuppressWarnings("unchecked")
+				Map<String, Object> realFields = (Map<String, Object>) result;
+				fields = realFields;
+			}
+		}
 
+		if (fields != null)
+		{
+			result = reflectionProvider.newInstance(context.getRequiredType());
+			if (!restoreObjectFromFieldMap(result, fields) /*&& pjProvider != null*/)
+			{
+				try
+				{
+					Method initFieldsMethod = result.getClass().getMethod("initializeFields",
+							(Class<?>) null);
+					initFieldsMethod.invoke(result, (Object[]) null);
+				}
+				catch (Exception e)
+				{
+					try
+					{
+						Constructor defaultConst = result.getClass().getConstructor((Class<?>)null);
+					}
+					catch (SecurityException e1)
+					{
+						System.err.println("You made your default constructor for "+result.getClass().getName() + " private.  If you would like it to be used" +
+								" by the persistence library please make it public");
+					}
+					catch (NoSuchMethodException e2)
+					{
+						System.err
+						.println("The shared object \""+result.getClass().getName()+"\" you have loaded did not "
+								+ "contain all of the fields present in your original object.  "
+								+ "We were also unable to find a method with the signature \"public "
+								+ "void initializeFields()\" or the "
+								+ "default contstructor \"public "
+								+ result.getClass().getName()
+								+ "()\".  If you have made assumptions "
+								+ "about the state of certain fields in your "
+								+ result.getClass().getName()
+								+ " Object please provide one of these methods to initialize the fields "
+								+ "not present in the datastore.");
+					}
+					
 
-    // ----------------------------------------------------------
-    public Object unmarshal(
-        HierarchicalStreamReader reader,
-        UnmarshallingContext context)
-    {
-        Object result = null;
-        String path = getPath(reader);
-        Map<String, Object> fields = null;
-        if (reader.getAttribute("fieldset") != null)
-        {
-            System.out.println("attempting to unmarshal [fieldset] " + path);
-            @SuppressWarnings("unchecked")
-            Map<String, Object> realFields = (Map<String, Object>)
-                mapConverter.unmarshal(reader, context);
-            fields = realFields;
-        }
-        else
-        {
-            System.out.println("attempting to unmarshal " + path);
-            result = super.unmarshal(reader, context);
-            if (result instanceof TreeMap
-                && !TreeMap.class.isAssignableFrom(context.getRequiredType()))
-            {
-                @SuppressWarnings("unchecked")
-                Map<String, Object> realFields = (Map<String, Object>)result;
-                fields = realFields;
-            }
-        }
+				}
+				// If some fields weren't initialized, then try to create
+				// an object using a default constructor, if possible
+				// if we can't create it, there's no default constructor
+				try
+				{
+					Object newResult = reflectionProvider.newInstance(context.getRequiredType());
+					restoreObjectFromFieldMap(newResult, fields);
+					result = newResult;
+				}
+				catch (Exception e2)
+				{
 
-        if (fields != null)
-        {
-            result = reflectionProvider.newInstance(context.getRequiredType());
-            if (!restoreObjectFromFieldMap(result, fields) &&
-                pjProvider != null)
-            {
-                // If some fields weren't initialized, then try to create
-                // an object using a default constructor, if possible
-                try
-                {
-                    Object newResult =
-                        pjProvider.newInstance(context.getRequiredType());
-                    restoreObjectFromFieldMap(newResult, fields);
-                    result = newResult;
-                }
-                catch (Exception e)
-                {
-                    // if we can't create it, there's no default constructor
-                }
-            }
-            if (result != null)
-            {
-                snapshots.put(result, fields);
-                if (path != null)
-                {
-                    snapshots.put(path, fields);
-                }
-            }
-        }
+				}
+			}
+			if (result != null)
+			{
+				snapshots.put(result, fields);
+				if (path != null)
+				{
+					snapshots.put(path, fields);
+				}
+			}
+		}
 
-        return result;
-    }
+		return result;
+	}
 
+	// ----------------------------------------------------------
+	/**
+	 * Convert an object to a map of field name/value pairs.
+	 * 
+	 * @param object
+	 *            The object to convert
+	 * @return The object's field values in map form
+	 */
+	private Map<String, Object> objectToFieldMap(Object object)
+	{
+		final TreeMap<String, Object> result = new TreeMap<String, Object>();
 
-    // ----------------------------------------------------------
-    /**
-     * Convert an object to a map of field name/value pairs.
-     * @param object The object to convert
-     * @return The object's field values in map form
-     */
-    private Map<String, Object> objectToFieldMap(Object object)
-    {
-        final TreeMap<String, Object> result = new TreeMap<String, Object>();
+		reflectionProvider.visitSerializableFields(object, new ReflectionProvider.Visitor() {
+			@SuppressWarnings("unchecked")
+			public void visit(String fieldName, Class type, Class definedIn, Object value)
+			{
+				result.put(fieldName, value);
+			}
+		});
 
-        reflectionProvider.visitSerializableFields(
-            object,
-            new ReflectionProvider.Visitor()
-            {
-                @SuppressWarnings("unchecked")
-                public void visit(
-                    String fieldName,
-                    Class type,
-                    Class definedIn,
-                    Object value)
-                {
-                    result.put(fieldName, value);
-                }
-            });
+		return result;
+	}
 
-        return result;
-    }
+	private static class BooleanWrapper
+	{
+		boolean value;
+	}
 
+	// ----------------------------------------------------------
+	/**
+	 * Convert an object to a map of field name/value pairs.
+	 * 
+	 * @param object
+	 *            The object to convert
+	 * @param fields
+	 *            The field values to restore from
+	 * @return True if all fields in the object were present in the field set
+	 */
+	private boolean restoreObjectFromFieldMap(Object object, final Map<String, Object> fields)
+	{
+		final Object result = object;
+		final BooleanWrapper allFound = new BooleanWrapper();
+		allFound.value = true;
+		reflectionProvider.visitSerializableFields(result, new ReflectionProvider.Visitor() {
+			@SuppressWarnings("unchecked")
+			public void visit(String fieldName, Class type, Class definedIn, Object value)
+			{
+				if (fields.containsKey(fieldName))
+				{
+					reflectionProvider.writeField(result, fieldName, fields.get(fieldName),
+							definedIn);
+				}
+				else
+				{
+					allFound.value = false;
+				}
+			}
+		});
+		return allFound.value;
+	}
 
-    private static class BooleanWrapper { boolean value; }
-    // ----------------------------------------------------------
-    /**
-     * Convert an object to a map of field name/value pairs.
-     * @param object The object to convert
-     * @param fields The field values to restore from
-     * @return True if all fields in the object were present in the field set
-     */
-    private boolean restoreObjectFromFieldMap(
-        Object object, final Map<String, Object> fields)
-    {
-        final Object result = object;
-        final BooleanWrapper allFound = new BooleanWrapper();
-        allFound.value = true;
-        reflectionProvider.visitSerializableFields(
-            result,
-            new ReflectionProvider.Visitor()
-            {
-                @SuppressWarnings("unchecked")
-                public void visit(
-                    String fieldName,
-                    Class type,
-                    Class definedIn,
-                    Object value)
-                {
-                    if (fields.containsKey(fieldName))
-                    {
-                        reflectionProvider.writeField(
-                            result,
-                            fieldName,
-                            fields.get(fieldName),
-                            definedIn);
-                    }
-                    else
-                    {
-                        allFound.value = false;
-                    }
-                }
-            });
-        return allFound.value;
-    }
+	// ----------------------------------------------------------
+	/**
+	 * Compute the difference between two field sets. This is not the same as
+	 * "set difference". Instead, it is really the "changes" map minus any
+	 * entries that duplicate those in the "original". In other words, what
+	 * entries in "changes" map to different values than the same entries in
+	 * "original"?
+	 * 
+	 * @param original
+	 *            The base field set to compare against
+	 * @param changes
+	 *            The second (modified) field set
+	 * @return A field set map that contains the values defined in changes that
+	 *         are either not present in or are different than in the original.
+	 */
+	private static Map<String, Object> difference(Map<String, Object> original,
+			Map<String, Object> changes)
+	{
+		Map<String, Object> differences = new TreeMap<String, Object>();
+		for (String key : changes.keySet())
+		{
+			Object value = changes.get(key);
+			if ((value == null && original.get(key) != null)
+					|| (value != null && !(isPrimitiveValue(value) && value.equals(original
+							.get(key)))))
+			{
+				differences.put(key, value);
+			}
+		}
+		return differences;
+	}
 
+	// ----------------------------------------------------------
+	private static boolean isPrimitiveValue(Object value)
+	{
+		return value instanceof String || value instanceof Number || value instanceof Boolean
+				|| value instanceof Character;
+	}
 
-    // ----------------------------------------------------------
-    /**
-     * Compute the difference between two field sets.  This is not the same
-     * as "set difference".  Instead, it is really the "changes" map minus
-     * any entries that duplicate those in the "original".  In other words,
-     * what entries in "changes" map to different values than the same
-     * entries in "original"?
-     * @param original The base field set to compare against
-     * @param changes The second (modified) field set
-     * @return A field set map that contains the values defined
-     * in changes that are either not present in or are different than
-     * in the original.
-     */
-    private static Map<String, Object> difference(
-        Map<String, Object> original,
-        Map<String, Object> changes)
-    {
-        Map<String, Object> differences = new TreeMap<String, Object>();
-        for (String key : changes.keySet())
-        {
-            Object value = changes.get(key);
-            if ((value == null && original.get(key) != null)
-                || (value != null
-                    && !(isPrimitiveValue(value)
-                         && value.equals(original.get(key)))))
-            {
-                differences.put(key, value);
-            }
-        }
-        return differences;
-    }
+	// ----------------------------------------------------------
+	private String getPath(Object readerOrWriter)
+	{
+		String path = null;
+		try
+		{
+			path = ((PathTracker) reflectionProvider.getField(readerOrWriter.getClass(),
+					"pathTracker").get(readerOrWriter)).getPath().toString();
+		}
+		catch (Exception e)
+		{
+			System.out.println("cannot access pathTracker");
+			e.printStackTrace();
+		}
+		return path.intern();
+	}
 
-
-    // ----------------------------------------------------------
-    private static boolean isPrimitiveValue(Object value)
-    {
-        return value instanceof String
-            || value instanceof Number
-            || value instanceof Boolean
-            || value instanceof Character;
-    }
-
-
-    // ----------------------------------------------------------
-    private String getPath(Object readerOrWriter)
-    {
-        String path = null;
-        try
-        {
-            path = ((PathTracker)reflectionProvider.getField(
-                readerOrWriter.getClass(), "pathTracker")
-                    .get(readerOrWriter)).getPath().toString();
-        }
-        catch (Exception e)
-        {
-            System.out.println("cannot access pathTracker");
-            e.printStackTrace();
-        }
-        return path.intern();
-    }
-
-
-    // ----------------------------------------------------------
-    @SuppressWarnings("unchecked")
-    public boolean canConvert(Class type)
-    {
-        return true;
-    }
+	// ----------------------------------------------------------
+	@SuppressWarnings("unchecked")
+	public boolean canConvert(Class type)
+	{
+		return true;
+	}
 
 }

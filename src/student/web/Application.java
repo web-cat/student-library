@@ -832,22 +832,30 @@ public abstract class Application
     private <ObjectType> void setPersistentObject(
         String objectId, ObjectType object)
     {
-        PersistentStorageManager.StoredObject latest = context.get(objectId);
-        if (latest != null)
-        {
-            latest.setValue(object);
-            PersistentStorageManager.getInstance()
-                .storePersistentObjectChanges(
-                    objectId,
-                    latest,
-                    object.getClass().getClassLoader());
-        }
-        else
-        {
-            latest = PersistentStorageManager.getInstance()
-                .storePersistentObject(objectId, object);
-            context.put(objectId, latest);
-        }
+    	try
+    	{    		
+    		PersistentStorageManager.StoredObject latest = context.get(objectId);
+    		if (latest != null)
+    		{
+    			latest.setValue(object);
+    			PersistentStorageManager.getInstance()
+    				.storePersistentObjectChanges(
+    					objectId,
+    					latest,
+    					object.getClass().getClassLoader());
+    		}
+    		else
+    		{
+    			latest = PersistentStorageManager.getInstance()
+    				.storePersistentObject(objectId, object);
+    			context.put(objectId, latest);
+    		}
+    	}
+    	catch(RuntimeException e)
+    	{
+    		PersistentStorageManager.getInstance().removeFieldSet(objectId);
+    		throw e;
+    	}
     }
 
 
