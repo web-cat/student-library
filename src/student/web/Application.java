@@ -36,6 +36,7 @@ import student.web.internal.ApplicationSupportStrategy;
 import student.web.internal.LocalApplicationSupportStrategy;
 import student.web.internal.ObjectFieldExtractor;
 import student.web.internal.PersistentStorageManager;
+import student.web.internal.PersistentStorageManager.StoredObject;
 
 //-------------------------------------------------------------------------
 /**
@@ -113,7 +114,8 @@ public abstract class Application
 {
     //~ Instance/static variables .............................................
 
-    private static final String APP_STORE = "app-store";
+    private static final String CONTEXT_OBJECT_ID = "_context_object";
+	private static final String APP_STORE = "app-store";
     private static final String USER = "app-user";
     private static final String SEPARATOR = "-.-";
 
@@ -185,6 +187,17 @@ public abstract class Application
             sessionValues = (Map<String, Object>)appStore;
 //            System.out.println(
 //                "  reusing existing session store: " + sessionValues);
+        }
+        //Check for a persisted form of the context
+        //FIXME: This is a temporary fix.
+        Map<String, StoredObject> possibleContext = (Map<String, StoredObject>)support.getSessionParameter(CONTEXT_OBJECT_ID);
+        if(possibleContext != null)
+        {
+        	context = possibleContext;
+        }
+        else
+        {
+        	support.setSessionParameter(CONTEXT_OBJECT_ID,possibleContext);
         }
     }
 

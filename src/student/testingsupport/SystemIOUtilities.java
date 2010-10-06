@@ -195,8 +195,9 @@ public class SystemIOUtilities
         boolean inServlet = false;
         try
         {
+        	
             if (SystemIOUtilities.class.getClassLoader()
-                    .loadClass("student.web.internal.Interpreter") != null)
+                    .loadClass("student.web.internal.Initializer") != null)
             {
                 inServlet = true;
             }
