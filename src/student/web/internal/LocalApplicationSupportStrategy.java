@@ -39,8 +39,14 @@ public class LocalApplicationSupportStrategy
     implements ApplicationSupportStrategy
 {
     //~ Instance/static variables .............................................
-
-    private Map<String, Object> sessionValues = new HashMap<String, Object>();
+	private static ThreadLocal<Map<String,Object>> localSessionMap = new ThreadLocal<Map<String,Object>>()
+	{
+		public Map<String, Object> initialValue()
+		{
+			return null;
+		}
+	};
+	private Map<String, Object> sessionValues;
     private String path = "index.zhtml";
 
 
@@ -52,7 +58,15 @@ public class LocalApplicationSupportStrategy
      */
     public LocalApplicationSupportStrategy()
     {
-        // Nothing to do
+    	if(localSessionMap.get() == null)
+    	{
+    		sessionValues = new HashMap<String,Object>();
+    		localSessionMap.set(sessionValues);
+    	}
+    	else
+    	{
+    		sessionValues = localSessionMap.get();
+    	}
     }
 
 

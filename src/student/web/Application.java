@@ -34,6 +34,7 @@ import java.util.TreeMap;
 import student.testingsupport.SystemIOUtilities;
 import student.web.internal.ApplicationSupportStrategy;
 import student.web.internal.LocalApplicationSupportStrategy;
+import student.web.internal.LocalityService;
 import student.web.internal.ObjectFieldExtractor;
 import student.web.internal.PersistentStorageManager;
 import student.web.internal.PersistentStorageManager.StoredObject;
@@ -149,26 +150,27 @@ public abstract class Application
             "The application identifier cannot be an empty string";
 //        System.out.println("Creating application " + identifier + ": " + this);
         id = identifier;
-        if (SystemIOUtilities.isOnServer())
-        {
-            try
-            {
-                Class<?> strategyClass = Class.forName(
-                    "student.web.internal.ServerApplicationSupportStrategy");
-                support = (ApplicationSupportStrategy)
-                    strategyClass.newInstance();
-            }
-            catch (Exception e)
-            {
-                System.out.println(
-                    "Error initializing application support strategy");
-                e.printStackTrace();
-            }
-        }
-        if (support == null)
-        {
-            support = new LocalApplicationSupportStrategy();
-        }
+        support = LocalityService.getSupportStrategy();
+//        if (SystemIOUtilities.isOnServer())
+//        {
+//            try
+//            {
+//                Class<?> strategyClass = Class.forName(
+//                    "student.web.internal.ServerApplicationSupportStrategy");
+//                support = (ApplicationSupportStrategy)
+//                    strategyClass.newInstance();
+//            }
+//            catch (Exception e)
+//            {
+//                System.out.println(
+//                    "Error initializing application support strategy");
+//                e.printStackTrace();
+//            }
+//        }
+//        if (support == null)
+//        {
+//            support = new LocalApplicationSupportStrategy();
+//        }
         Object appStore =
             support.getSessionParameter(id + SEPARATOR + APP_STORE);
         if (appStore == null)
@@ -893,11 +895,11 @@ public abstract class Application
     private <ObjectType> ObjectType reloadPersistentObject(
         String objectId, ObjectType object)
     {
-        if (false)
-        {
-            context.remove(objectId);
-            return (ObjectType)getPersistentObject(objectId, object.getClass());
-        }
+//        if (false)
+//        {
+//            context.remove(objectId);
+//            return (ObjectType)getPersistentObject(objectId, object.getClass());
+//        }
 
         ObjectType result = object;
         PersistentStorageManager.StoredObject latest = context.get(objectId);

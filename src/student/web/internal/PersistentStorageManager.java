@@ -84,6 +84,12 @@ public class PersistentStorageManager
     {
         return PSM;
     }
+    public static PersistentStorageManager getInstance(String dirName)
+    {
+    	PersistentStorageManager manager = new PersistentStorageManager();
+    	manager.baseDir = new File(PSM.baseDir,dirName);
+    	return manager;
+    }
 
 
     // ----------------------------------------------------------

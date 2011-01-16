@@ -245,7 +245,7 @@ public class FlexibleFieldSetConverter extends ReflectionConverter
 								+ "contain all of the fields present in your original object.  "
 								+ "We were also unable to find a method with the signature \"public "
 								+ "void initializeFields()\" or the "
-								+ "default contstructor \"public "
+								+ "default constructor \"public "
 								+ result.getClass().getName()
 								+ "()\".  If you have made assumptions "
 								+ "about the state of certain fields in your "
