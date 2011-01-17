@@ -1,6 +1,8 @@
 package student.web;
 
 import student.web.internal.AbstractPersistenceStoreMap;
+import student.web.internal.LocalApplicationSupportStrategy;
+import student.web.internal.LocalityService;
 
 /**
  * This map accesses the shared persistence layer. This layer is shared between
@@ -11,10 +13,13 @@ import student.web.internal.AbstractPersistenceStoreMap;
  * return information based on all of the elements in the Application layer, not
  * just objects of the generic type. In addition, this map generally performs
  * type checking on all method calls to prevent using different key types or
- * value types to access the application persistence layer. <br/><br/>
- * Typical Usage: <br/><br/>
+ * value types to access the application persistence layer. <br/>
+ * <br/>
+ * Typical Usage: <br/>
+ * <br/>
  * {@code SharedPersistenceMap<User> userAppMap = new SharedPersistenceMap<User>(UNIQUE_ID, User.class);}
- * <br/><br/>
+ * <br/>
+ * <br/>
  * Where User is the class being persisted and retrieved.
  * 
  * This map uses special logic to recreate objects that have been stored in the
@@ -41,21 +46,25 @@ public class SharedPersistenceMap<T> extends AbstractPersistenceStoreMap<T> {
 		super(SHARED);
 		typeAware = genericClass;
 	}
+
 	/**
 	 * NOT SUPPORTED
 	 */
 	@Override
-	public void clear()
-	{
-		throw new UnsupportedOperationException("You cannot clear the shared map.");
+	public void clear() {
+		if (LocalityService.getSupportStrategy() instanceof LocalApplicationSupportStrategy) {
+			super.clear();
+		} else
+			throw new UnsupportedOperationException(
+					"You cannot clear the shared map.");
 	}
-	/**
-	 * Testing purposes only
-	 * 
-	 */
-	void clearLocal()
-	{
-		super.clear();
-	}
+	// /**
+	// * Testing purposes only
+	// *
+	// */
+	// void clearLocal()
+	// {
+	// super.clear();
+	// }
 
 }

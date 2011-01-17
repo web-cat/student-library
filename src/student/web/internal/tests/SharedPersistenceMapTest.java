@@ -1,4 +1,4 @@
-package student.web;
+package student.web.internal.tests;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -14,10 +14,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-
-
-
-
+import student.web.SharedPersistenceMap;
 
 public class SharedPersistenceMapTest {
 	private static final String TEST_ELEMENT = "TestElement";
@@ -49,7 +46,7 @@ public class SharedPersistenceMapTest {
 	@After
 	public void clearLocalAppStore()
 	{
-		localAppStore.clearLocal();
+		localAppStore.clear();
 		assertTrue(localAppStore.isEmpty());
 		assertEquals(localAppStore.size(),0);
 		assertEquals(localAppStore.keySet().size(),0);
@@ -211,8 +208,8 @@ public class SharedPersistenceMapTest {
 		localAppStore.put("test2", stub);
 		Set<String> keyset1 = localAppStore.keySet();
 		Set<String> keyset2 = stub2Map.keySet();
-		localAppStore.clearLocal();
-		stub2Map.clearLocal();
+		localAppStore.clear();
+		stub2Map.clear();
 		assertEquals(keyset1.size(),2);
 		assertEquals(keyset2.size(),2);
 		assertEquals(localAppStore.size(),0);
