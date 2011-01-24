@@ -77,7 +77,7 @@ public abstract class AbstractPersistenceStoreMap<T> implements
 		}
 	}
 
-	@Override
+	
 	public T remove(Object key) {
 		assert key instanceof String : "Persistence maps only allows for keys of type String";
 		String objectId = (String) key;
@@ -95,7 +95,7 @@ public abstract class AbstractPersistenceStoreMap<T> implements
 
 	}
 
-	@Override
+	
 	public T put(String key, T value) {
 		assert key != null : "An objectId cannot be null";
 		assert key.length() > 0 : "An objectId cannot be an empty string";
@@ -107,7 +107,7 @@ public abstract class AbstractPersistenceStoreMap<T> implements
 		return cached;
 	}
 
-	@Override
+	
 	public void putAll(Map<? extends String, ? extends T> externalMap) {
 		for (Map.Entry<? extends String, ? extends T> entry : externalMap
 				.entrySet()) {
@@ -115,7 +115,6 @@ public abstract class AbstractPersistenceStoreMap<T> implements
 		}
 	}
 
-	@Override
 	public T get(Object key) {
 		assert key instanceof String : "Persistence maps only allows for keys of type String";
 		String objectId = (String) key;
@@ -124,7 +123,7 @@ public abstract class AbstractPersistenceStoreMap<T> implements
 		return getPersistentObject(objectId, typeAware);
 	}
 
-	@Override
+//	
 	public boolean containsKey(Object key) {
 		assert key instanceof String : "Persistence maps only allows for keys of type String";
 		String objectId = (String) key;
@@ -132,7 +131,7 @@ public abstract class AbstractPersistenceStoreMap<T> implements
 		return PSM.hasFieldSetFor(objectId, null);
 	}
 
-	@Override
+	
 	public int size() {
 
 		ensureIdSetsAreCurrent();
@@ -140,7 +139,7 @@ public abstract class AbstractPersistenceStoreMap<T> implements
 
 	}
 
-	@Override
+	
 	public boolean isEmpty() {
 
 		ensureIdSetsAreCurrent();
@@ -148,7 +147,7 @@ public abstract class AbstractPersistenceStoreMap<T> implements
 
 	}
 
-	@Override
+//	
 	public boolean containsValue(Object value) {
 		ensureIdSetsAreCurrent();
 
@@ -163,7 +162,7 @@ public abstract class AbstractPersistenceStoreMap<T> implements
 
 	}
 
-	@Override
+//	
 	public void clear() {
 
 		ensureIdSetsAreCurrent();
@@ -175,7 +174,7 @@ public abstract class AbstractPersistenceStoreMap<T> implements
 
 	}
 
-	@Override
+	
 	public Set<String> keySet() {
 		ensureIdSetsAreCurrent();
 		// Set<String> ids = new HashSet<String>();
@@ -185,7 +184,7 @@ public abstract class AbstractPersistenceStoreMap<T> implements
 
 	}
 
-	@Override
+	
 	public Collection<T> values() {
 		ensureIdSetsAreCurrent();
 		Set<T> valueSet = new HashSet<T>();
@@ -199,7 +198,7 @@ public abstract class AbstractPersistenceStoreMap<T> implements
 
 	}
 
-	@Override
+	
 	public Set<Entry<String, T>> entrySet() {
 
 		ensureIdSetsAreCurrent();
