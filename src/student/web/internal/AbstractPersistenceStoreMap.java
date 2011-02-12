@@ -37,7 +37,7 @@ public abstract class AbstractPersistenceStoreMap<T> implements
 	 * Timestamp of the last time the keyset of the persistence library was
 	 * retrieved.
 	 */
-	private long idSetTimestamp = 0L;
+	// private long idSetTimestamp = 0L;
 	/**
 	 * The class type this map is projecting onto the persistence store.
 	 */
@@ -45,9 +45,9 @@ public abstract class AbstractPersistenceStoreMap<T> implements
 	/**
 	 * The latest obtained keyset from the persistence store.
 	 */
-	protected HashSet<String> idSet = new HashSet<String>();
-	private ReadOnlyHashSet<String> snapshotIds;
-	private long snapshotTimestamp = 0L;
+	// protected HashSet<String> idSet = new HashSet<String>();
+	// private ReadOnlyHashSet<String> snapshotIds;
+	// private long snapshotTimestamp = 0L;
 	/**
 	 * The cached context map for objects retrieved from the store. It is used
 	 * to reconsititue objects.
@@ -63,7 +63,6 @@ public abstract class AbstractPersistenceStoreMap<T> implements
 	private PersistentStorageManager PSM;
 	private ApplicationSupportStrategy support;
 
-	@SuppressWarnings("unchecked")
 	protected AbstractPersistenceStoreMap(String directoryName) {
 
 		PSM = PersistentStorageManager.getInstance(directoryName);
@@ -77,37 +76,49 @@ public abstract class AbstractPersistenceStoreMap<T> implements
 		}
 	}
 
-	
 	public T remove(Object key) {
 		assert key instanceof String : "Persistence maps only allows for keys of type String";
 		String objectId = (String) key;
 		assert key != null : "An key cannot be null";
 		assert objectId.length() > 0 : "An key cannot be an empty string";
-		T cached = getPersistentObject(objectId, typeAware);
-		if (cached != null) {
-			removePersistentObject(objectId);
-			if (idSet != null) {
-				idSet.remove(objectId);
-				this.idSetTimestamp = System.currentTimeMillis();
-			}
-		}
-		return cached;
+		T previousValue = getPrevious((String) key);
+		removePersistentObject(objectId);
+		return previousValue;
 
 	}
 
-	
 	public T put(String key, T value) {
 		assert key != null : "An objectId cannot be null";
 		assert key.length() > 0 : "An objectId cannot be an empty string";
 		assert !(value instanceof Class) : "The object to store cannot "
 				+ "be a class; perhaps you wanted "
 				+ "to provide an instance of this class instead?";
-		T cached = getPersistentObject(key, typeAware);
+		T previousValue = getPrevious(key);
 		setPersistentObject(key, value);
-		return cached;
+		return previousValue;
 	}
 
-	
+	private T getPrevious(String key) {
+		PersistentStorageManager.StoredObject cached = context.get(key);
+		T previousValue = null;
+		if (cached != null) {
+			if (cached.value().getClass().equals(typeAware)) {
+				previousValue = (T) cached.value();
+			}
+		}
+
+		if (cached == null) {
+			PersistentStorageManager.StoredObject previous = PSM
+					.getPersistentObject(key, typeAware.getClassLoader());
+			if (previous != null) {
+				if (previous.value().getClass().equals(typeAware)) {
+					previousValue = (T) previous.value();
+				}
+			}
+		}
+		return previousValue;
+	}
+
 	public void putAll(Map<? extends String, ? extends T> externalMap) {
 		for (Map.Entry<? extends String, ? extends T> entry : externalMap
 				.entrySet()) {
@@ -120,10 +131,17 @@ public abstract class AbstractPersistenceStoreMap<T> implements
 		String objectId = (String) key;
 		assert key != null : "An objectId cannot be null";
 		assert objectId.length() > 0 : "An objectId cannot be an empty string";
-		return getPersistentObject(objectId, typeAware);
+		T foundObject = getPersistentObject(objectId);
+		if (context.get(key) != null
+				&& PSM.hasFieldSetChanged((String) key, context.get(key)
+						.timestamp())) {
+			PSM.refreshPersistentObject((String) key, context.get(key),
+					typeAware.getClassLoader());
+		}
+		return foundObject;
 	}
 
-//	
+	//
 	public boolean containsKey(Object key) {
 		assert key instanceof String : "Persistence maps only allows for keys of type String";
 		String objectId = (String) key;
@@ -131,28 +149,20 @@ public abstract class AbstractPersistenceStoreMap<T> implements
 		return PSM.hasFieldSetFor(objectId, null);
 	}
 
-	
 	public int size() {
-
-		ensureIdSetsAreCurrent();
-		return idSet.size();
-
+		return PSM.getAllIds().size();
 	}
 
-	
 	public boolean isEmpty() {
 
-		ensureIdSetsAreCurrent();
-		return idSet.isEmpty();
+		return PSM.getAllIds().isEmpty();
 
 	}
 
-//	
+	//
 	public boolean containsValue(Object value) {
-		ensureIdSetsAreCurrent();
-
-		for (String id : idSet) {
-			T persistedObject = getPersistentObject(id, typeAware);
+		for (String id : PSM.getAllIds()) {
+			T persistedObject = getPersistentObject(id);
 			// Just incase the store shifted under us
 			if (persistedObject != null && persistedObject.equals(value)) {
 				return true;
@@ -162,34 +172,25 @@ public abstract class AbstractPersistenceStoreMap<T> implements
 
 	}
 
-//	
+	//
 	public void clear() {
 
-		ensureIdSetsAreCurrent();
-		for (String id : idSet) {
+		context.clear();
+		for (String id : PSM.getAllIds()) {
 			removePersistentObject(id);
 		}
-		idSet.clear();
-		this.idSetTimestamp = System.currentTimeMillis();
-
+		PSM.flushCache();
 	}
 
-	
 	public Set<String> keySet() {
-		ensureIdSetsAreCurrent();
-		// Set<String> ids = new HashSet<String>();
-		// ids.addAll(idSet);
-		snapshotIdSet();
-		return this.snapshotIds;
+		return PSM.getAllIds();
 
 	}
 
-	
 	public Collection<T> values() {
-		ensureIdSetsAreCurrent();
 		Set<T> valueSet = new HashSet<T>();
-		for (String key : idSet) {
-			T lookup = getPersistentObject(key, typeAware);
+		for (String key : PSM.getAllIds()) {
+			T lookup = getPersistentObject(key);
 			// Just incase the persistence store moved under us
 			if (lookup != null)
 				valueSet.add(lookup);
@@ -198,14 +199,12 @@ public abstract class AbstractPersistenceStoreMap<T> implements
 
 	}
 
-	
 	public Set<Entry<String, T>> entrySet() {
 
-		ensureIdSetsAreCurrent();
 		ReadOnlyHashSet<Entry<String, T>> valueSet = new ReadOnlyHashSet<Entry<String, T>>();
 
-		for (String id : idSet) {
-			T lookup = getPersistentObject(id, typeAware);
+		for (String id : PSM.getAllIds()) {
+			T lookup = getPersistentObject(id);
 			// Just incase the persistence store moved under us
 			if (lookup != null)
 				valueSet.addLocal(new SimpleEntry<String, T>(id, lookup));
@@ -214,87 +213,125 @@ public abstract class AbstractPersistenceStoreMap<T> implements
 
 	}
 
-	// Private Methods.
-	private void ensureIdSetsAreCurrent() {
-		synchronized (idSet) {
-			if (PSM.idSetHasChangedSince(idSetTimestamp)) {
-
-				Set<String> rawIdSet = PSM.getAllIds();
-				idSetTimestamp = System.currentTimeMillis();
-
-				idSet = new HashSet<String>(rawIdSet.size() / 10 + 1);
-				// sharedIdSet = new HashSet<String>(rawIdSet.size());
-				for (String id : rawIdSet) {
-					idSet.add(id);
-
-				}
-			}
+	protected T getPersistentObject(String objectId) {
+		T result = null;
+		PersistentStorageManager.StoredObject latest = context.get(objectId);
+		if (latest != null
+				&& !PSM.hasFieldSetChanged(objectId, latest.timestamp())) {
+			if (latest.value().getClass().equals(typeAware))
+				return (T) latest.value();
+			return null;
 		}
-
-	}
-
-	private void snapshotIdSet() {
-		// == catches if the update happens too quick.
-		if (snapshotTimestamp <= idSetTimestamp) {
-			synchronized (idSet) {
-				snapshotIds = new ReadOnlyHashSet<String>(idSet);
-				snapshotTimestamp = System.currentTimeMillis();
-			}
-		}
-	}
-
-	protected <ObjectType> ObjectType getPersistentObject(String objectId,
-			Class<ObjectType> objectType) {
-		ObjectType result = null;
-		PersistentStorageManager.StoredObject latest;// = context.get(objectId);
-		ClassLoader loader = objectType.getClassLoader();
-		// if (latest == null) {
+		ClassLoader loader = typeAware.getClassLoader();
 		latest = PSM.getPersistentObject(objectId, loader);
 		context.put(objectId, latest);
 		if (latest != null) {
-			result = returnAsType(objectType, latest.value());
+			result = returnAsType(typeAware, latest.value());
 			if (result != latest.value()) {
 				latest.setValue(result);
 			}
 			return result;
 		}
-		// }
 		return null;
-		// if (latest == null) {
-		// return null;
-		// }
-		// result = returnAsType(objectType,
-		// reloadPersistentObject(objectId, latest,loader).value());
-		// return result;
 	}
 
-	private <ObjectType> ObjectType reloadPersistentObject(String objectId,
-			ObjectType object, ClassLoader loader) {
-		ObjectType result = object;
-		PersistentStorageManager.StoredObject latest = context.get(objectId);
-		// Remove from cache
-		context.remove(objectId);
-		// Reload
-		PersistentStorageManager.StoredObject newest = PSM.getPersistentObject(
-				objectId, loader);
-		Object original = latest.value();
-		Map<String, Object> fields = extractor.objectToFieldMap(newest.value());
-
-		// Reload the existing objects
-		extractor.restoreObjectFromFieldMap(object, fields);
-		// if (object != original) {
-		// extractor.restoreObjectFromFieldMap(original, fields);
-		// }
-
-		// Now, replace the "new" loaded copy with the freshly reloaded
-		// original
-		Map<String, Object> snapshot = newest.fieldset().get(newest.value());
-		newest.fieldset().remove(newest.value());
-		newest.setValue(original);
-		newest.fieldset().put(original, snapshot);
-
-		return result;
-	}
+	// private Object refreshPersistentObject(String objectId, T object,
+	// ClassLoader loader, boolean force)
+	// {
+	// PersistentStorageManager.StoredObject latest = context.get(objectId);
+	// if (!PSM.hasFieldSetChanged(objectId, latest.timestamp())) {
+	// return object;
+	// }
+	// PersistentStorageManager.StoredObject newest =
+	// PSM.getPersistentObject(objectId, typeAware.getClassLoader());
+	// if(newest == null)
+	// {
+	// return object;
+	// }
+	// UUID oldId = latest.fieldset().lookupId(object);
+	// if(newest.fieldset().getFieldSet(oldId) == null)
+	// {
+	// context.put(objectId, newest);
+	// return newest.value();
+	// }
+	// refreshPersistentObject0(object, loader, latest, newest);
+	// return object;
+	// }
+	// private void refreshPersistentObject0(Object object, ClassLoader loader,
+	// StoredObject latest, StoredObject newest)
+	// {
+	// if(object instanceof Collection)
+	// {
+	// for(Object entry : (Collection)object)
+	// {
+	// refreshPersistentObject0(entry,loader,latest,newest);
+	// }
+	// return;
+	// }
+	// if(object instanceof Map)
+	// {
+	// return;
+	// }
+	// UUID oldId = latest.fieldset().lookupId(object);
+	// Map<String, Object> localFields = extractor.objectToFieldMap(object);
+	// Map<String, Object> newFields = newest.fieldset().getFieldSet(oldId);
+	// Map<String, Object> fields = Snapshot.updateFieldSet(object, newFields,
+	// newest.fieldset(),latest.fieldset());
+	// for(Entry<String,Object> field : localFields.entrySet())
+	// {
+	// if(latest.fieldset().lookupId(field.getValue())!= null)
+	// {
+	// fields.remove(field.getKey());
+	// refreshPersistentObject0(field.getValue(),loader,latest,newest);
+	//
+	// }
+	// }
+	// Map<String,Object> updateSet = new HashMap<String,Object>();
+	// for(Entry<String,Object> field : fields.entrySet())
+	// {
+	// Object localValue = localFields.get(field.getKey());
+	// if(localFields.containsKey(field.getKey()) &&
+	// !localValue.equals(field.getValue()))
+	// {
+	// updateSet.put(field.getKey(), field.getValue());
+	// }
+	// }
+	// localFields.putAll(updateSet);
+	// extractor.restoreObjectFromFieldMap(object, localFields);
+	//
+	// }
+	// public T reloadPersistentObject(String objectId, T object) {
+	// T result = object;
+	// // Remove from cache
+	// context.remove(objectId);
+	// // Reload
+	// PersistentStorageManager.StoredObject newest = PSM.getPersistentObject(
+	// objectId, typeAware.getClassLoader());
+	// // Object original = latest.value();
+	// if (newest.value().getClass().equals(typeAware)) {
+	// Map<String, Object> fields = extractor.objectToFieldMap(newest
+	// .value());
+	// extractor.restoreObjectFromFieldMap(object, fields);
+	//
+	// } else {
+	// result = null;
+	// }
+	//
+	// // Reload the existing objects
+	// // if (object != original) {
+	// // extractor.restoreObjectFromFieldMap(original, fields);
+	// // }
+	// newest.setValue(object);
+	// context.put(objectId, newest);
+	// // Now, replace the "new" loaded copy with the freshly reloaded
+	// // original
+	// // Map<String, Object> snapshot = newest.fieldset().get(newest.value());
+	// // newest.fieldset().remove(newest.value());
+	// // newest.setValue(object);
+	// // newest.fieldset().put(original, snapshot);
+	//
+	// return result;
+	// }
 
 	@SuppressWarnings("unchecked")
 	private <V> V returnAsType(Class<V> t, Object value) {
@@ -309,12 +346,6 @@ public abstract class AbstractPersistenceStoreMap<T> implements
 		}
 
 		return null;
-
-		// assert t.isAssignableFrom(value.getClass()) :
-		// "Cannot return object \""
-		// + value + "\" of type " + value.getClass() + " when a " + t
-		// + " value is requested";
-		// return (V) value;
 	}
 
 	protected <ObjectType> void setPersistentObject(String objectId,
@@ -333,10 +364,6 @@ public abstract class AbstractPersistenceStoreMap<T> implements
 		} catch (RuntimeException e) {
 			PSM.removeFieldSet(objectId);
 			throw e;
-		}
-		if (idSet != null) {
-			idSet.add(objectId);
-			this.idSetTimestamp = System.currentTimeMillis();
 		}
 	}
 

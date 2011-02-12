@@ -24,16 +24,21 @@ package student.web.internal;
 import com.thoughtworks.xstream.XStream;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.io.Writer;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
 import java.util.HashSet;
-import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.WeakHashMap;
 import student.web.WebUtilities;
+import student.web.internal.converters.ArrayConverter;
+import student.web.internal.converters.CollectionConverter;
+import student.web.internal.converters.FlexibleFieldSetConverter;
+import student.web.internal.converters.MapConverter;
 
 //-------------------------------------------------------------------------
 /**
@@ -111,8 +116,8 @@ public class PersistentStorageManager
     // ----------------------------------------------------------
     public synchronized Set<String> getAllIds()
     {
-        if (usedIds == null)
-        {
+//        if (usedIds == null)
+//        {
             usedIds = new HashSet<String>(256);
             for (File file : baseDir.listFiles())
             {
@@ -125,8 +130,8 @@ public class PersistentStorageManager
                 }
             }
             usedIdsTimestamp = System.currentTimeMillis();
-        }
-        return usedIds;
+//        }
+        return new HashSet<String>(usedIds);
     }
 
 
@@ -202,7 +207,9 @@ public class PersistentStorageManager
                 {
                     final FileInputStream in = new FileInputStream(src);
                     final XStreamBundle bundle = getXStreamFor(loader);
-                    bundle.converter.clearSnapshots();
+//                    bundle.fConverter.clearSnapshots();
+//                    bundle.cConverter.setNewSnapshots(bundle.fConverter.getSnapshots());
+                    Snapshot.setLocal(new Snapshot());
                     try
                     {
                         Object object = AccessController.doPrivileged(
@@ -216,11 +223,12 @@ public class PersistentStorageManager
                             id,
                             sanitizedId,
                             object,
-                            bundle.converter.getSnapshots(),
+                            Snapshot.getLocal(),
                             src.lastModified());
                     }
                     finally
                     {
+                    	Snapshot.clearLocal();
                         in.close();
                     }
                 }
@@ -256,26 +264,83 @@ public class PersistentStorageManager
     public synchronized StoredObject storePersistentObject(
         String id, Object object)
     {
+    	
         ClassLoader loader = object.getClass().getClassLoader();
         StoredObject stored = new StoredObject(
             id,
             sanitizeId(id),
             object,
-            new IdentityHashMap<Object, Map<String, Object>>(),
+            /*new IdentityHashMap<Object, Map<String, Object>>()*/Snapshot.getLocal(),
             0L);
         storePersistentObjectChanges(id, stored, loader);
+        
         return stored;
     }
 
+    public synchronized void storePersistentObjectChanges(String id, final StoredObject object, ClassLoader loader)
+    {
+//        String sanitizedId = sanitizeId(id);
+//        File dest = new File(baseDir, sanitizedId + EXT);
+//        if (!baseDir.exists())
+//        {
+//            baseDir.mkdirs();
+//        }
+//    	 FileInputStream in = getFileInputStream(dest);
+//		try {
+//			if(!dest.exists())
+//				dest.createNewFile();
+//			Writer out = new PrintWriter(dest);
+			storePersistentObjectChanges(id,object,loader,null);
+//		} catch (FileNotFoundException e) {
+//		} catch (IOException e) {
+//			I check for existance first?
+//			e.printStackTrace();
+//		}
 
+    }
+    public class FakePrintWriter extends Writer
+    {
+
+		@Override
+		public void write(char[] cbuf, int off, int len) throws IOException {
+			//heh do nothing
+		}
+
+		@Override
+		public void flush() throws IOException {
+			//heh do nothing
+			
+		}
+
+		@Override
+		public void close() throws IOException {
+			//heh do nothing			
+		}
+    	
+    }
+    public synchronized void refreshPersistentObject(String id, final StoredObject object, ClassLoader loader)
+    {
+        storePersistentObjectChanges(id,object,loader,new FakePrintWriter());
+    }
+
+
+	private FileInputStream getFileInputStream(File dest) {
+		FileInputStream in = null;
+    	 try {
+			 in = new FileInputStream(dest);
+		} catch (FileNotFoundException e) {
+			;//Eh dont read then!
+		}
+		return in;
+	}
     // ----------------------------------------------------------
     public synchronized void storePersistentObjectChanges(
-        String id, final StoredObject object, ClassLoader loader)
+        String id, final StoredObject object, ClassLoader loader, final Writer replacementWriter)
     {
 //        System.out.println("==> storeChangedFields("
 //            + id + ", " + fields + ", " + loader + ")");
         String sanitizedId = sanitizeId(id);
-
+        Snapshot.setLocal(new Snapshot());
         try
         {
             if (!baseDir.exists())
@@ -284,7 +349,10 @@ public class PersistentStorageManager
             }
             File dest = new File(baseDir, sanitizedId + EXT);
             final XStreamBundle bundle = getXStreamFor(loader);
-            bundle.converter.clearSnapshots();
+//            bundle.fConverter.clearSnapshots();
+//            bundle.cConverter.setNewSnapshots(bundle.fConverter.getSnapshots());
+            //Create a reference set of snapshots for collecting information about the newest information in the persistence store.
+            Snapshot.setLocal(new Snapshot());
             if (dest.exists())
             {
                 final FileInputStream in = new FileInputStream(dest);
@@ -305,12 +373,23 @@ public class PersistentStorageManager
                 }
                 // Leave the snapshots set in the converter
             }
+            final PrintWriter out;
+            if(replacementWriter == null)
+            {
+            	 out = new PrintWriter(dest);
+            }
             else
             {
-                bundle.converter.clearSnapshots();
+            	out = new PrintWriter(replacementWriter);
             }
-            final PrintWriter out = new PrintWriter(dest);
-            bundle.converter.setOldSnapshots(object.fieldset());
+            //Cache the newest snapshot for reference.  The Local snapshot will not be set.
+            Snapshot.setNewest(Snapshot.getLocal());
+            if(object.fieldset() == null)
+            {
+            	Snapshot.setLocal(new Snapshot());
+            }else{
+            Snapshot.setLocal(object.fieldset());
+            }
             AccessController.doPrivileged(
                 new PrivilegedAction<Object>() {
                     public Object run()
@@ -325,14 +404,16 @@ public class PersistentStorageManager
                 usedIdsTimestamp = System.currentTimeMillis();
                 usedIds.add(id);
             }
-            object.fieldset().clear();
-            object.fieldset().putAll(bundle.converter.getSnapshots());
+//            object.fieldset().clear();
+//            object.fieldset().putAll(bundle.getLastSnapshot());
             object.timestamp = System.currentTimeMillis();
         }
         catch (IOException e)
         {
             throw new RuntimeException(e);
         }
+        Snapshot.clearNewest();
+        Snapshot.clearLocal();
     }
 
 
@@ -351,6 +432,11 @@ public class PersistentStorageManager
     public synchronized void removeFieldSet(String id)
     {
 //        System.out.println("==> removeFieldSet(" + id + ")");
+    	idCache.remove(id);
+    	if(usedIds != null)
+    	{
+    		usedIds.remove(id);
+    	}
         id = sanitizeId(id);
 
         File dest = new File(baseDir, id + EXT);
@@ -366,6 +452,7 @@ public class PersistentStorageManager
     {
         idCache.clear();
         xstream.clear();
+        usedIds.clear();
     }
 
 
@@ -384,7 +471,7 @@ public class PersistentStorageManager
             String id,
             String sanitizedId,
             Object value,
-            Map<Object, Map<String, Object>> fieldset,
+            /*Map<Object, Map<String, Object>>*/Snapshot fieldset,
             long timestamp)
         {
             this.id = id;
@@ -397,7 +484,8 @@ public class PersistentStorageManager
         public String id() { return id; }
         public String sanitizedId() { return sanitizedId; }
         public Object value() { return value; }
-        public Map<Object, Map<String, Object>> fieldset() { return fieldset; }
+        public /*Map<Object, Map<String, Object>>*/Snapshot fieldset() { return fieldset; }
+        public void setFieldset(Snapshot snaps) { fieldset = snaps;}
         public long timestamp() { return timestamp; }
 
         public void setValue(Object newValue) { value = newValue; }
@@ -405,7 +493,7 @@ public class PersistentStorageManager
         private String id;
         private String sanitizedId;
         private Object value;
-        private Map<Object, Map<String, Object>> fieldset;
+        private /*Map<Object, Map<String, Object>>*/Snapshot fieldset;
         private long timestamp;
     }
 
@@ -526,19 +614,70 @@ public class PersistentStorageManager
     private static class XStreamBundle
     {
         XStream xstream;
-        FlexibleFieldSetConverter converter;
-
+        private FlexibleFieldSetConverter fConverter;
+        private CollectionConverter cConverter;
+        private MapConverter mConverter;
+        private ArrayConverter aConverter;
         public XStreamBundle(ClassLoader loader)
         {
             xstream = new FlexibleXStream();
             xstream.setClassLoader(loader);
 
-            converter = new FlexibleFieldSetConverter(
+            //flex field converter
+            fConverter = new FlexibleFieldSetConverter(
                 xstream.getMapper(), xstream.getReflectionProvider());
-            xstream.registerConverter(converter, XStream.PRIORITY_VERY_LOW);
+            xstream.registerConverter(fConverter, XStream.PRIORITY_VERY_LOW);
 
+            //Unrecognized Class Converter
             UnrecognizedClassConverter ucc = new UnrecognizedClassConverter();
             xstream.registerConverter(ucc, XStream.PRIORITY_VERY_HIGH);
+            
+//            //Collection Converter
+//            cConverter = new CollectionConverter(xstream.getMapper(),xstream.getReflectionProvider());
+//            xstream.registerConverter(cConverter,XStream.PRIORITY_VERY_HIGH);
+//            
+//            //Map Converter
+//            mConverter = new MapConverter(xstream.getMapper());
+//            xstream.registerConverter(mConverter,XStream.PRIORITY_VERY_HIGH);
+//            
+//            //Array Converter
+//            aConverter = new ArrayConverter(xstream.getMapper());
+//            xstream.registerConverter(aConverter,XStream.PRIORITY_VERY_HIGH);
         }
+
+//		public void setupSnapshots(Snapshot oldContext) {
+//			Snapshot newSnaps = getLastSnapshot();
+//			fConverter.setOldSnapshots(oldContext);
+//			cConverter.setNewSnapshots(newSnaps);
+//			cConverter.setOldSnapshots(oldContext);
+//			mConverter.setupSnapshots(newSnaps,oldContext);
+////			aConverter.setupSnapshots(newSnaps, oldContext);
+//		}
+//		/**
+//		 * Used before a get operation where the old context is not important.
+//		 * @param newContext
+//		 */
+//		public void resetAndLinkSnapshots()
+//		{
+//			fConverter.clearSnapshots();
+//			cConverter.setNewSnapshots(fConverter.getSnapshots());
+//			mConverter.setupSnapshots(fConverter.getSnapshots(), null);
+////			aConverter.setupSnapshots(fConverter.getSnapshots(), null);
+//		}
+//		public Snapshot getLastSnapshot()
+//		{
+//			return fConverter.getSnapshots();
+//		}
     }
+
+
+	public boolean hasFieldSetChanged(String key, long timestamp) {
+		String sanitized = sanitizeId(key);
+		File persisted = new File(baseDir,sanitized+EXT);
+		if(!persisted.exists())
+			return true;
+		if(persisted.lastModified() > timestamp)
+			return true;
+		return false;
+	}
 }

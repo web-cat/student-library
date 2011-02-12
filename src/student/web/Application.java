@@ -930,10 +930,10 @@ public abstract class Application
 
             // Now, replace the "new" loaded copy with the freshly reloaded
             // original
-            Map<String, Object> snapshot = newest.fieldset().get(newest.value());
-            newest.fieldset().remove(newest.value());
+//            Map<String, Object> snapshot = newest.fieldset().get(newest.value());
+//            newest.fieldset().remove(newest.value());
             newest.setValue(original);
-            newest.fieldset().put(original, snapshot);
+//            newest.fieldset().put(original, snapshot);
         }
         return result;
     }

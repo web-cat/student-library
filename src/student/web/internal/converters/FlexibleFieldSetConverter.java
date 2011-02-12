@@ -19,27 +19,27 @@
  |  along with the Student-Library; if not, see <http://www.gnu.org/licenses/>.
 \*==========================================================================*/
 
-package student.web.internal;
+package student.web.internal.converters;
+
+import java.lang.reflect.Constructor;
+import java.lang.reflect.Method;
+import java.util.Map;
+import java.util.TreeMap;
+import java.util.UUID;
+
+import student.web.internal.Snapshot;
+import student.web.internal.TemplateManager;
+import student.web.internal.TemplateManager.Template;
+import student.web.internal.TemplateManager.Template.Field;
 
 import com.thoughtworks.xstream.converters.MarshallingContext;
 import com.thoughtworks.xstream.converters.UnmarshallingContext;
 import com.thoughtworks.xstream.converters.collections.TreeMapConverter;
-import com.thoughtworks.xstream.converters.reflection.PureJavaReflectionProvider;
 import com.thoughtworks.xstream.converters.reflection.ReflectionConverter;
 import com.thoughtworks.xstream.converters.reflection.ReflectionProvider;
 import com.thoughtworks.xstream.io.HierarchicalStreamReader;
 import com.thoughtworks.xstream.io.HierarchicalStreamWriter;
-import com.thoughtworks.xstream.io.path.PathTracker;
 import com.thoughtworks.xstream.mapper.Mapper;
-
-import java.lang.reflect.Constructor;
-import java.lang.reflect.Method;
-import java.util.IdentityHashMap;
-import java.util.Map;
-import java.util.TreeMap;
-
-import student.web.internal.TemplateManager.Template;
-import student.web.internal.TemplateManager.Template.Field;
 
 //-------------------------------------------------------------------------
 /**
@@ -53,12 +53,16 @@ import student.web.internal.TemplateManager.Template.Field;
 public class FlexibleFieldSetConverter extends ReflectionConverter
 {
 	private TreeMapConverter mapConverter;
-	private ReflectionProvider pjProvider = null;
-	private Map<Object, Map<String, Object>> snapshots;
-	private Map<Object, Map<String, Object>> oldSnapshots;
-
+//	Snapshot snapshots = new Snapshot();
+//	Snapshot oldSnapshots;
+	
 	public class IllegalPersistException extends RuntimeException
 	{
+
+		/**
+		 * 
+		 */
+		private static final long serialVersionUID = -6748655411127633818L;
 
 		public IllegalPersistException(String message)
 		{
@@ -72,36 +76,26 @@ public class FlexibleFieldSetConverter extends ReflectionConverter
 	{
 		super(mapper, rp);
 		mapConverter = new TreeMapConverter(mapper);
-		if (!(reflectionProvider instanceof PureJavaReflectionProvider))
-		{
-			pjProvider = new PureJavaReflectionProvider();
-		}
-		clearSnapshots();
+//		clearSnapshots();
 	}
 
-	// ----------------------------------------------------------
-	public Map<Object, Map<String, Object>> getSnapshots()
-	{
-		return snapshots;
-	}
-
-	// ----------------------------------------------------------
-	public void setSnapshots(Map<Object, Map<String, Object>> newSnapshots)
-	{
-		snapshots = newSnapshots;
-	}
-
-	// ----------------------------------------------------------
-	public void setOldSnapshots(Map<Object, Map<String, Object>> formerSnapshots)
-	{
-		oldSnapshots = formerSnapshots;
-	}
-
-	// ----------------------------------------------------------
-	public void clearSnapshots()
-	{
-		snapshots = new IdentityHashMap<Object, Map<String, Object>>();
-	}
+//	// ----------------------------------------------------------
+//	public Snapshot getSnapshots()
+//	{
+//		return snapshots;
+//	}
+//
+//	// ----------------------------------------------------------
+//	public void setOldSnapshots(Snapshot formerSnapshots)
+//	{
+//		oldSnapshots = formerSnapshots;
+//	}
+//
+//	// ----------------------------------------------------------
+//	public void clearSnapshots()
+//	{
+//		snapshots = new Snapshot();
+//	}
 
 	// ----------------------------------------------------------
 	public void marshal(Object source, HierarchicalStreamWriter writer, MarshallingContext context)
@@ -111,26 +105,23 @@ public class FlexibleFieldSetConverter extends ReflectionConverter
 			throw new IllegalArgumentException(
 					"You cannot store an object that contains a reference " + "to your application");
 		}
-		writer.addAttribute("fieldset", "true");
-		String path = getPath(writer);
-		Object oldSnapshotFromPath = oldSnapshots.get(path);
+		writer.addAttribute(XMLConstants.FIELDSET_ATTRIBUTE, "true");
 		Map<String, Object> fields = objectToFieldMap(source);
+		//BUG: The persistence store will attempt to persist an inner class.  This is the same as storing an object that references the Application class
+		if(fields.containsKey("this$0"))
+		{
+			throw new IllegalArgumentException("Sorry but the Persistence store does not support inner classes.  Please move your class to a seperate file.");
+		}
 		checkFields(source.getClass().getName(), fields);
-		if (oldSnapshots != null && oldSnapshots.containsKey(source) && oldSnapshotFromPath != null
-				&& snapshots != null && oldSnapshotFromPath.equals(snapshots.get(path)))
-		{
-			fields = difference(oldSnapshots.get(source), fields);
-		}
-		Map<String, Object> toStore = fields;
-		// System.out.println("Field changes for object " + source);
-		// System.out.println("    " + fields);
-
-		if (snapshots != null && path != null && snapshots.containsKey(path))
-		{
-			toStore = new TreeMap<String, Object>(snapshots.get(path));
-			toStore.putAll(fields);
-		}
-		mapConverter.marshal(toStore, writer, context);
+		UUID id = Snapshot.lookupId(source,true);
+		writer.addAttribute(XMLConstants.ID_ATTRIBUTE, id.toString());
+		
+		Map<String,Object> updatedFieldSets = Snapshot.generateUpdatedFieldSet(source,fields);
+		restoreObjectFromFieldMap(source, updatedFieldSets);
+//		Map<String,Object> toStore = Snapshot.updateFieldSet(source, fields, snapshots, oldSnapshots);
+//		oldSnapshots.trackFieldset(id, toStore);
+//		oldSnapshots.addResolvedObject(id, source);
+		mapConverter.marshal(updatedFieldSets, writer, context);
 	}
 
 	private void checkFields(String source, Map<String, Object> fields)
@@ -193,11 +184,12 @@ public class FlexibleFieldSetConverter extends ReflectionConverter
 	public Object unmarshal(HierarchicalStreamReader reader, UnmarshallingContext context)
 	{
 		Object result = null;
-		String path = getPath(reader);
 		Map<String, Object> fields = null;
-		if (reader.getAttribute("fieldset") != null)
+		UUID id = null;
+		if (reader.getAttribute(XMLConstants.FIELDSET_ATTRIBUTE) != null)
 		{
-			// System.out.println("attempting to unmarshal [fieldset] " + path);
+			String objId = reader.getAttribute(XMLConstants.ID_ATTRIBUTE);
+			id = UUID.fromString(objId);
 			@SuppressWarnings("unchecked")
 			Map<String, Object> realFields = (Map<String, Object>) mapConverter.unmarshal(reader,
 					context);
@@ -205,7 +197,6 @@ public class FlexibleFieldSetConverter extends ReflectionConverter
 		}
 		else
 		{
-			System.out.println("attempting to unmarshal " + path);
 			result = super.unmarshal(reader, context);
 			if (result instanceof TreeMap
 					&& !TreeMap.class.isAssignableFrom(context.getRequiredType()))
@@ -231,7 +222,11 @@ public class FlexibleFieldSetConverter extends ReflectionConverter
 				{
 					try
 					{
-						Constructor defaultConst = result.getClass().getConstructor((Class<?>)null);
+						Constructor<?> defaultConst = result.getClass().getConstructor();
+						Object newResult = defaultConst.newInstance();
+						restoreObjectFromFieldMap(newResult, fields);
+						result = newResult;
+						
 					}
 					catch (SecurityException e1)
 					{
@@ -252,31 +247,19 @@ public class FlexibleFieldSetConverter extends ReflectionConverter
 								+ result.getClass().getName()
 								+ " Object please provide one of these methods to initialize the fields "
 								+ "not present in the datastore.");
+					} catch (Exception e3) {
+						System.err.println("An exception occured when initializing your object with the default constructor.");
 					}
 					
 
 				}
-				// If some fields weren't initialized, then try to create
-				// an object using a default constructor, if possible
-				// if we can't create it, there's no default constructor
-				try
-				{
-					Object newResult = reflectionProvider.newInstance(context.getRequiredType());
-					restoreObjectFromFieldMap(newResult, fields);
-					result = newResult;
-				}
-				catch (Exception e2)
-				{
-
-				}
 			}
+			
 			if (result != null)
 			{
-				snapshots.put(result, fields);
-				if (path != null)
-				{
-					snapshots.put(path, fields);
-				}
+				Snapshot.resolveObject(id,result,fields);
+//				snapshots.addResolvedObject(id, result);
+//				snapshots.trackFieldset(id,fields);
 			}
 		}
 
@@ -296,7 +279,7 @@ public class FlexibleFieldSetConverter extends ReflectionConverter
 		final TreeMap<String, Object> result = new TreeMap<String, Object>();
 
 		reflectionProvider.visitSerializableFields(object, new ReflectionProvider.Visitor() {
-			@SuppressWarnings("unchecked")
+			@SuppressWarnings("rawtypes")
 			public void visit(String fieldName, Class type, Class definedIn, Object value)
 			{
 				result.put(fieldName, value);
@@ -327,7 +310,7 @@ public class FlexibleFieldSetConverter extends ReflectionConverter
 		final BooleanWrapper allFound = new BooleanWrapper();
 		allFound.value = true;
 		reflectionProvider.visitSerializableFields(result, new ReflectionProvider.Visitor() {
-			@SuppressWarnings("unchecked")
+			@SuppressWarnings("rawtypes")
 			public void visit(String fieldName, Class type, Class definedIn, Object value)
 			{
 				if (fields.containsKey(fieldName))
@@ -343,65 +326,8 @@ public class FlexibleFieldSetConverter extends ReflectionConverter
 		});
 		return allFound.value;
 	}
-
 	// ----------------------------------------------------------
-	/**
-	 * Compute the difference between two field sets. This is not the same as
-	 * "set difference". Instead, it is really the "changes" map minus any
-	 * entries that duplicate those in the "original". In other words, what
-	 * entries in "changes" map to different values than the same entries in
-	 * "original"?
-	 * 
-	 * @param original
-	 *            The base field set to compare against
-	 * @param changes
-	 *            The second (modified) field set
-	 * @return A field set map that contains the values defined in changes that
-	 *         are either not present in or are different than in the original.
-	 */
-	private static Map<String, Object> difference(Map<String, Object> original,
-			Map<String, Object> changes)
-	{
-		Map<String, Object> differences = new TreeMap<String, Object>();
-		for (String key : changes.keySet())
-		{
-			Object value = changes.get(key);
-			if ((value == null && original.get(key) != null)
-					|| (value != null && !(isPrimitiveValue(value) && value.equals(original
-							.get(key)))))
-			{
-				differences.put(key, value);
-			}
-		}
-		return differences;
-	}
-
-	// ----------------------------------------------------------
-	private static boolean isPrimitiveValue(Object value)
-	{
-		return value instanceof String || value instanceof Number || value instanceof Boolean
-				|| value instanceof Character;
-	}
-
-	// ----------------------------------------------------------
-	private String getPath(Object readerOrWriter)
-	{
-		String path = null;
-		try
-		{
-			path = ((PathTracker) reflectionProvider.getField(readerOrWriter.getClass(),
-					"pathTracker").get(readerOrWriter)).getPath().toString();
-		}
-		catch (Exception e)
-		{
-			System.out.println("cannot access pathTracker");
-			e.printStackTrace();
-		}
-		return path.intern();
-	}
-
-	// ----------------------------------------------------------
-	@SuppressWarnings("unchecked")
+	@SuppressWarnings("rawtypes")
 	public boolean canConvert(Class type)
 	{
 		return true;
