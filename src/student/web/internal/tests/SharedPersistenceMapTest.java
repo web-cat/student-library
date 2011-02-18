@@ -18,7 +18,7 @@ import org.junit.Test;
 
 import org.apache.commons.io.FileUtils;
 
-import student.web.SharedPersistenceMap;
+import student.web.SharedPersistentMap;
 import student.web.internal.PersistentStorageManager;
 import student.web.internal.PersistentStorageManager.StoredObject;
 import student.web.internal.tests.support.*;
