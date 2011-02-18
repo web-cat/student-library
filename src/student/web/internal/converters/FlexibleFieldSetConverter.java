@@ -21,17 +21,6 @@
 
 package student.web.internal.converters;
 
-import java.lang.reflect.Constructor;
-import java.lang.reflect.Method;
-import java.util.Map;
-import java.util.TreeMap;
-import java.util.UUID;
-
-import student.web.internal.Snapshot;
-import student.web.internal.TemplateManager;
-import student.web.internal.TemplateManager.Template;
-import student.web.internal.TemplateManager.Template.Field;
-
 import com.thoughtworks.xstream.converters.MarshallingContext;
 import com.thoughtworks.xstream.converters.UnmarshallingContext;
 import com.thoughtworks.xstream.converters.collections.TreeMapConverter;
@@ -40,12 +29,22 @@ import com.thoughtworks.xstream.converters.reflection.ReflectionProvider;
 import com.thoughtworks.xstream.io.HierarchicalStreamReader;
 import com.thoughtworks.xstream.io.HierarchicalStreamWriter;
 import com.thoughtworks.xstream.mapper.Mapper;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.Method;
+import java.util.Map;
+import java.util.TreeMap;
+import java.util.UUID;
+import student.web.internal.AbstractPersistentMap;
+import student.web.internal.Snapshot;
+import student.web.internal.TemplateManager;
+import student.web.internal.TemplateManager.Template;
+import student.web.internal.TemplateManager.Template.Field;
 
 //-------------------------------------------------------------------------
 /**
  * A custom XStream converter class that stores each object as a map from field
  * names to field values.
- * 
+ *
  * @author Stephen Edwards
  * @author Last changed by $Author$
  * @version $Revision$, $Date$
@@ -55,12 +54,12 @@ public class FlexibleFieldSetConverter extends ReflectionConverter
 	private TreeMapConverter mapConverter;
 //	Snapshot snapshots = new Snapshot();
 //	Snapshot oldSnapshots;
-	
+
 	public class IllegalPersistException extends RuntimeException
 	{
 
 		/**
-		 * 
+		 *
 		 */
 		private static final long serialVersionUID = -6748655411127633818L;
 
@@ -100,10 +99,11 @@ public class FlexibleFieldSetConverter extends ReflectionConverter
 	// ----------------------------------------------------------
 	public void marshal(Object source, HierarchicalStreamWriter writer, MarshallingContext context)
 	{
-		if (source instanceof student.web.Application)
+		if (source instanceof AbstractPersistentMap)
 		{
 			throw new IllegalArgumentException(
-					"You cannot store an object that contains a reference " + "to your application");
+			    "You cannot store an object that contains a reference to a "
+			    + source.getClass().getSimpleName());
 		}
 		writer.addAttribute(XMLConstants.FIELDSET_ATTRIBUTE, "true");
 		Map<String, Object> fields = objectToFieldMap(source);
@@ -115,7 +115,7 @@ public class FlexibleFieldSetConverter extends ReflectionConverter
 		checkFields(source.getClass().getName(), fields);
 		UUID id = Snapshot.lookupId(source,true);
 		writer.addAttribute(XMLConstants.ID_ATTRIBUTE, id.toString());
-		
+
 		Map<String,Object> updatedFieldSets = Snapshot.generateUpdatedFieldSet(source,fields);
 		restoreObjectFromFieldMap(source, updatedFieldSets);
 //		Map<String,Object> toStore = Snapshot.updateFieldSet(source, fields, snapshots, oldSnapshots);
@@ -134,7 +134,7 @@ public class FlexibleFieldSetConverter extends ReflectionConverter
 			{
 				return;
 			}
-			
+
 			//Check for every required template field.
 			for(Field templateField : classTemplate.getFields())
 			{
@@ -226,7 +226,7 @@ public class FlexibleFieldSetConverter extends ReflectionConverter
 						Object newResult = defaultConst.newInstance();
 						restoreObjectFromFieldMap(newResult, fields);
 						result = newResult;
-						
+
 					}
 					catch (SecurityException e1)
 					{
@@ -250,11 +250,11 @@ public class FlexibleFieldSetConverter extends ReflectionConverter
 					} catch (Exception e3) {
 						System.err.println("An exception occured when initializing your object with the default constructor.");
 					}
-					
+
 
 				}
 			}
-			
+
 			if (result != null)
 			{
 				Snapshot.resolveObject(id,result,fields);
@@ -269,7 +269,7 @@ public class FlexibleFieldSetConverter extends ReflectionConverter
 	// ----------------------------------------------------------
 	/**
 	 * Convert an object to a map of field name/value pairs.
-	 * 
+	 *
 	 * @param object
 	 *            The object to convert
 	 * @return The object's field values in map form
@@ -297,7 +297,7 @@ public class FlexibleFieldSetConverter extends ReflectionConverter
 	// ----------------------------------------------------------
 	/**
 	 * Convert an object to a map of field name/value pairs.
-	 * 
+	 *
 	 * @param object
 	 *            The object to convert
 	 * @param fields
