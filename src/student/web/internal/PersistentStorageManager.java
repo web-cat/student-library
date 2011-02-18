@@ -39,6 +39,7 @@ import student.web.internal.converters.ArrayConverter;
 import student.web.internal.converters.CollectionConverter;
 import student.web.internal.converters.FlexibleFieldSetConverter;
 import student.web.internal.converters.MapConverter;
+import student.web.internal.converters.UnrecognizedClassConverter;
 
 //-------------------------------------------------------------------------
 /**
@@ -264,7 +265,7 @@ public class PersistentStorageManager
     public synchronized StoredObject storePersistentObject(
         String id, Object object)
     {
-    	
+
         ClassLoader loader = object.getClass().getClassLoader();
         StoredObject stored = new StoredObject(
             id,
@@ -273,7 +274,7 @@ public class PersistentStorageManager
             /*new IdentityHashMap<Object, Map<String, Object>>()*/Snapshot.getLocal(),
             0L);
         storePersistentObjectChanges(id, stored, loader);
-        
+
         return stored;
     }
 
@@ -309,14 +310,14 @@ public class PersistentStorageManager
 		@Override
 		public void flush() throws IOException {
 			//heh do nothing
-			
+
 		}
 
 		@Override
 		public void close() throws IOException {
-			//heh do nothing			
+			//heh do nothing
 		}
-    	
+
     }
     public synchronized void refreshPersistentObject(String id, final StoredObject object, ClassLoader loader)
     {
@@ -631,15 +632,15 @@ public class PersistentStorageManager
             //Unrecognized Class Converter
             UnrecognizedClassConverter ucc = new UnrecognizedClassConverter();
             xstream.registerConverter(ucc, XStream.PRIORITY_VERY_HIGH);
-            
+
 //            //Collection Converter
 //            cConverter = new CollectionConverter(xstream.getMapper(),xstream.getReflectionProvider());
 //            xstream.registerConverter(cConverter,XStream.PRIORITY_VERY_HIGH);
-//            
+//
 //            //Map Converter
 //            mConverter = new MapConverter(xstream.getMapper());
 //            xstream.registerConverter(mConverter,XStream.PRIORITY_VERY_HIGH);
-//            
+//
 //            //Array Converter
 //            aConverter = new ArrayConverter(xstream.getMapper());
 //            xstream.registerConverter(aConverter,XStream.PRIORITY_VERY_HIGH);
