@@ -26,11 +26,14 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
+import student.web.internal.ApplicationSupportStrategy;
+import student.web.internal.LocalityService;
 
 //-------------------------------------------------------------------------
 /**
  *  This class provides static utility methods that streamline some
- *  web-related operations.
+ *  web-related operations, and also that provide useful services for
+ *  CloudSpace-based programs.
  *
  *  @author  Stephen Edwards
  *  @author Last changed by $Author$
@@ -39,6 +42,10 @@ import java.net.URLEncoder;
 public class WebUtilities
 {
     //~ Instance/static variables .............................................
+
+    private static ApplicationSupportStrategy support =
+        LocalityService.getSupportStrategy();
+
 
     //~ Constructor ...........................................................
 
@@ -126,5 +133,61 @@ public class WebUtilities
             throw new RuntimeException(e);
         }
         return result;
+    }
+
+
+    // ----------------------------------------------------------
+    /**
+     * Cause a CloudSpace web application to show a different web page in
+     * the user's web browser.
+     *
+     * @param url  The URL of the new web page to show in the user's browser.
+     */
+    public static void showWebPage(String url)
+    {
+        support.showWebPage(url);
+    }
+
+
+    // ----------------------------------------------------------
+    /**
+     * Retrieve the name of the current ZHTML file being shown by a CloudSpace
+     * web application, such as "index.zhtml" or "lab02.zhtml".
+     *
+     * @return The name of the current ZHTML file, without any directory
+     *         component, or "" if there is none.
+     */
+    public static String getCurrentPageName()
+    {
+        return support.getCurrentPageName();
+    }
+
+
+    // ----------------------------------------------------------
+    /**
+     * Retrieve the relative path name of the current ZHTML file being shown
+     * by a CloudSpace web application, such as "/Fall09/mypid/index.zhtml"
+     * or "/Fall09/mypid/lab02/lab02.zhtml".
+     *
+     * @return The name path to the current ZHTML file, or "" if there is none.
+     */
+    public static String getCurrentPagePath()
+    {
+        return support.getCurrentPagePath();
+    }
+
+
+    // ----------------------------------------------------------
+    /**
+     * Get a parameter passed to this web page in the query part of the URL.
+     * This method only works in a running CloudSpace web application.
+     *
+     * @param name The name of the parameter to retrieve.
+     * @return The parameter's value on the current page, or null if there is
+     *         none.
+     */
+    public static String getPageParameter(String name)
+    {
+        return support.getPageParameter(name);
     }
 }

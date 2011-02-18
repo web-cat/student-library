@@ -1,12 +1,11 @@
 package student.web;
 
+import java.util.AbstractMap.SimpleEntry;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-import java.util.AbstractMap.SimpleEntry;
-
 import student.web.internal.ApplicationSupportStrategy;
 import student.web.internal.LocalityService;
 
@@ -16,19 +15,19 @@ import student.web.internal.LocalityService;
  * a session is equivalent to a single execution of the JVM. There is a single
  * map in the system for all session objects this means that many of the methods
  * do not respect the generic type argument of this class.
- * 
+ *
  * @author mjw87
- * 
+ *
  * @param <T>
  */
-public class SessionPersistenceMap<T> implements PersistenceMap<T> {
+public class SessionPersistentMap<T> implements PersistentMap<T> {
 	private static final String _SERVER_SESSION_MAP = "_server_session_map";
 	private ApplicationSupportStrategy support;
 	private Class<T> typeAware;
 	private Map<String, Object> self;
 
 	@SuppressWarnings("unchecked")
-	public SessionPersistenceMap(Class<T> type) {
+	public SessionPersistentMap(Class<T> type) {
 		support = LocalityService.getSupportStrategy();
 		this.typeAware = type;
 
@@ -40,23 +39,19 @@ public class SessionPersistenceMap<T> implements PersistenceMap<T> {
 		}
 	}
 
-	@Override
 	public int size() {
 		return self.size();
 	}
 
-	@Override
 	public boolean isEmpty() {
 		return self.isEmpty();
 	}
 
-	@Override
 	public boolean containsKey(Object key) {
 		assert key instanceof String : "Persistence maps only allows for keys of type String";
 		return self.containsKey(key);
 	}
 
-	@Override
 	public boolean containsValue(Object value) {
 		if (value == null || !value.getClass().equals(typeAware))
 			return false;
@@ -64,7 +59,6 @@ public class SessionPersistenceMap<T> implements PersistenceMap<T> {
 	}
 
 	@SuppressWarnings("unchecked")
-	@Override
 	public T get(Object key) {
 		assert key instanceof String : "Persistence maps only allows for keys of type String";
 		Object o = self.get(key);
@@ -74,7 +68,6 @@ public class SessionPersistenceMap<T> implements PersistenceMap<T> {
 	}
 
 	@SuppressWarnings("unchecked")
-	@Override
 	public T put(String key, T value) {
 		assert key != null : "An objectId cannot be null";
 		assert key.length() > 0 : "An objectId cannot be an empty string";
@@ -88,7 +81,6 @@ public class SessionPersistenceMap<T> implements PersistenceMap<T> {
 	}
 
 	@SuppressWarnings("unchecked")
-	@Override
 	public T remove(Object key) {
 		assert key instanceof String : "Persistence maps only allows for keys of type String";
 		String objectId = (String) key;
@@ -100,23 +92,19 @@ public class SessionPersistenceMap<T> implements PersistenceMap<T> {
 		return (T) o;
 	}
 
-	@Override
 	public void putAll(Map<? extends String, ? extends T> m) {
 		self.putAll(m);
 	}
 
-	@Override
 	public void clear() {
 		self.clear();
 	}
 
-	@Override
 	public Set<String> keySet() {
 		return self.keySet();
 	}
 
 	@SuppressWarnings("unchecked")
-	@Override
 	public Collection<T> values() {
 		Set<String> keys = keySet();
 		Set<T> values = new HashSet<T>();
@@ -132,7 +120,6 @@ public class SessionPersistenceMap<T> implements PersistenceMap<T> {
 	}
 
 	@SuppressWarnings("unchecked")
-	@Override
 	public Set<java.util.Map.Entry<String, T>> entrySet() {
 		Set<java.util.Map.Entry<String, Object>> entrySet = self.entrySet();
 		Set<java.util.Map.Entry<String, T>> projectedEntrySet = new HashSet<java.util.Map.Entry<String, T>>();

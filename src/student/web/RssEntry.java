@@ -54,6 +54,7 @@ public class RssEntry
     /** The entry's link URL (set lazily in {@link #getLink()}. */
     protected URL entryLink;
 
+
     //~ Constructor ...........................................................
 
     // ----------------------------------------------------------
