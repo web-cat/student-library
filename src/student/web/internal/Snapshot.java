@@ -11,7 +11,6 @@ import java.util.Map;
 import java.util.TreeMap;
 import java.util.UUID;
 import java.util.Vector;
-
 import org.apache.commons.collections.BidiMap;
 import org.incava.util.diff.Diff;
 import org.incava.util.diff.Difference;
@@ -74,7 +73,7 @@ public class Snapshot {
 	 * This looks up the id for the source object using local context from when
 	 * the object was retrieved or a snapshot tagged as the new version of an
 	 * object.
-	 * 
+	 *
 	 * @param source
 	 *            the object to find the id for
 	 * @param generate
@@ -127,7 +126,7 @@ public class Snapshot {
 	 * entries that duplicate those in the "original". In other words, what
 	 * entries in "changes" map to different values than the same entries in
 	 * "original"?
-	 * 
+	 *
 	 * @param original
 	 *            The base field set to compare against
 	 * @param changes
@@ -168,7 +167,6 @@ public class Snapshot {
 			this.oldContext = oldContext;
 		}
 
-		@Override
 		public int compare(Object o1, Object o2) {
 			if (o1 == null && o2 == null) {
 				return 0;
