@@ -105,8 +105,14 @@ public class TestCase
         predicateReturnsTrueReason = null;
         predicateReturnsFalseReason = null;
         instrumentIO();
-        super.runBare();
-        resetIO();
+        try
+        {
+            super.runBare();
+        }
+        finally
+        {
+            resetIO();
+        }
     }
 
 
