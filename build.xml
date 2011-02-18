@@ -41,6 +41,9 @@
       <zipfileset src="${build.lib}/utils.jar">
         <include name="**/*.class"/>
       </zipfileset>
+      <zipfileset src="${build.lib}/${commons.collections.jar}">
+        <include name="**/*.class"/>
+      </zipfileset>
       <zipfileset src="${build.lib}/abbot.jar"
                   excludes="META-INF/,${overrideAbbotFiles}"/>
     </jar>
@@ -55,9 +58,16 @@
 
   <target name="find.external.jars"
   	description="Downloads all of the external jar dependencies"
-  	depends="get.objectdraw, get.acm, get.xstream, get.junit, get.abbot,
-  	         get.ostermiller, get.zrss, get.tagsoup,
-  	         get.eddie" />
+  	depends="get.abbot,
+             get.acm,
+             get.commons.collections,
+             get.eddie,
+             get.junit,
+             get.objectdraw,
+             get.ostermiller,
+             get.tagsoup,
+             get.xstream,
+             get.zrss" />
 
   <target name="create.dirs" description="Create necessary directories">
     <mkdir dir="${build.classes}" />
@@ -86,16 +96,28 @@
     <delete file="${jar.web.file}"/>
   </target>
 
-  <target name="check.objectdraw">
-    <condition property="need.objectdraw">
+  <target name="check.abbot">
+    <condition property="need.abbot">
       <not>
-        <available file="${build.lib}/objectdraw.jar" />
+        <and>
+          <available file="${build.lib}/abbot.jar" />
+          <available file="${build.lib}/costello.jar" />
+          <available file="${build.lib}/gnu-regexp-1.1.0.jar" />
+        </and>
       </not>
     </condition>
   </target>
-  <target name="get.objectdraw" depends="check.objectdraw" if="need.objectdraw">
-    <get usetimestamp="true" dest="${build.lib}/objectdraw.jar"
-      src="${objectdraw.download.url}" />
+  <target name="get.abbot" depends="check.abbot" if="need.abbot">
+    <get usetimestamp="true"
+      dest="${tmpdir}/abbot.zip" src="${abbot.download.url}" />
+    <unzip src="${tmpdir}/abbot.zip" dest="${tmpdir}" />
+    <copy overwrite="false" todir="${build.lib}" flatten="true">
+      <fileset dir="${tmpdir}/abbot-${abbot.version}/lib">
+        <include name="abbot.jar" />
+        <include name="costello.jar" />
+        <include name="gnu-regexp-1.1.0.jar" />
+      </fileset>
+    </copy>
   </target>
 
   <target name="check.acm">
@@ -110,25 +132,37 @@
       src="${acm.download.url}" />
   </target>
 
-  <target name="check.xstream">
-    <condition property="need.xstream">
+  <target name="check.commons.collections">
+    <condition property="need.commons.collections">
       <not>
-        <and>
-          <available file="${build.lib}/xpp3_min-1.1.4c.jar" />
-          <available file="${build.lib}/xstream-1.3.1.jar" />
-        </and>
+        <available file="${build.lib}/${commons.collections.jar}" />
       </not>
     </condition>
   </target>
-  <target name="get.xstream" depends="check.xstream" if="need.xstream">
-    <get usetimestamp="true" dest="${tmpdir}/xstream.zip" src="${xstream.download.url}" />
-    <unzip src="${tmpdir}/xstream.zip" dest="${tmpdir}" />
+  <target name="get.commons.collections" depends="check.commons.collections"
+    if="need.commons.collections">
+    <get usetimestamp="true"
+      dest="${tmpdir}/commons-collections.zip"
+      src="${commons.collections.download.url}" />
+    <unzip src="${tmpdir}/commons-collections.zip" dest="${tmpdir}" />
     <copy overwrite="false" todir="${build.lib}" flatten="true">
-      <fileset dir="${tmpdir}/xstream-1.3.1/lib">
-        <include name="xstream-1.3.1.jar" />
-        <include name="xpp3_min-1.1.4c.jar" />
+      <fileset
+        dir="${tmpdir}/commons-collections-${commons.collections.version}">
+        <include name="${commons.collections.jar}" />
       </fileset>
     </copy>
+  </target>
+
+  <target name="check.eddie">
+    <condition property="need.eddie">
+      <not>
+        <available file="${build.lib}/${eddie.jar}" />
+      </not>
+    </condition>
+  </target>
+  <target name="get.eddie" depends="check.eddie" if="need.eddie">
+    <get usetimestamp="true" dest="${build.lib}/${eddie.jar}"
+      src="${eddie.download.url}" />
   </target>
 
   <target name="check.junit">
@@ -139,30 +173,21 @@
     </condition>
   </target>
   <target name="get.junit" depends="check.junit" if="need.junit">
-    <get usetimestamp="true" dest="${build.lib}/junit.jar" src="${junit.download.url}" />
+    <get usetimestamp="true" dest="${build.lib}/junit.jar"
+      src="${junit.download.url}" />
   </target>
 
-  <target name="check.abbot">
-    <condition property="need.abbot">
+  <target name="check.objectdraw">
+    <condition property="need.objectdraw">
       <not>
-        <and>
-          <available file="${build.lib}/abbot.jar" />
-          <available file="${build.lib}/costello.jar" />
-          <available file="${build.lib}/gnu-regexp-1.1.0.jar" />
-        </and>
+        <available file="${build.lib}/objectdraw.jar" />
       </not>
     </condition>
   </target>
-  <target name="get.abbot" depends="check.abbot" if="need.abbot">
-    <get usetimestamp="true" dest="${tmpdir}/abbot.zip" src="${abbot.download.url}" />
-    <unzip src="${tmpdir}/abbot.zip" dest="${tmpdir}" />
-    <copy overwrite="false" todir="${build.lib}" flatten="true">
-      <fileset dir="${tmpdir}/abbot-1.0.2/lib">
-        <include name="abbot.jar" />
-        <include name="costello.jar" />
-        <include name="gnu-regexp-1.1.0.jar" />
-      </fileset>
-    </copy>
+  <target name="get.objectdraw" depends="check.objectdraw"
+    if="need.objectdraw">
+    <get usetimestamp="true" dest="${build.lib}/objectdraw.jar"
+      src="${objectdraw.download.url}" />
   </target>
 
   <target name="check.ostermiller">
@@ -172,9 +197,44 @@
       </not>
     </condition>
   </target>
-  <target name="get.ostermiller" depends="check.ostermiller" if="need.ostermiller">
+  <target name="get.ostermiller" depends="check.ostermiller"
+    if="need.ostermiller">
     <get usetimestamp="true" dest="${build.lib}/utils.jar"
       src="${ostermiller.download.url}" />
+  </target>
+
+  <target name="check.tagsoup">
+    <condition property="need.tagsoup">
+      <not>
+        <available file="${build.lib}/${tagsoup.jar}" />
+      </not>
+    </condition>
+  </target>
+  <target name="get.tagsoup" depends="check.tagsoup" if="need.tagsoup">
+    <get usetimestamp="true" dest="${build.lib}/${tagsoup.jar}"
+      src="${tagsoup.download.url}" />
+  </target>
+
+  <target name="check.xstream">
+    <condition property="need.xstream">
+      <not>
+        <and>
+          <available file="${build.lib}/${xpp3.jar}" />
+          <available file="${build.lib}/${xstream.jar}" />
+        </and>
+      </not>
+    </condition>
+  </target>
+  <target name="get.xstream" depends="check.xstream" if="need.xstream">
+    <get usetimestamp="true" dest="${tmpdir}/xstream.zip"
+      src="${xstream.download.url}" />
+    <unzip src="${tmpdir}/xstream.zip" dest="${tmpdir}" />
+    <copy overwrite="false" todir="${build.lib}" flatten="true">
+      <fileset dir="${tmpdir}/xstream-${xstream.version}/lib">
+        <include name="${xstream.jar}" />
+        <include name="${xpp3.jar}" />
+      </fileset>
+    </copy>
   </target>
 
   <target name="check.zrss">
@@ -183,41 +243,20 @@
         <and>
           <available file="${build.lib}/jdom.jar" />
           <available file="${build.lib}/rome-0.9.jar" />
-          <available file="${build.lib}/zrss-0.9.5.jar" />
+          <available file="${build.lib}/${zrss.jar}" />
         </and>
       </not>
     </condition>
   </target>
   <target name="get.zrss" depends="check.zrss" if="need.zrss">
-    <get usetimestamp="true" dest="${tmpdir}/zrss-0.9.5.zip" src="${zrss.download.url}" />
-    <unzip src="${tmpdir}/zrss-0.9.5.zip" dest="${tmpdir}" />
+    <get usetimestamp="true" dest="${tmpdir}/zrss.zip"
+      src="${zrss.download.url}" />
+    <unzip src="${tmpdir}/zrss.zip" dest="${tmpdir}" />
     <copy overwrite="false" todir="${build.lib}" flatten="true">
-      <fileset dir="${tmpdir}/zrss-0.9.5">
+      <fileset dir="${tmpdir}/zrss-${zrss.version}">
         <include name="*.jar" />
       </fileset>
     </copy>
-  </target>
-
-  <target name="check.tagsoup">
-    <condition property="need.tagsoup">
-      <not>
-        <available file="${build.lib}/tagsoup-1.2.jar" />
-      </not>
-    </condition>
-  </target>
-  <target name="get.tagsoup" depends="check.tagsoup" if="need.tagsoup">
-    <get usetimestamp="true" dest="${build.lib}/tagsoup-1.2.jar" src="${tagsoup.download.url}" />
-  </target>
-
-  <target name="check.eddie">
-    <condition property="need.eddie">
-      <not>
-        <available file="${build.lib}/eddie-0.2.jar" />
-      </not>
-    </condition>
-  </target>
-  <target name="get.eddie" depends="check.eddie" if="need.eddie">
-    <get usetimestamp="true" dest="${build.lib}/eddie-0.2.jar" src="${eddie.download.url}" />
   </target>
 
 </project>
