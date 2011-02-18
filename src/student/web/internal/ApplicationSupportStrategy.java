@@ -24,7 +24,7 @@ package student.web.internal;
 //-------------------------------------------------------------------------
 /**
  *  Defines the support methods needed to implement server-specific
- *  storage features for an {@link student.web.Application}.
+ *  storage features for a {@link student.web.PersistentMap}.
  *
  *  @author  Stephen Edwards
  *  @author Last changed by $Author$
@@ -101,4 +101,5 @@ public interface ApplicationSupportStrategy
      *  there is no value to remove.
      */
     Object removeSessionParameter(String name);
+
 }
