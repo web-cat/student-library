@@ -21,6 +21,8 @@
 
 package student.web.internal;
 
+import student.web.internal.converters.FlexibleFieldSetConverter;
+
 
 //-------------------------------------------------------------------------
 /**
