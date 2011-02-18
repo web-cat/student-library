@@ -12,7 +12,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import student.web.ApplicationPersistenceMap;
+import student.web.ApplicationPersistentMap;
 
 public class ApplicationPersistenceMapTest
 {
@@ -36,11 +36,11 @@ public class ApplicationPersistenceMapTest
 			
 		}
 	}
-	ApplicationPersistenceMap<Stub> localAppStore;
+	ApplicationPersistentMap<Stub> localAppStore;
 	@Before
 	public void setupLocalAppStore() throws InterruptedException
 	{
-		localAppStore = new ApplicationPersistenceMap<Stub>("LocalUnitTestApp",Stub.class);
+		localAppStore = new ApplicationPersistentMap<Stub>("LocalUnitTestApp",Stub.class);
 	}
 	@After
 	public void clearLocalAppStore()
@@ -198,7 +198,7 @@ public class ApplicationPersistenceMapTest
 	@Test
 	public void testMultipleMaps()
 	{
-		ApplicationPersistenceMap<Stub2> stub2Map = new ApplicationPersistenceMap<Stub2>("LocalUnitTestApp",Stub2.class);
+		ApplicationPersistentMap<Stub2> stub2Map = new ApplicationPersistentMap<Stub2>("LocalUnitTestApp",Stub2.class);
 		stub2Map.put("test1", stub2);
 		localAppStore.put("test2", stub);
 		assertEquals(localAppStore.size(),2);
@@ -211,7 +211,7 @@ public class ApplicationPersistenceMapTest
 	@Test
 	public void testMultipleSnapshotKeySet()
 	{
-		ApplicationPersistenceMap<Stub2> stub2Map = new ApplicationPersistenceMap<Stub2>("LocalUnitTestApp",Stub2.class);
+		ApplicationPersistentMap<Stub2> stub2Map = new ApplicationPersistentMap<Stub2>("LocalUnitTestApp",Stub2.class);
 		stub2Map.put("test1", stub2);
 		localAppStore.put("test2", stub);
 		Set<String> keyset1 = localAppStore.keySet();

@@ -7,8 +7,10 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.AbstractMap.SimpleEntry;
+import java.util.UUID;
 
-import student.web.PersistenceMap;
+import student.web.PersistentMap;
+import student.web.internal.PersistentStorageManager.StoredObject;
 
 /**
  * 
@@ -26,8 +28,8 @@ import student.web.PersistenceMap;
  * 
  * @param <T>
  */
-public abstract class AbstractPersistenceStoreMap<T> implements
-		PersistenceMap<T> {
+public abstract class AbstractPersistentMap<T> implements
+		PersistentMap<T> {
 	/**
 	 * Seperator character for keywords within a persisted object id. This is
 	 * used for conversion to a remote map.
@@ -63,7 +65,7 @@ public abstract class AbstractPersistenceStoreMap<T> implements
 	private PersistentStorageManager PSM;
 	private ApplicationSupportStrategy support;
 
-	protected AbstractPersistenceStoreMap(String directoryName) {
+	protected AbstractPersistentMap(String directoryName) {
 
 		PSM = PersistentStorageManager.getInstance(directoryName);
 		support = LocalityService.getSupportStrategy();
@@ -132,11 +134,9 @@ public abstract class AbstractPersistenceStoreMap<T> implements
 		assert key != null : "An objectId cannot be null";
 		assert objectId.length() > 0 : "An objectId cannot be an empty string";
 		T foundObject = getPersistentObject(objectId);
-		if (context.get(key) != null
-				&& PSM.hasFieldSetChanged((String) key, context.get(key)
-						.timestamp())) {
-			PSM.refreshPersistentObject((String) key, context.get(key),
-					typeAware.getClassLoader());
+		if(context.get(key) != null && PSM.hasFieldSetChanged((String)key, context.get(key).timestamp()))
+		{
+			PSM.refreshPersistentObject((String)key, context.get(key), typeAware.getClassLoader());
 		}
 		return foundObject;
 	}
@@ -212,12 +212,10 @@ public abstract class AbstractPersistenceStoreMap<T> implements
 		return valueSet;
 
 	}
-
 	protected T getPersistentObject(String objectId) {
 		T result = null;
 		PersistentStorageManager.StoredObject latest = context.get(objectId);
-		if (latest != null
-				&& !PSM.hasFieldSetChanged(objectId, latest.timestamp())) {
+		if (latest != null && !PSM.hasFieldSetChanged(objectId, latest.timestamp())) {
 			if (latest.value().getClass().equals(typeAware))
 				return (T) latest.value();
 			return null;
@@ -234,104 +232,98 @@ public abstract class AbstractPersistenceStoreMap<T> implements
 		}
 		return null;
 	}
-
-	// private Object refreshPersistentObject(String objectId, T object,
-	// ClassLoader loader, boolean force)
-	// {
-	// PersistentStorageManager.StoredObject latest = context.get(objectId);
-	// if (!PSM.hasFieldSetChanged(objectId, latest.timestamp())) {
-	// return object;
-	// }
-	// PersistentStorageManager.StoredObject newest =
-	// PSM.getPersistentObject(objectId, typeAware.getClassLoader());
-	// if(newest == null)
-	// {
-	// return object;
-	// }
-	// UUID oldId = latest.fieldset().lookupId(object);
-	// if(newest.fieldset().getFieldSet(oldId) == null)
-	// {
-	// context.put(objectId, newest);
-	// return newest.value();
-	// }
-	// refreshPersistentObject0(object, loader, latest, newest);
-	// return object;
-	// }
-	// private void refreshPersistentObject0(Object object, ClassLoader loader,
-	// StoredObject latest, StoredObject newest)
-	// {
-	// if(object instanceof Collection)
-	// {
-	// for(Object entry : (Collection)object)
-	// {
-	// refreshPersistentObject0(entry,loader,latest,newest);
-	// }
-	// return;
-	// }
-	// if(object instanceof Map)
-	// {
-	// return;
-	// }
-	// UUID oldId = latest.fieldset().lookupId(object);
-	// Map<String, Object> localFields = extractor.objectToFieldMap(object);
-	// Map<String, Object> newFields = newest.fieldset().getFieldSet(oldId);
-	// Map<String, Object> fields = Snapshot.updateFieldSet(object, newFields,
-	// newest.fieldset(),latest.fieldset());
-	// for(Entry<String,Object> field : localFields.entrySet())
-	// {
-	// if(latest.fieldset().lookupId(field.getValue())!= null)
-	// {
-	// fields.remove(field.getKey());
-	// refreshPersistentObject0(field.getValue(),loader,latest,newest);
-	//
-	// }
-	// }
-	// Map<String,Object> updateSet = new HashMap<String,Object>();
-	// for(Entry<String,Object> field : fields.entrySet())
-	// {
-	// Object localValue = localFields.get(field.getKey());
-	// if(localFields.containsKey(field.getKey()) &&
-	// !localValue.equals(field.getValue()))
-	// {
-	// updateSet.put(field.getKey(), field.getValue());
-	// }
-	// }
-	// localFields.putAll(updateSet);
-	// extractor.restoreObjectFromFieldMap(object, localFields);
-	//
-	// }
-	// public T reloadPersistentObject(String objectId, T object) {
-	// T result = object;
-	// // Remove from cache
-	// context.remove(objectId);
-	// // Reload
-	// PersistentStorageManager.StoredObject newest = PSM.getPersistentObject(
-	// objectId, typeAware.getClassLoader());
-	// // Object original = latest.value();
-	// if (newest.value().getClass().equals(typeAware)) {
-	// Map<String, Object> fields = extractor.objectToFieldMap(newest
-	// .value());
-	// extractor.restoreObjectFromFieldMap(object, fields);
-	//
-	// } else {
-	// result = null;
-	// }
-	//
-	// // Reload the existing objects
-	// // if (object != original) {
-	// // extractor.restoreObjectFromFieldMap(original, fields);
-	// // }
-	// newest.setValue(object);
-	// context.put(objectId, newest);
-	// // Now, replace the "new" loaded copy with the freshly reloaded
-	// // original
-	// // Map<String, Object> snapshot = newest.fieldset().get(newest.value());
-	// // newest.fieldset().remove(newest.value());
-	// // newest.setValue(object);
-	// // newest.fieldset().put(original, snapshot);
-	//
-	// return result;
-	// }
+//	private Object refreshPersistentObject(String objectId, T object, ClassLoader loader, boolean force)
+//	{
+//		PersistentStorageManager.StoredObject latest = context.get(objectId);
+//		if (!PSM.hasFieldSetChanged(objectId, latest.timestamp())) {
+//			return object;
+//		}
+//		PersistentStorageManager.StoredObject newest = PSM.getPersistentObject(objectId, typeAware.getClassLoader());
+//		if(newest == null)
+//		{
+//			return object;
+//		}
+//		UUID oldId = latest.fieldset().lookupId(object);
+//		if(newest.fieldset().getFieldSet(oldId) == null)
+//		{
+//			context.put(objectId, newest);
+//			return newest.value();
+//		}
+//		refreshPersistentObject0(object, loader, latest, newest);
+//		return object;
+//	}
+//	private void refreshPersistentObject0(Object object, ClassLoader loader, StoredObject latest, StoredObject newest)
+//	{
+//		if(object instanceof Collection)
+//		{
+//			for(Object entry : (Collection)object)
+//			{
+//				refreshPersistentObject0(entry,loader,latest,newest);
+//			}
+//			return;
+//		}
+//		if(object instanceof Map)
+//		{
+//			return;
+//		}
+//		UUID oldId = latest.fieldset().lookupId(object);
+//		Map<String, Object> localFields = extractor.objectToFieldMap(object);
+//		Map<String, Object> newFields = newest.fieldset().getFieldSet(oldId);
+//		Map<String, Object> fields = Snapshot.updateFieldSet(object, newFields, newest.fieldset(),latest.fieldset());
+//		for(Entry<String,Object> field : localFields.entrySet())
+//		{
+//			if(latest.fieldset().lookupId(field.getValue())!= null)
+//			{
+//				fields.remove(field.getKey());
+//				refreshPersistentObject0(field.getValue(),loader,latest,newest);
+//				
+//			}
+//		}
+//		Map<String,Object> updateSet = new HashMap<String,Object>();
+//		for(Entry<String,Object> field : fields.entrySet())
+//		{
+//			Object localValue = localFields.get(field.getKey());
+//			if(localFields.containsKey(field.getKey()) && !localValue.equals(field.getValue()))
+//			{
+//				updateSet.put(field.getKey(), field.getValue());
+//			}
+//		}
+//		localFields.putAll(updateSet);
+//		extractor.restoreObjectFromFieldMap(object, localFields);
+//		
+//	}
+//	public T reloadPersistentObject(String objectId, T object) {
+//		T result = object;
+//		// Remove from cache
+//		context.remove(objectId);
+//		// Reload
+//		PersistentStorageManager.StoredObject newest = PSM.getPersistentObject(
+//				objectId, typeAware.getClassLoader());
+//		// Object original = latest.value();
+//		if (newest.value().getClass().equals(typeAware)) {
+//			Map<String, Object> fields = extractor.objectToFieldMap(newest
+//					.value());
+//			extractor.restoreObjectFromFieldMap(object, fields);
+//
+//		} else {
+//			result = null;
+//		}
+//
+//		// Reload the existing objects
+//		// if (object != original) {
+////		 extractor.restoreObjectFromFieldMap(original, fields);
+//		// }
+//		newest.setValue(object);
+//		context.put(objectId, newest);
+//		// Now, replace the "new" loaded copy with the freshly reloaded
+//		// original
+//		// Map<String, Object> snapshot = newest.fieldset().get(newest.value());
+//		// newest.fieldset().remove(newest.value());
+//		// newest.setValue(object);
+//		// newest.fieldset().put(original, snapshot);
+//
+//		return result;
+//	}
 
 	@SuppressWarnings("unchecked")
 	private <V> V returnAsType(Class<V> t, Object value) {
