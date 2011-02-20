@@ -17,6 +17,7 @@ import java.util.UUID;
 
 import student.web.internal.Snapshot;
 
+
 /**
  * Converts a java.util.Map to XML, specifying an 'entry' element with 'key' and
  * 'value' children.
@@ -31,82 +32,131 @@ import student.web.internal.Snapshot;
  * 
  * @author Joe Walnes
  */
-public class MapConverter extends AbstractCollectionConverter {
+public class MapConverter extends AbstractCollectionConverter
+{
 
-//	Snapshot newSnapshot;
-//	Snapshot oldSnapshot;
+    // Snapshot newSnapshot;
+    // Snapshot oldSnapshot;
 
-	public MapConverter(Mapper mapper) {
-		super(mapper);
-	}
+    public MapConverter( Mapper mapper )
+    {
+        super( mapper );
+    }
 
-//	public void setupSnapshots(Snapshot newSnap,
-//			Snapshot oldSnap) {
-//		newSnapshot = newSnap;
-//		oldSnapshot = oldSnap;
-//	}
 
-	public boolean canConvert(Class type) {
-		if(type == null)
-			return false;
-		return type.equals(HashMap.class) || type.equals(Hashtable.class)
-				|| type.getName().equals("java.util.LinkedHashMap")
-				|| type.getName().equals("sun.font.AttributeMap") // Used by
-																	// java.awt.Font
-																	// in JDK 6
-		;
-	}
+    // public void setupSnapshots(Snapshot newSnap,
+    // Snapshot oldSnap) {
+    // newSnapshot = newSnap;
+    // oldSnapshot = oldSnap;
+    // }
 
-	public void marshal(Object source, HierarchicalStreamWriter writer,
-			MarshallingContext context) {
-//		Map map = (Map) source;
+    public boolean canConvert( Class type )
+    {
+        if ( type == null )
+            return false;
+        return type.equals( HashMap.class ) || type.equals( Hashtable.class )
+            || type.getName().equals( "java.util.LinkedHashMap" )
+            || type.getName().equals( "sun.font.AttributeMap" ) // Used by
+                                                                // java.awt.Font
+                                                                // in JDK 6
+        ;
+    }
 
-//		UUID oldId = Snapshot.findId(map, newSnapshot, oldSnapshot);
-		UUID id = Snapshot.lookupId(source,true);
-		writer.addAttribute(XMLConstants.ID_ATTRIBUTE, id.toString());
-		@SuppressWarnings("unchecked")
-		Map<Object,Object> updatedMap = Snapshot.generateUpdatedMap((Map<Object,Object>)source);
-		((Map)source).clear();
-		((Map)source).putAll(updatedMap);
-		for (Iterator<Entry<Object,Object>> iterator = updatedMap.entrySet().iterator(); iterator.hasNext();) {
-			Entry<Object,Object> entry = (Entry<Object,Object>) iterator.next();
-			ExtendedHierarchicalStreamWriterHelper.startNode(writer, mapper()
-					.serializedClass(Map.Entry.class), Map.Entry.class);
 
-			writeItem(entry.getKey(), context, writer);
-			writeItem(entry.getValue(), context, writer);
+    public void marshal(
+        Object source,
+        HierarchicalStreamWriter writer,
+        MarshallingContext context )
+    {
+        Map<?, ?> map = (Map<?, ?>)source;
 
-			writer.endNode();
-		}
-	}
+        // UUID oldId = Snapshot.findId(map, newSnapshot, oldSnapshot);
+        UUID id = Snapshot.lookupId( source, true );
+        writer.addAttribute( XMLConstants.ID_ATTRIBUTE, id.toString() );
+        updateMap( (Map<Object, Object>)map );
+        for ( Iterator<?> iterator = map.entrySet().iterator(); iterator.hasNext(); )
+        {
+            Entry<?, ?> entry = (Entry<?, ?>)iterator.next();
+            ExtendedHierarchicalStreamWriterHelper.startNode( writer,
+                mapper().serializedClass( Map.Entry.class ),
+                Map.Entry.class );
+            UUID keyId = Snapshot.lookupId( entry.getKey(), true );
+            writer.addAttribute( XMLConstants.ID_ATTRIBUTE, keyId.toString() );
+            writeItem( entry.getKey(), context, writer );
+            writeItem( entry.getValue(), context, writer );
 
-	public Object unmarshal(HierarchicalStreamReader reader,
-			UnmarshallingContext context) {
-		Map map = (Map) createCollection(context.getRequiredType());
-		UUID id= UUID.fromString(reader.getAttribute(XMLConstants.ID_ATTRIBUTE));
-		Snapshot.resolveObject(id, map, null);
-//		newSnapshot.addResolvedObject(id, map);
-		populateMap(reader, context, map);
-		return map;
-	}
+            writer.endNode();
+        }
+    }
 
-	protected void populateMap(HierarchicalStreamReader reader,
-			UnmarshallingContext context, Map map) {
-		while (reader.hasMoreChildren()) {
-			reader.moveDown();
 
-			reader.moveDown();
-			Object key = readItem(reader, context, map);
-			reader.moveUp();
+    public static void updateMap( Map<Object, Object> source )
+    {
+        // Lookup the id for this map
+        UUID mapId = Snapshot.lookupId( source, false );
+        // Get the newest copy of this map
+        Map newestMap = (Map)Snapshot.getNewest().findObject( mapId );
+        // If there is something newer we should start the update process
+        if ( newestMap != null )
+        {
+            // Look at every key in the new map
+            for ( Object newObject : newestMap.keySet() )
+            {
+                // Do we know about this object locally?
+                UUID id = Snapshot.getNewest().findId( newObject );
+                Object localLookup = Snapshot.getLocal().findObject( id );
+                // If the id is null, we know that we have never seen this item
+                // before. Push it into the list.
+                if ( localLookup == null )
+                {
+                    source.put( newObject, newestMap.get( newObject ) );
+                }
+                // else
+                // If the id is not null we have seen this item before. The
+                // current logic is that if we have seen it, we have either
+                // removed it intentionally or it still exists in the map. If it
+                // is still in the map then we should just let the flexible
+                // field set converter deal with it.
+            }
+        }
+    }
 
-			reader.moveDown();
-			Object value = readItem(reader, context, map);
-			reader.moveUp();
 
-			map.put(key, value);
+    public Object unmarshal(
+        HierarchicalStreamReader reader,
+        UnmarshallingContext context )
+    {
+        Map map = (Map)createCollection( context.getRequiredType() );
+        UUID id = UUID.fromString( reader.getAttribute( XMLConstants.ID_ATTRIBUTE ) );
+        populateMap( reader, context, map );
+        Snapshot.getLocal().resolveObject( id, map, (Map<String, Object>)null );
+        return map;
+    }
 
-			reader.moveUp();
-		}
-	}
+
+    protected void populateMap(
+        HierarchicalStreamReader reader,
+        UnmarshallingContext context,
+        Map map )
+    {
+        while ( reader.hasMoreChildren() )
+        {
+            reader.moveDown();
+            UUID id = UUID.fromString( reader.getAttribute( XMLConstants.ID_ATTRIBUTE ) );
+            reader.moveDown();
+            Object key = readItem( reader, context, map );
+            reader.moveUp();
+
+            reader.moveDown();
+            Object value = readItem( reader, context, map );
+            reader.moveUp();
+
+            map.put( key, value );
+            Snapshot.getLocal().resolveObject( id,
+                key,
+                (Map<String, Object>)null );
+            reader.moveUp();
+        }
+    }
 
 }

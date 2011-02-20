@@ -4,10 +4,11 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class MapTestClass {
-	Map<Object, Object> toPersist = new HashMap<Object, Object>();
+	public Map<Integer, String> toPersist = new HashMap<Integer, String>();
 	public MapTestClass()
 	{
-		toPersist.put("hi", "hello");
-		toPersist.put(new InnerClass("0",0), new InnerClass("1",1));
+		toPersist.put(0,"0");
+		toPersist.put(1, "1");
+		toPersist.put(2, "2");
 	}
 }

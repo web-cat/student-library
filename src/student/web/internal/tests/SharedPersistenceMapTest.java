@@ -53,11 +53,11 @@ public class SharedPersistenceMapTest {
 
 	}
 
-	SharedPersistenceMap<Stub> localAppStore;
+	SharedPersistentMap<Stub> localAppStore;
 
 	@Before
 	public void setupLocalAppStore() throws InterruptedException {
-		localAppStore = new SharedPersistenceMap<Stub>(Stub.class);
+		localAppStore = new SharedPersistentMap<Stub>(Stub.class);
 		localAppStore.clear();
 	}
 
@@ -194,7 +194,7 @@ public class SharedPersistenceMapTest {
 
 	@Test
 	public void testMultipleMaps() {
-		SharedPersistenceMap<Stub2> stub2Map = new SharedPersistenceMap<Stub2>(
+		SharedPersistentMap<Stub2> stub2Map = new SharedPersistentMap<Stub2>(
 				Stub2.class);
 		stub2Map.put("test1", stub2);
 		localAppStore.put("test2", stub);
@@ -207,7 +207,7 @@ public class SharedPersistenceMapTest {
 
 	@Test
 	public void testMultipleSnapshotKeySet() {
-		SharedPersistenceMap<Stub2> stub2Map = new SharedPersistenceMap<Stub2>(
+		SharedPersistentMap<Stub2> stub2Map = new SharedPersistentMap<Stub2>(
 				Stub2.class);
 		stub2Map.put("test1", stub2);
 		localAppStore.put("test2", stub);
@@ -228,7 +228,7 @@ public class SharedPersistenceMapTest {
 
 	@Test
 	public void testInnerClass() {
-		SharedPersistenceMap<Inner> persistMap = new SharedPersistenceMap<Inner>(
+		SharedPersistentMap<Inner> persistMap = new SharedPersistentMap<Inner>(
 				Inner.class);
 		try {
 			persistMap.put("invalid", new Inner());
@@ -247,8 +247,9 @@ public class SharedPersistenceMapTest {
 			e.printStackTrace();
 			assertTrue(false);
 		}
-		SharedPersistenceMap<DataStructClass> persistMap = new SharedPersistenceMap<DataStructClass>(
+		SharedPersistentMap<DataStructClass> persistMap = new SharedPersistentMap<DataStructClass>(
 				DataStructClass.class);
+		persistMap.put("toLook", new DataStructClass());
 		DataStructClass dataStruct;
 		dataStruct = persistMap.get("testClass");
 		dataStruct.remove(1);
@@ -280,7 +281,7 @@ public class SharedPersistenceMapTest {
 			e.printStackTrace();
 			assertTrue(false);
 		}
-		SharedPersistenceMap<DataStructClass> persistMap = new SharedPersistenceMap<DataStructClass>(
+		SharedPersistentMap<DataStructClass> persistMap = new SharedPersistentMap<DataStructClass>(
 				DataStructClass.class);
 		DataStructClass dataStruct;
 		dataStruct = persistMap.get("testClass");
@@ -314,7 +315,7 @@ public class SharedPersistenceMapTest {
 			e.printStackTrace();
 			assertTrue(false);
 		}
-		SharedPersistenceMap<DataStructClass> persistMap = new SharedPersistenceMap<DataStructClass>(
+		SharedPersistentMap<DataStructClass> persistMap = new SharedPersistentMap<DataStructClass>(
 				DataStructClass.class);
 		DataStructClass dataStruct;
 		dataStruct = persistMap.get("testClass");
@@ -332,11 +333,11 @@ public class SharedPersistenceMapTest {
 		assertEquals(5, dataStruct.internalDataStruct.size());
 		assertEquals("0", dataStruct.internalDataStruct.get(0).getData0());
 		assertEquals("3", dataStruct.internalDataStruct.get(1).getData0());
-		assertEquals("testadded", dataStruct.internalDataStruct.get(4)
+		assertEquals("testadded", dataStruct.internalDataStruct.get(2)
 				.getData0());
-		assertEquals("syncAdd1", dataStruct.internalDataStruct.get(2)
+		assertEquals("syncAdd1", dataStruct.internalDataStruct.get(3)
 				.getData0());
-		assertEquals("syncAdd2", dataStruct.internalDataStruct.get(3)
+		assertEquals("syncAdd2", dataStruct.internalDataStruct.get(4)
 				.getData0());
 		assertEquals("foo", dataStruct.internalDataStruct2.get(0).getData0());
 
@@ -350,7 +351,7 @@ public class SharedPersistenceMapTest {
 			e.printStackTrace();
 			assertTrue(false);
 		}
-		SharedPersistenceMap<DataStructClass> persistMap = new SharedPersistenceMap<DataStructClass>(
+		SharedPersistentMap<DataStructClass> persistMap = new SharedPersistentMap<DataStructClass>(
 				DataStructClass.class);
 		DataStructClass dataStruct;
 		dataStruct = persistMap.get("testClass");
@@ -386,7 +387,7 @@ public class SharedPersistenceMapTest {
 			e.printStackTrace();
 			assertTrue(false);
 		}
-		SharedPersistenceMap<DataStructClass> persistMap = new SharedPersistenceMap<DataStructClass>(
+		SharedPersistentMap<DataStructClass> persistMap = new SharedPersistentMap<DataStructClass>(
 				DataStructClass.class);
 		DataStructClass dataStruct;
 		dataStruct = persistMap.get("testClass");
@@ -417,11 +418,11 @@ public class SharedPersistenceMapTest {
 
 	@Test
 	public void testComplexPlainClass() {
-		SharedPersistenceMap<PlainClass> persistMap = new SharedPersistenceMap<PlainClass>(
+		SharedPersistentMap<PlainClass> persistMap = new SharedPersistentMap<PlainClass>(
 				PlainClass.class);
 		persistMap.put("test", (PlainClass) new ComplexClass());
 		assertTrue(persistMap.containsKey("test"));
-		SharedPersistenceMap<ComplexClass> complexPersistMap = new SharedPersistenceMap<ComplexClass>(
+		SharedPersistentMap<ComplexClass> complexPersistMap = new SharedPersistentMap<ComplexClass>(
 				ComplexClass.class);
 		assertTrue(complexPersistMap.containsKey("test"));
 		assertNotNull(complexPersistMap.get("test"));
@@ -431,52 +432,54 @@ public class SharedPersistenceMapTest {
 
 	@Test
 	public void testDataStructureClass() {
-		SharedPersistenceMap<DataStructureTestClass> persistMap = new SharedPersistenceMap<DataStructureTestClass>(
+		SharedPersistentMap<DataStructureTestClass> persistMap = new SharedPersistentMap<DataStructureTestClass>(
 				DataStructureTestClass.class);
 		persistMap.put("blah", new DataStructureTestClass());
 	}
 
 	@Test
-	public void arrayCollectionConverter() {
+	public void testArrayPersist()
+	{
+		SharedPersistentMap<Object[]> persistMap = new SharedPersistentMap<Object[]>(Object[].class);
 		try {
-			restoreTestData("arrayTest-020.dataxml", "arrayTest-020.dataxml");
+			restoreTestData("testArray-010.dataxml","testArray-010.dataxml");
 		} catch (IOException e) {
 			e.printStackTrace();
 			assertTrue(false);
 		}
-		SharedPersistenceMap<ArrayTestClass> persistMap = new SharedPersistenceMap<ArrayTestClass>(
-				ArrayTestClass.class);
-		ArrayTestClass temp = persistMap.get("arrayTest");
-		assertEquals(10, temp.internalArray.length);
+		Object[] erasure = persistMap.get("testArray");
+		assertEquals("0",erasure[0]);
+		assertEquals("1",erasure[1]);
+		assertEquals("2",erasure[2]);
+		try {
+			restoreTestData("testArray-010.dataxml","testArray-010.dataxml.change");
+		} catch (IOException e) {
+			e.printStackTrace();
+			assertTrue(false);
+		}
+		erasure = persistMap.put("testArray", erasure);
+		assertEquals("3",erasure[0]);
+		assertEquals("4",erasure[1]);
+		assertEquals("5",erasure[2]);
+		
 	}
-
 	@Test
-	public void arrayCollectionConverterCombinePersisted() {
-		try {
-			restoreTestData("arrayTest-020.dataxml", "arrayTest-020.dataxml");
-		} catch (IOException e) {
-			e.printStackTrace();
-			assertTrue(false);
-		}
-		SharedPersistenceMap<ArrayTestClass> persistMap = new SharedPersistenceMap<ArrayTestClass>(
-				ArrayTestClass.class);
-		ArrayTestClass temp = persistMap.get("arrayTest");
-		assertEquals(10, temp.internalArray.length);
-		try {
-			restoreTestData("arrayTest-020.dataxml",
-					"arrayTest-020.dataxml.changes");
-		} catch (IOException e) {
-			e.printStackTrace();
-			assertTrue(false);
-		}
-		persistMap.put("arrayTest", temp);
-	}
+	public void testPrimitiveArrayPersist()
+	{
+		SharedPersistentMap<Integer[]> persistMap = new SharedPersistentMap<Integer[]>(Integer[].class);
 
+		Integer[] intArray = new Integer[3];
+		intArray[0]=0;
+		intArray[1]=1;
+		intArray[2]=2;
+		persistMap.put("intArray",intArray);
+		
+	}
 	@Test
 	public void persistMap() {
-		SharedPersistenceMap<MapTestClass> persistMap = new SharedPersistenceMap<MapTestClass>(
+		SharedPersistentMap<MapTestClass> persistMap = new SharedPersistentMap<MapTestClass>(
 				MapTestClass.class);
-		persistMap.put("mapTest", new MapTestClass());
+//		persistMap.put("mapTest", new MapTestClass());
 		try {
 			restoreTestData("mapTest-80.dataxml", "mapTest-80.dataxml");
 		} catch (IOException e) {
@@ -484,6 +487,10 @@ public class SharedPersistenceMapTest {
 			assertTrue(false);
 		}
 		MapTestClass mtc = persistMap.get("mapTest");
+		assertEquals("0",mtc.toPersist.get(0));
+		assertEquals("1",mtc.toPersist.get(1));
+		assertEquals("2",mtc.toPersist.get(2));
+		
 		try {
 			restoreTestData("mapTest-80.dataxml", "mapTest-80.dataxml.changes");
 		} catch (IOException e) {
@@ -491,11 +498,13 @@ public class SharedPersistenceMapTest {
 			assertTrue(false);
 		}
 		persistMap.put("mapTest", mtc);
+		assertEquals("3",mtc.toPersist.get(3));
+		assertEquals("4",mtc.toPersist.get(4));
 	}
 
 	@Test
 	public void getPreviousNoneREMOVE() {
-		SharedPersistenceMap<ComplexClass> persistMap = new SharedPersistenceMap<ComplexClass>(
+		SharedPersistentMap<ComplexClass> persistMap = new SharedPersistentMap<ComplexClass>(
 				ComplexClass.class);
 		ComplexClass old = persistMap.remove("Not there!");
 		assertEquals(null, old);
@@ -503,7 +512,7 @@ public class SharedPersistenceMapTest {
 
 	@Test
 	public void getPreviousExistsREMOVE() {
-		SharedPersistenceMap<ComplexClass> persistMap = new SharedPersistenceMap<ComplexClass>(
+		SharedPersistentMap<ComplexClass> persistMap = new SharedPersistentMap<ComplexClass>(
 				ComplexClass.class);
 		ComplexClass limbo = new ComplexClass();
 		ComplexClass old = persistMap.put("previous", limbo);
@@ -514,7 +523,7 @@ public class SharedPersistenceMapTest {
 
 	@Test
 	public void getPreviousNonePUT() {
-		SharedPersistenceMap<ComplexClass> persistMap = new SharedPersistenceMap<ComplexClass>(
+		SharedPersistentMap<ComplexClass> persistMap = new SharedPersistentMap<ComplexClass>(
 				ComplexClass.class);
 		ComplexClass old = persistMap.put("putting", new ComplexClass());
 		assertEquals(null, old);
@@ -522,7 +531,7 @@ public class SharedPersistenceMapTest {
 
 	@Test
 	public void getPreviousExistsPUT() {
-		SharedPersistenceMap<ComplexClass> persistMap = new SharedPersistenceMap<ComplexClass>(
+		SharedPersistentMap<ComplexClass> persistMap = new SharedPersistentMap<ComplexClass>(
 				ComplexClass.class);
 		ComplexClass limbo = new ComplexClass();
 		ComplexClass old = persistMap.put("previous", limbo);
@@ -535,7 +544,7 @@ public class SharedPersistenceMapTest {
 
 	@Test
 	public void testCacheGet() {
-		SharedPersistenceMap<ComplexClass> persistMap = new SharedPersistenceMap<ComplexClass>(
+		SharedPersistentMap<ComplexClass> persistMap = new SharedPersistentMap<ComplexClass>(
 				ComplexClass.class);
 		persistMap.put("test", new ComplexClass());
 		ComplexClass object1 = persistMap.get("test");
@@ -545,7 +554,7 @@ public class SharedPersistenceMapTest {
 
 	@Test
 	public void testCacheUpdated() {
-		SharedPersistenceMap<ComplexClass> persistMap = new SharedPersistenceMap<ComplexClass>(
+		SharedPersistentMap<ComplexClass> persistMap = new SharedPersistentMap<ComplexClass>(
 				ComplexClass.class);
 		ComplexClass squirrel = persistMap.get("cachingUpdate");
 		try {
@@ -563,7 +572,7 @@ public class SharedPersistenceMapTest {
 
 	@Test
 	public void testCacheNotCompatable() {
-		SharedPersistenceMap<PlainClass> persistMap = new SharedPersistenceMap<PlainClass>(
+		SharedPersistentMap<PlainClass> persistMap = new SharedPersistentMap<PlainClass>(
 				PlainClass.class);
 		persistMap.put("testClass", new PlainClass());
 		try {
@@ -578,7 +587,7 @@ public class SharedPersistenceMapTest {
 
 	@Test
 	public void testComplexCacheUpdated() {
-		SharedPersistenceMap<DataStructClass> persistMap = new SharedPersistenceMap<DataStructClass>(
+		SharedPersistentMap<DataStructClass> persistMap = new SharedPersistentMap<DataStructClass>(
 				DataStructClass.class);
 		DataStructClass squirrel = new DataStructClass();
 		persistMap.put("testClass", squirrel);
@@ -597,7 +606,7 @@ public class SharedPersistenceMapTest {
 
 	@Test
 	public void testNoChange() {
-		SharedPersistenceMap<DataStructClass> persistMap = new SharedPersistenceMap<DataStructClass>(
+		SharedPersistentMap<DataStructClass> persistMap = new SharedPersistentMap<DataStructClass>(
 				DataStructClass.class);
 		DataStructClass squirrel = new DataStructClass();
 		persistMap.put("testClass", squirrel);
@@ -609,7 +618,7 @@ public class SharedPersistenceMapTest {
 
 	@Test
 	public void testReferentialIdentity() {
-		SharedPersistenceMap<DataStructClass> persistMap = new SharedPersistenceMap<DataStructClass>(
+		SharedPersistentMap<DataStructClass> persistMap = new SharedPersistentMap<DataStructClass>(
 				DataStructClass.class);
 		DataStructClass squirrel = new DataStructClass();
 		persistMap.get("testClass");
@@ -627,7 +636,7 @@ public class SharedPersistenceMapTest {
 
 	@Test
 	public void testRefIdExisting() {
-		SharedPersistenceMap<DataStructClass> persistMap = new SharedPersistenceMap<DataStructClass>(
+		SharedPersistentMap<DataStructClass> persistMap = new SharedPersistentMap<DataStructClass>(
 				DataStructClass.class);
 		try {
 			restoreTestData("testClass-010.dataxml", "testClass-010.dataxml");
