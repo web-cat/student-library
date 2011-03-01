@@ -36,6 +36,7 @@ import student.web.internal.converters.ArrayConverter;
 import student.web.internal.converters.CollectionConverter;
 import student.web.internal.converters.FlexibleFieldSetConverter;
 import student.web.internal.converters.MapConverter;
+import student.web.internal.converters.PersistentMapConverter;
 import student.web.internal.converters.UnrecognizedClassConverter;
 
 
@@ -683,6 +684,10 @@ public class PersistentStorageManager
             xstream = new FlexibleXStream();
             xstream.setClassLoader( loader );
 
+            //Prevent Persistent Map from being converted.
+            PersistentMapConverter pConverter = new PersistentMapConverter();
+            xstream.registerConverter( pConverter, XStream.PRIORITY_VERY_HIGH );
+            
             // flex field converter
             fConverter = new FlexibleFieldSetConverter( xstream.getMapper(),
                 xstream.getReflectionProvider() );
