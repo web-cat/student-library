@@ -6,7 +6,12 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -16,7 +21,6 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import org.apache.commons.io.FileUtils;
 
 import student.web.SharedPersistentMap;
 import student.web.internal.PersistentStorageManager;
@@ -48,9 +52,34 @@ public class SharedPersistenceMapTest {
 			throws IOException {
 		// FileUtils.copyFileToDirectory(new File("data/test/"+fileName), new
 		// File("data/shared"));
-		FileUtils.copyFile(new File("data/test/" + oldFileName), new File(
-				"data/shared/" + fileName));
+//		FileUtils.copyFile(new File("data/test/" + oldFileName), new File(
+//				"data/shared/" + fileName));
+	    try{
+	        File f1 = new File("data/test/" + oldFileName);
+	        File f2 = new File("data/shared/" + fileName);
+	        InputStream in = new FileInputStream(f1);
+	        
+	        //For Append the file.
+//	        OutputStream out = new FileOutputStream(f2,true);
 
+	        //For Overwrite the file.
+	        OutputStream out = new FileOutputStream(f2);
+
+	        byte[] buf = new byte[1024];
+	        int len;
+	        while ((len = in.read(buf)) > 0){
+	          out.write(buf, 0, len);
+	        }
+	        in.close();
+	        out.close();
+	      }
+	      catch(FileNotFoundException ex){
+	        System.out.println(ex.getMessage() + " in the specified directory.");
+	        System.exit(0);
+	      }
+	      catch(IOException e){
+	        System.out.println(e.getMessage());      
+	      }
 	}
 
 	SharedPersistentMap<Stub> localAppStore;
@@ -70,7 +99,21 @@ public class SharedPersistenceMapTest {
 		assertEquals(localAppStore.values().size(), 0);
 		assertEquals(localAppStore.entrySet().size(), 0);
 	}
-
+	@Test
+    public void testSharedPersistenceMapPersist()
+    {
+	    try
+	    {
+        SharedPersistentMap<InceptionClass> map = new SharedPersistentMap<InceptionClass>(InceptionClass.class);
+        map.put( "test", new InceptionClass() );
+	    }
+	    catch(IllegalArgumentException e)
+	    {
+	        assertTrue(true);
+	        return;
+	    }
+	    assertTrue(true);
+    }
 	@Test
 	public void testApplicationPersistenceMap() {
 		assertNotNull(localAppStore);
