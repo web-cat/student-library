@@ -1,7 +1,7 @@
 /*==========================================================================*\
  |  $Id$
  |*-------------------------------------------------------------------------*|
- |  Copyright (C) 2007-2010 Virginia Tech
+ |  Copyright (C) 2007-2011 Virginia Tech
  |
  |  This file is part of the Student-Library.
  |
@@ -38,8 +38,8 @@ import java.util.List;
  *  This class represents a syndication feed that contains a list of
  *  {@link RssEntry} objects.
  *
- *  @author Stephen Edwards
- *  @author Last changed by $Author$
+ *  @author  Stephen Edwards
+ *  @author  Last changed by $Author$
  *  @version $Revision$, $Date$
  */
 public class RssFeed
@@ -280,7 +280,7 @@ public class RssFeed
         this.entries = entries;
         if (nativeFeed.getEntries() == null)
         {
-            nativeFeed.setEntries(new ArrayList(entries.size()));
+            nativeFeed.setEntries(new ArrayList<SyndEntry>(entries.size()));
         }
         List<SyndEntry> nativeEntries = nativeFeed.getEntries();
         for (RssEntry entry : entries)

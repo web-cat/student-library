@@ -12,24 +12,19 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.Vector;
-
 import org.webcat.diff.DiffList;
 import org.webcat.diff.DiffPatcher;
 import org.webcat.diff.Differ;
 import org.webcat.diff.PatchApplication;
-
 import student.web.internal.PersistentStorageManager.FakePrintWriter;
 import student.web.internal.Snapshot;
-
 import com.thoughtworks.xstream.converters.MarshallingContext;
 import com.thoughtworks.xstream.converters.UnmarshallingContext;
 import com.thoughtworks.xstream.converters.collections.AbstractCollectionConverter;
-import com.thoughtworks.xstream.converters.reflection.ReflectionProvider;
 import com.thoughtworks.xstream.core.JVM;
 import com.thoughtworks.xstream.io.ExtendedHierarchicalStreamWriterHelper;
 import com.thoughtworks.xstream.io.HierarchicalStreamReader;
 import com.thoughtworks.xstream.io.HierarchicalStreamWriter;
-import com.thoughtworks.xstream.io.path.PathTracker;
 import com.thoughtworks.xstream.mapper.Mapper;
 
 
@@ -41,13 +36,17 @@ import com.thoughtworks.xstream.mapper.Mapper;
  * Supports java.util.ArrayList, java.util.HashSet, java.util.LinkedList,
  * java.util.Vector and java.util.LinkedHashSet.
  * </p>
- * 
+ *
  * @author Joe Walnes
  */
 public class CollectionConverter extends AbstractCollectionConverter
 {
     // private ReflectionProvider rp;
 
+    /**
+     * Create a new CollectionConverter.
+     * @param mapper The mapper to use.
+     */
     public CollectionConverter( Mapper mapper )
     {
         super( mapper );
@@ -55,6 +54,7 @@ public class CollectionConverter extends AbstractCollectionConverter
     }
 
 
+    @SuppressWarnings("rawtypes")
     public boolean canConvert( Class type )
     {
         if ( type == null )
@@ -169,7 +169,9 @@ public class CollectionConverter extends AbstractCollectionConverter
         // values
         localCollection.clear();
         int i = 0;
-        for ( Iterator iterator = patchedSnapshot.iterator(); iterator.hasNext(); )
+        for ( Iterator<Object> iterator = patchedSnapshot.iterator();
+              iterator.hasNext();
+              /* no increment needed */)
         {
             Object item = iterator.next();
             UUID objId = Snapshot.lookupId( item, false );
@@ -196,9 +198,15 @@ public class CollectionConverter extends AbstractCollectionConverter
     private List<Object> convertToList( Object source )
     {
         if ( source == null )
+        {
             return null;
+        }
         if ( source instanceof List )
-            return (List<Object>)source;
+        {
+            @SuppressWarnings("unchecked")
+            List<Object> result = (List<Object>)source;
+            return result;
+        }
         if ( source.getClass().isArray() )
         {
             List<Object> computed = new ArrayList<Object>();
