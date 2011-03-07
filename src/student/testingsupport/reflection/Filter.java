@@ -22,8 +22,10 @@
 package student.testingsupport.reflection;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
 
 //-------------------------------------------------------------------------
 /**
@@ -47,6 +49,7 @@ public abstract class Filter<ConcreteFilterType, FilteredObjectType>
     private Filter<ConcreteFilterType, FilteredObjectType> previousFilter;
     private List<FilteredObjectType> filteredCandidates;
     private String descriptionOfConstraint;
+    private int hashCode = 0;
 
 
     //~ Constructor ...........................................................
@@ -88,7 +91,7 @@ public abstract class Filter<ConcreteFilterType, FilteredObjectType>
      */
     public boolean exists()
     {
-        return count() > 0;
+        return guaranteesMultipleMatches() || count() > 0;
     }
 
 
@@ -99,7 +102,7 @@ public abstract class Filter<ConcreteFilterType, FilteredObjectType>
      */
     public boolean isUnique()
     {
-        return count() == 1;
+        return !guaranteesMultipleMatches() && count() == 1;
     }
 
 
@@ -185,7 +188,71 @@ public abstract class Filter<ConcreteFilterType, FilteredObjectType>
      */
     public String toString()
     {
-        return description();
+        if (isUnique())
+        {
+            return raw().toString();
+        }
+        else
+        {
+            return description();
+        }
+    }
+
+
+    // ----------------------------------------------------------
+    @Override
+    public int hashCode()
+    {
+        if (hashCode == 0)
+        {
+            hashCode =
+                (new HashSet<FilteredObjectType>(allMatches())).hashCode();
+        }
+        return hashCode;
+    }
+
+
+    // ----------------------------------------------------------
+    /**
+     * Determine whether this object is equal to the another.
+     * @param other The object to compare against.
+     * @return True if this object is equal to the other.
+     */
+    public boolean equals(final Object other)
+    {
+        if (other == this)
+        {
+            return true;
+        }
+        if (other == null)
+        {
+            return false;
+        }
+        if (other instanceof Filter)
+        {
+            @SuppressWarnings("unchecked")
+            Filter<ConcreteFilterType, FilteredObjectType> otherType =
+                (Filter<ConcreteFilterType, FilteredObjectType>)other;
+            if (description().equals(otherType.description()))
+            {
+                return true;
+            }
+            Set<FilteredObjectType> left =
+                new HashSet<FilteredObjectType>(allMatches());
+            Set<FilteredObjectType> right =
+                new HashSet<FilteredObjectType>(otherType.allMatches());
+            return left.equals(right);
+        }
+        else
+        {
+            return quantify.evaluate(new Predicate<FilteredObjectType>()
+            {
+                public boolean isSatisfiedBy(FilteredObjectType object)
+                {
+                    return other.equals(object);
+                }
+            });
+        }
     }
 
 
@@ -368,6 +435,24 @@ public abstract class Filter<ConcreteFilterType, FilteredObjectType>
      * TODO: document.
      * @return TODO: describe
      */
+    protected boolean guaranteesMultipleMatches()
+    {
+        if (previousFilter() != null)
+        {
+            return previousFilter().guaranteesMultipleMatches();
+        }
+        else
+        {
+            return false;
+        }
+    }
+
+
+    // ----------------------------------------------------------
+    /**
+     * TODO: document.
+     * @return TODO: describe
+     */
     protected FilteredObjectType firstMatch()
     {
         filter();
@@ -480,6 +565,16 @@ public abstract class Filter<ConcreteFilterType, FilteredObjectType>
             result = previousFilter.accept(object);
         }
         return result && thisFilterAccepts(object);
+    }
+
+
+    // ----------------------------------------------------------
+    /**
+     * TODO: document.
+     */
+    protected void flush()
+    {
+        filteredCandidates = null;
     }
 
 

@@ -24,14 +24,14 @@ package student.testingsupport.reflection;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import student.testingsupport.reflection.internal.Types;
 
 //-------------------------------------------------------------------------
 /**
  *  TODO: document.
- *
- *  TODO: need to work out the difference between "name" and "simple name".
  *
  *  @param <ClassType> If present, this is a constraint on the type that
  *  this object represents.
@@ -132,6 +132,43 @@ public class Type<ClassType>
 
     // ----------------------------------------------------------
     /**
+     * Restrict type searches that look for all classes in a package, or
+     * all classes visible to a class loader, to the specified list of
+     * search locations (the default is the search path in the system
+     * property
+     * <code>student.testingsupport.reflection.internal.Types.searchPath</code>,
+     * or the set of directories visible from the class loader where
+     * this class was loaded).
+     * This restriction affects all type searches when a fully qualified
+     * class name is not provided.
+     * @param searchPath The search path to use.  A classpath-like string
+     * denoting the classpath locations where searching should be performed.
+     */
+    public static void restrictSearchesTo(String searchPath)
+    {
+        type.flush();
+        Types.restrictSearchesTo(searchPath);
+    }
+
+    // ----------------------------------------------------------
+    /**
+     * Force type searches to search all possible locations (i.e., remove
+     * the default initial restrictions, which limit searches either to just
+     * directories (not jar files) or to the locations specified in the
+     * system property
+     * <code>student.testingsupport.reflection.internal.Types.searchPath</code>).
+     * Note that in some instances this may cause some type filters to
+     * exhaust available PermGen space, requiring programs to be run
+     * with an additional JVM command line argument to increase the max
+     * PermGen size.
+     */
+    public static void searchEverywhere()
+    {
+        Types.restrictSearchesTo(null);
+    }
+
+    // ----------------------------------------------------------
+    /**
      * Restrict this filter to only admit declarations with the specified
      * name.  If the name is a simple name (that is,
      * @param name The name required by the resulting filter.
@@ -147,7 +184,7 @@ public class Type<ClassType>
         if (pos > 0)
         {
             final String simpleName = name.substring(pos + 1);
-            return (new Type<ClassType>(this, null)
+            return (new Type<ClassType>(this, "with name " + simpleName)
             {
                 @Override
                 protected String getTargetSimpleName()
@@ -159,7 +196,7 @@ public class Type<ClassType>
         else
         {
             final String simpleName = name;
-            return (new Type<ClassType>(this, null)
+            return (new Type<ClassType>(this, "with name " + simpleName)
             {
                 @Override
                 protected String getTargetSimpleName()
@@ -619,16 +656,20 @@ public class Type<ClassType>
 
     // ----------------------------------------------------------
     /**
-     * TODO: document.
-     * @param packageName TODO: document.
-     * @return TODO: document.
+     * Restrict this filter to only types declared in the specified package.
+     * @param packageName The package where this type must be found.  The
+     *                    empty string ("") represents the default package,
+     *                    while null represents any possible package.
+     * @return The restricted filter.
      */
     public Type<ClassType> inPackage(final String packageName)
     {
-        String constraint = "in default package";
+        String constraint = "in any package";
         if (packageName != null)
         {
-            constraint = "in package " + packageName;
+            constraint = packageName.isEmpty()
+                ? "in default package"
+                : ("in package " + packageName);
         }
         return (new Type<ClassType>(this, constraint)
         {
@@ -650,8 +691,8 @@ public class Type<ClassType>
 
     // ----------------------------------------------------------
     /**
-     * TODO: document.
-     * @return TODO: document.
+     * All this filter to match a corresponding type in any package.
+     * @return The (less) restricted filtered.
      */
     public Type<ClassType> inAnyPackage()
     {
@@ -661,9 +702,11 @@ public class Type<ClassType>
 
     // ----------------------------------------------------------
     /**
-     * TODO: document.
-     * @param packageName TODO: document.
-     * @return TODO: document.
+     * Determine whether the match(es) of this filter are located in a
+     * specified package.  This predicate is quantifiable.
+     * @param packageName The package to test against.
+     * @return True if the types matching this filter are found in the
+     * specified package, according to the current quantifier constraints.
      */
     public boolean isInPackage(final String packageName)
     {
@@ -812,36 +855,6 @@ public class Type<ClassType>
     }
 
 
-    // ----------------------------------------------------------
-    /**
-     * Determine whether this object is equal to the another.
-     * TODO: fix this to use the current quantifier to evaluate.Œ
-     * @param other The object to compare against.
-     * @return True if this object is equal to the other.
-     */
-    public boolean equals(Object other)
-    {
-        if (other == this)
-        {
-            return true;
-        }
-        if (other == null || count() != 1)
-        {
-            return false;
-        }
-        if (other instanceof Type)
-        {
-            Type<?> otherType = (Type<?>)other;
-            return otherType.count() == 1
-                && raw().equals(otherType.raw());
-        }
-        else
-        {
-            return other instanceof Class && raw().equals(other);
-        }
-    }
-
-
     //~ Protected Methods .....................................................
 
     // ----------------------------------------------------------
@@ -879,7 +892,7 @@ public class Type<ClassType>
     @Override
     protected String filteredObjectDescription()
     {
-        return "class";
+        return "type";
     }
 
 
@@ -1079,6 +1092,14 @@ public class Type<ClassType>
                     name = pkg + "." + name;
                 }
                 return name;
+            }
+
+
+            @Override
+            protected boolean guaranteesMultipleMatches()
+            {
+                return getTargetPackage() == null
+                    && getTargetSimpleName() == null;
             }
 
 

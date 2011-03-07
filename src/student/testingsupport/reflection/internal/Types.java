@@ -61,6 +61,8 @@ public class Types
         new MRUMap<ClassLoader, Map<String, PackageContent>>(10, 0);
     private static MRUMap<ClassLoader, PackageContent> allClasses =
         new MRUMap<ClassLoader, PackageContent>(10, 0);
+    private static Set<String> searchLocations = null;
+    private static boolean searchDirectoriesOnly = true;
 
 
     //~ Constructor ...........................................................
@@ -76,7 +78,107 @@ public class Types
     }
 
 
+    // ----------------------------------------------------------
+    // The real initialization is static
+    static
+    {
+        String searchPath = null;
+
+        // TODO: do privileged ...
+        searchPath =
+            System.getProperty(Types.class.getName() + ".searchPath");
+
+        if (searchPath != null)
+        {
+            restrictSearchesTo(searchPath);
+        }
+    }
+
+
     //~ Public Methods ........................................................
+
+    // ----------------------------------------------------------
+    /**
+     * Restrict type searches that look for all classes in a package, or
+     * all classes visible to a class loader, to the specified list of
+     * search locations (the default is the search path in the system
+     * property
+     * <code>student.testingsupport.reflection.internal.Types.searchPath</code>,
+     * or the set of directories visible from the class loader where
+     * this class was loaded).
+     * This restriction affects all type searches when a fully qualified
+     * class name is not provided (e.g., when using
+     * {@link #classesInPackage(String, ClassLoader)} or
+     * {@link #allClasses(ClassLoader)} or
+     * {@link #allClassesWithSimpleName(String, ClassLoader)}.
+     * @param searchPath The search path to use.  A classpath-like string
+     * denoting the classpath locations where searching should be performed.
+     */
+    public static void restrictSearchesTo(String searchPath)
+    {
+        synchronized (allClasses)
+        {
+            synchronized (classesForPackage)
+            {
+                allClasses.clear();
+                classesForPackage.clear();
+                searchDirectoriesOnly = false;
+                if (searchPath == null)
+                {
+                    searchLocations = null;
+                }
+                else
+                {
+                    searchLocations = new HashSet<String>();
+                    String[] locations = searchPath.split(
+                        "[:;]|\\Q" + File.pathSeparator + "\\E");
+
+                    for (String location : locations)
+                    {
+                        if (!location.isEmpty())
+                        {
+                            if (location.toLowerCase().endsWith(".jar"))
+                            {
+                                searchLocations.add(
+                                    "jar:file:" + location+ "!/");
+                            }
+                            else
+                            {
+                                if (!location.endsWith("/"))
+                                {
+                                    location = location + "/";
+                                }
+                                searchLocations.add("file:" + location);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+
+    // ----------------------------------------------------------
+    /**
+     * Indicate whether type searches that look for all classes in a package,
+     * or all classes visible to a class loader, should look only in
+     * directories, or in both directories and jar files.
+     * @param choice If true, searches will only examine directories; if
+     *               false, searches will also examine jar files.
+     */
+    public static void searchDirectoriesOnly(boolean choice)
+    {
+        synchronized (allClasses)
+        {
+            synchronized (classesForPackage)
+            {
+                allClasses.clear();
+                classesForPackage.clear();
+                searchDirectoriesOnly = choice;
+            }
+        }
+    }
+
 
     // ----------------------------------------------------------
     /**
@@ -247,7 +349,7 @@ public class Types
         }
 
         List<Class<?>> result = null;
-        synchronized(classesForPackage)
+        synchronized (classesForPackage)
         {
             Map<String, PackageContent> forLoader =
                 classesForPackage.get(loader);
@@ -292,7 +394,7 @@ public class Types
             loader = Thread.currentThread().getContextClassLoader();
         }
         List<Class<?>> result = null;
-        synchronized(allClasses)
+        synchronized (allClasses)
         {
             PackageContent all = allClasses.get(loader);
             if (all == null)
@@ -326,7 +428,7 @@ public class Types
             loader = Thread.currentThread().getContextClassLoader();
         }
         List<Class<?>> result = null;
-        synchronized(allClasses)
+        synchronized (allClasses)
         {
             PackageContent all = allClasses.get(loader);
             if (all == null)
@@ -352,15 +454,20 @@ public class Types
         String packageName,
         boolean recurse)
     {
+        String packageDir = "";
         if (packageName == null)
         {
             packageName = "";
+        }
+        else
+        {
+            packageDir = packageName.replace('.', '/');
         }
 
         Set<URL> locations = new HashSet<URL>();
         try
         {
-            Enumeration<URL> urls = loader.getResources(packageName);
+            Enumeration<URL> urls = loader.getResources(packageDir);
             while (urls.hasMoreElements())
             {
                 locations.add(urls.nextElement());
@@ -399,6 +506,9 @@ public class Types
             }
         }
 
+//        System.out.println(
+//            "locations for package " + packageName + " = " + locations);
+
         for (URL location : locations)
         {
             scanClasspathLocationForNames(
@@ -414,6 +524,24 @@ public class Types
         String packageName,
         boolean recurse)
     {
+        // Check searchLocations to make sure this location is included
+        if (searchLocations != null)
+        {
+            String urlBase = location.toString();
+            if (packageName != null && !packageName.isEmpty())
+            {
+                urlBase = urlBase.substring(
+                    0, urlBase.length() - packageName.length());
+            }
+            if (!searchLocations.contains(urlBase))
+            {
+//                System.out.println("[skipping url: " + location + "]");
+                return;
+            }
+        }
+
+//        System.out.println("[scanning url: " + location + "]");
+
         // Check to see if it is a plain directory in the file system
         File directory = new File(location.getFile());
         if (directory.exists())
@@ -424,7 +552,7 @@ public class Types
                     directory, accumulator, packageName, recurse);
             }
         }
-        else
+        else if (!searchDirectoriesOnly)
         {
             // If it isn't a directory, then it is a jar file URL
             try
