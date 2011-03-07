@@ -1,4 +1,4 @@
-package student.web.internal;
+package student.web;
 
 import java.util.Collection;
 import java.util.HashMap;
@@ -8,11 +8,16 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.AbstractMap.SimpleEntry;
 
-import student.web.PersistentMap;
+import student.web.internal.ApplicationSupportStrategy;
+import student.web.internal.LocalityService;
+import student.web.internal.ObjectFieldExtractor;
+import student.web.internal.PersistentStorageManager;
+import student.web.internal.ReadOnlySet;
+import student.web.internal.PersistentStorageManager.StoredObject;
 
 
 /**
- * 
+ *
  * This is an abstract map representing all of the general functionality for
  * maps that create projections on a particular persistence layer. Note that
  * some of these functions return the results from the entire persistence layer
@@ -22,35 +27,38 @@ import student.web.PersistentMap;
  * super class of the generic type (to prevent type erasure) and the directory
  * to treat as the base directory in the persistence store. The directory is non
  * absolute and is based on the configured datastore directory.
- * 
+ *
  * @author mjw87
- * 
+ *
  * @param <T>
  */
-public abstract class AbstractPersistentMap<T> implements PersistentMap<T>
+public abstract class AbstractPersistentMap<T>
+    implements PersistentMap<T>
 {
-    /**
-     * Seperator character for keywords within a persisted object id. This is
-     * used for conversion to a remote map.
-     */
-    protected static final String SEPARATOR = "-.-";
+//    /**
+//     * Seperator character for keywords within a persisted object id. This is
+//     * used for conversion to a remote map.
+//     */
+//    protected static final String SEPARATOR = "-.-";
 
-    /**
-     * Timestamp of the last time the keyset of the persistence library was
-     * retrieved.
-     */
-    // private long idSetTimestamp = 0L;
+//    /**
+//     * Timestamp of the last time the keyset of the persistence library was
+//     * retrieved.
+//     */
+//    private long idSetTimestamp = 0L;
+
     /**
      * The class type this map is projecting onto the persistence store.
      */
     protected Class<T> typeAware;
 
-    /**
-     * The latest obtained keyset from the persistence store.
-     */
-    // protected HashSet<String> idSet = new HashSet<String>();
-    // private ReadOnlyHashSet<String> snapshotIds;
-    // private long snapshotTimestamp = 0L;
+//    /**
+//     * The latest obtained keyset from the persistence store.
+//     */
+//    protected HashSet<String> idSet = new HashSet<String>();
+//    private ReadOnlyHashSet<String> snapshotIds;
+//    private long snapshotTimestamp = 0L;
+
     /**
      * The cached context map for objects retrieved from the store. It is used
      * to reconsititue objects.
@@ -256,17 +264,18 @@ public abstract class AbstractPersistentMap<T> implements PersistentMap<T>
     public Set<Entry<String, T>> entrySet()
     {
 
-        ReadOnlyHashSet<Entry<String, T>> valueSet = new ReadOnlyHashSet<Entry<String, T>>();
+        HashSet<Entry<String, T>> valueSet = new HashSet<Entry<String, T>>();
 
         for ( String id : PSM.getAllIds() )
         {
             T lookup = getPersistentObject( id );
             // Just incase the persistence store moved under us
             if ( lookup != null )
-                valueSet.addLocal( new SimpleEntry<String, T>( id, lookup ) );
+            {
+                valueSet.add( new SimpleEntry<String, T>( id, lookup ) );
+            }
         }
-        return valueSet;
-
+        return new ReadOnlySet<Entry<String, T>>(valueSet);
     }
 
 
@@ -278,26 +287,29 @@ public abstract class AbstractPersistentMap<T> implements PersistentMap<T>
             && !PSM.hasFieldSetChanged( objectId, latest.timestamp() ) )
         {
             if ( latest.value().getClass().equals( typeAware ) )
-                return (T)latest.value();
-            return null;
-        }
-        ClassLoader loader = typeAware.getClassLoader();
-        if ( loader == null )
-        {
-            loader = this.getClass().getClassLoader();
-        }
-        latest = PSM.getPersistentObject( objectId, loader );
-        context.put( objectId, latest );
-        if ( latest != null )
-        {
-            result = returnAsType( typeAware, latest.value() );
-            if ( result != latest.value() )
             {
-                latest.setValue( result );
+                result = returnAsType(typeAware, latest.value());
             }
-            return result;
         }
-        return null;
+        else
+        {
+            ClassLoader loader = typeAware.getClassLoader();
+            if ( loader == null )
+            {
+                loader = this.getClass().getClassLoader();
+            }
+            latest = PSM.getPersistentObject( objectId, loader );
+            context.put( objectId, latest );
+            if ( latest != null )
+            {
+                result = returnAsType( typeAware, latest.value() );
+                if ( result != latest.value() )
+                {
+                    latest.setValue( result );
+                }
+            }
+        }
+        return result;
     }
 
 
