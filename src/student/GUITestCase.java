@@ -61,6 +61,7 @@ import java.util.List;
 import javax.swing.JButton;
 import javax.swing.JColorChooser;
 import javax.swing.JComboBox;
+import javax.swing.JDialog;
 import javax.swing.JFileChooser;
 import javax.swing.JList;
 import javax.swing.JMenuItem;
@@ -366,7 +367,26 @@ public class GUITestCase
     public <T extends Component> T getComponent(Class<T> type, String name)
     {
         @SuppressWarnings("unchecked")
-        T result = (T)getComponent(where.typeIs(type).and.nameIs(name));
+        GUIFilter nameFilter = where.typeIs(type).and.nameIs(name);
+        T result = null;
+        List<Component> results = getAllComponentsMatching(nameFilter);
+        if(results.size() == 0)
+        {
+            GUIFilter textFilter = where.typeIs(type).and.textIs(name);
+            results = getAllComponentsMatching(textFilter);
+        }
+        if(results.size() == 1)
+        {
+            result = (T)results.get(0);
+        }
+        else if(results.size() > 1)
+        {
+            fail("Found " + results.size() + " components matching: "
+                + nameFilter);
+        }
+        else
+            fail("Cannot find component matching: " + nameFilter);
+        
         return result;
     }
 
@@ -632,6 +652,8 @@ public class GUITestCase
      */
     public void click(Component component)
     {
+        if(switchFocus)
+            focus(component);
         ComponentTester.getTester(component).actionClick(component);
     }
 
@@ -647,6 +669,8 @@ public class GUITestCase
      */
     public void click(Component component, int x, int y)
     {
+        if(switchFocus)
+            focus(component);
         ComponentTester.getTester(component).actionClick(component, x, y);
     }
 
@@ -659,6 +683,8 @@ public class GUITestCase
      */
     public void doubleClick(Component component)
     {
+        if(switchFocus)
+            focus(component);
         ComponentTester.getTester(component).actionClick(
             component, new ComponentLocation(), InputEvent.BUTTON1_MASK, 2);
     }
@@ -675,6 +701,8 @@ public class GUITestCase
      */
     public void doubleClick(Component component, int x, int y)
     {
+        if(switchFocus)
+            focus(component);
         click(component, x, y, InputEvent.BUTTON1_MASK, 2);
     }
 
@@ -687,6 +715,8 @@ public class GUITestCase
      */
     public void rightClick(Component component)
     {
+        if(switchFocus)
+            focus(component);
         ComponentTester.getTester(component).actionClick(
             component, new ComponentLocation(), InputEvent.BUTTON3_MASK);
     }
@@ -703,6 +733,8 @@ public class GUITestCase
      */
     public void rightClick(Component component, int x, int y)
     {
+        if(switchFocus)
+            focus(component);
         click(component, x, y, InputEvent.BUTTON3_MASK, 1);
     }
 
@@ -724,6 +756,8 @@ public class GUITestCase
      */
     public void click(Component component, int x, int y, int buttons, int count)
     {
+        if(switchFocus)
+            focus(component);
         ComponentTester.getTester(component).actionClick(
             component, x, y, buttons, count);
     }
@@ -1169,7 +1203,7 @@ public class GUITestCase
 
     // ----------------------------------------------------------
     /**
-     * Get a human-reable representation of a List of components using
+     * Get a human-readable representation of a List of components using
      * {@link #toString(Component)}.
      * @param <T>  This method is a template method, and the type T is
      *             implicitly deduced from the type of elements in the
@@ -1270,41 +1304,7 @@ public class GUITestCase
      */
     public void callGUIIOMethod(Runnable r)
     {
-        try
-        {
-            SwingUtilities.invokeAndWait(r);
-        }
-        catch (InterruptedException e)
-        {
-            // Ignore
-        }
-        catch (InvocationTargetException e)
-        {
-            if (e.getCause() != null)
-            {
-                Throwable cause = e.getCause();
-                while (cause.getCause() != null)
-                {
-                    cause = cause.getCause();
-                }
-                if (cause instanceof RuntimeException)
-                {
-                    throw (RuntimeException)cause;
-                }
-                else if (cause instanceof Error)
-                {
-                    throw (Error)cause;
-                }
-                else
-                {
-                    throw new RuntimeException(cause);
-                }
-            }
-            else
-            {
-                throw new RuntimeException(e);
-            }
-        }
+        SwingUtilities.invokeLater(r);
         getRobot().waitForIdle();
     }
 
@@ -1358,41 +1358,43 @@ public class GUITestCase
                 }
             });
     }
-
-
-    // ----------------------------------------------------------
+    
     /**
-     * Assuming that a confirmation style {@link JOptionPane} is currently
+     * Assuming that a Dialog of some sort is currently
      * open, this method clicks the specified button.
-     * @param optionCode The option code to determine which button to click.
-     *  Use {@link JOptionPane#YES_OPTION} for the yes button,
-     *  {@link JOptionPane#NO_OPTION} for the no button, or
-     *  {@link JOptionPane#CANCEL_OPTION} for the cancel button.
+     * @param buttonText The text on the button to click.
      */
-    public void selectConfirmDialogOption(final int optionCode)
+    public void clickDialogButton(final String buttonText)
     {
-        final JPanel panel = getComponent(
-            JPanel.class, where.nameIs("OptionPane.buttonArea"));
-        final JButton yesButton = getComponent(
-            JButton.class, where.textIs("Yes").and.parentIs(panel));
-        final JButton noButton = getComponent(
-            JButton.class, where.textIs("No").and.parentIs(panel));
-        final JButton cancelButton = getComponent(
-            JButton.class, where.textIs("Cancel").and.parentIs(panel));
-        callGUIIOMethod(new Runnable()
+        try
+        {
+            JDialog d = (JDialog)getFinder().find(filter2matcher(where.typeIs(JDialog.class)));
+            final JButton b = getComponent(JButton.class, where.textIs(buttonText).and.ancestorIs(d));
+            callGUIIOMethod(new Runnable()
             {
-
                 public void run()
                 {
-                    if(optionCode == JOptionPane.YES_OPTION)
-                        yesButton.doClick();
-                    else if(optionCode == JOptionPane.NO_OPTION)
-                        noButton.doClick();
-                    else
-                        cancelButton.doClick();
+                    b.doClick();
                 }
-
+            });   
+        }
+        catch ( ComponentNotFoundException e )
+        {
+            JPanel panel = getComponent(JPanel.class, where.nameIs("OptionPane.buttonArea"));
+            final JButton b = getComponent(JButton.class, where.textIs(buttonText).and.ancestorIs(panel));
+            callGUIIOMethod(new Runnable()
+            {
+                public void run()
+                {
+                    b.doClick();
+                }
             });
+        }
+        catch ( MultipleComponentsFoundException e )
+        {
+            fail("Found " + e.getComponents().length + " components matching search criteria.");
+        }
+       
     }
 
 
@@ -1418,6 +1420,11 @@ public class GUITestCase
 
         click(getComponent(
             JButton.class, where.textIs("OK").and.parentIs(panel)));
+    }
+    
+    public void setSwitchFocus(boolean switchFocus)
+    {
+        this.switchFocus = switchFocus;
     }
 
 
@@ -1658,4 +1665,7 @@ public class GUITestCase
             Robot.setEventMode(Robot.EM_AWT);
         }
     }
+    
+    
+    private static boolean switchFocus;
 }
