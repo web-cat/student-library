@@ -44,7 +44,7 @@ import student.web.internal.converters.UnrecognizedClassConverter;
 /**
  * Manages a persistent collection of data stored in files, where the data is in
  * the form of field/value maps.
- * 
+ *
  * @author Stephen Edwards
  * @author Last changed by $Author$
  * @version $Revision$, $Date$
@@ -87,7 +87,7 @@ public class PersistentStorageManager
     // ----------------------------------------------------------
     /**
      * Get the singleton instance of this class.
-     * 
+     *
      * @return The singleton instance of this class
      */
     public static PersistentStorageManager getInstance()
@@ -107,7 +107,7 @@ public class PersistentStorageManager
     // ----------------------------------------------------------
     /**
      * Get the singleton instance of this class.
-     * 
+     *
      * @return The singleton instance of this class
      */
     public static void setStorageLocation( File dir )
@@ -127,14 +127,17 @@ public class PersistentStorageManager
         // if (usedIds == null)
         // {
         usedIds = new HashSet<String>( 256 );
-        for ( File file : baseDir.listFiles() )
+        if (baseDir.exists())
         {
-            String name = file.getName();
-            if ( name.endsWith( EXT ) )
+            for ( File file : baseDir.listFiles() )
             {
-                // Strip the extension
-                name = name.substring( 0, name.length() - EXT.length() );
-                usedIds.add( unsanitizeId( name ) );
+                String name = file.getName();
+                if ( name.endsWith( EXT ) )
+                {
+                    // Strip the extension
+                    name = name.substring( 0, name.length() - EXT.length() );
+                    usedIds.add( unsanitizeId( name ) );
+                }
             }
         }
         usedIdsTimestamp = System.currentTimeMillis();
@@ -565,7 +568,7 @@ public class PersistentStorageManager
      * that do not support case-sensitive file names (like Windows). Once
      * converted, the results are cached so that the conversion can be faster on
      * subsequent calls for the same id.
-     * 
+     *
      * @param id
      *            The id to transform
      * @return A version of the id safe for use as a file name.
@@ -687,7 +690,7 @@ public class PersistentStorageManager
             //Prevent Persistent Map from being converted.
             PersistentMapConverter pConverter = new PersistentMapConverter();
             xstream.registerConverter( pConverter, XStream.PRIORITY_VERY_HIGH );
-            
+
             // flex field converter
             fConverter = new FlexibleFieldSetConverter( xstream.getMapper(),
                 xstream.getReflectionProvider() );
