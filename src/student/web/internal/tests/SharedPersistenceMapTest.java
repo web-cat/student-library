@@ -463,13 +463,14 @@ public class SharedPersistenceMapTest {
 	public void testComplexPlainClass() {
 		SharedPersistentMap<PlainClass> persistMap = new SharedPersistentMap<PlainClass>(
 				PlainClass.class);
-		persistMap.put("test", (PlainClass) new ComplexClass());
+		PlainClass toPersist = (PlainClass) new ComplexClass();
+		persistMap.put("test", toPersist);
 		assertTrue(persistMap.containsKey("test"));
 		SharedPersistentMap<ComplexClass> complexPersistMap = new SharedPersistentMap<ComplexClass>(
 				ComplexClass.class);
 		assertTrue(complexPersistMap.containsKey("test"));
 		assertNotNull(complexPersistMap.get("test"));
-		assertEquals(null, persistMap.get("test"));
+		assertEquals(toPersist,persistMap.get("test"));
 		assertTrue(persistMap.containsKey("test"));
 	}
 
