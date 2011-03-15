@@ -981,7 +981,14 @@ public class Type<ClassType>
 
 
     // ----------------------------------------------------------
-    private boolean isClass(Class<?> clazz)
+    /**
+     * Determine whether the specified type is a class, or is instead an
+     * interface or enum.
+     * @param clazz The type to inspect.
+     * @return True if clazz is not an interface or enum, i.e., it is a
+     * regular class.
+     */
+    protected boolean isClass(Class<?> clazz)
     {
         return !clazz.isInterface() && ! clazz.isEnum() && !isPrimitive(clazz);
     }
