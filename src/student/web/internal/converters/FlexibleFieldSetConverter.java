@@ -43,7 +43,7 @@ import student.web.internal.TemplateManager.Template.Field;
 /**
  * A custom XStream converter class that stores each object as a map from field
  * names to field values.
- * 
+ *
  * @author Stephen Edwards
  * @author Last changed by $Author$
  * @version $Revision$, $Date$
@@ -126,7 +126,7 @@ public class FlexibleFieldSetConverter extends ReflectionConverter
      * entries that duplicate those in the "original". In other words, what
      * entries in "changes" map to different values than the same entries in
      * "original"?
-     * 
+     *
      * @param original
      *            The base field set to compare against
      * @param changes
@@ -150,7 +150,7 @@ public class FlexibleFieldSetConverter extends ReflectionConverter
         }
         return differences;
     }
-    
+
     private static boolean isPrimitiveValue( Object value )
     {
         return value instanceof String || value instanceof Number
@@ -351,7 +351,7 @@ public class FlexibleFieldSetConverter extends ReflectionConverter
     // ----------------------------------------------------------
     /**
      * Convert an object to a map of field name/value pairs.
-     * 
+     *
      * @param object
      *            The object to convert
      * @return The object's field values in map form
@@ -387,7 +387,7 @@ public class FlexibleFieldSetConverter extends ReflectionConverter
     // ----------------------------------------------------------
     /**
      * Convert an object to a map of field name/value pairs.
-     * 
+     *
      * @param object
      *            The object to convert
      * @param fields
@@ -432,7 +432,7 @@ public class FlexibleFieldSetConverter extends ReflectionConverter
     @SuppressWarnings("rawtypes")
     public boolean canConvert( Class type )
     {
-        return true;
+        return type != null;
     }
 
 }
