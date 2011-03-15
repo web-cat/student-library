@@ -127,6 +127,8 @@ public class PersistentStorageManager
         // if (usedIds == null)
         // {
         usedIds = new HashSet<String>( 256 );
+        if(!baseDir.exists())
+            baseDir.mkdir();
         if (baseDir.exists())
         {
             for ( File file : baseDir.listFiles() )
