@@ -9,16 +9,16 @@ import java.util.Set;
 import student.web.internal.ApplicationSupportStrategy;
 import student.web.internal.LocalityService;
 
-
+// TODO: add equals()/hashCode()/toString() to all persistent maps
 /**
  * The Session persistence layer represents all of the persisted items
  * associated with the current web session. In a desktop development environment
  * a session is equivalent to a single execution of the JVM. There is a single
  * map in the system for all session objects this means that many of the methods
  * do not respect the generic type argument of this class.
- * 
+ *
  * @author mjw87
- * 
+ *
  * @param <T>
  */
 public class SessionPersistentMap<T> implements PersistentMap<T>
