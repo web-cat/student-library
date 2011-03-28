@@ -3,6 +3,7 @@ package student.web.internal.converters;
 import com.thoughtworks.xstream.converters.MarshallingContext;
 import com.thoughtworks.xstream.converters.UnmarshallingContext;
 import com.thoughtworks.xstream.converters.collections.AbstractCollectionConverter;
+import com.thoughtworks.xstream.converters.collections.TreeMapConverter;
 import com.thoughtworks.xstream.io.ExtendedHierarchicalStreamWriterHelper;
 import com.thoughtworks.xstream.io.HierarchicalStreamReader;
 import com.thoughtworks.xstream.io.HierarchicalStreamWriter;
@@ -34,13 +35,15 @@ import student.web.internal.Snapshot;
  */
 public class MapConverter extends AbstractCollectionConverter
 {
-
+    private TreeMapConverter mapConverter;
+    
     // Snapshot newSnapshot;
     // Snapshot oldSnapshot;
 
     public MapConverter( Mapper mapper )
     {
         super( mapper );
+        mapConverter = new TreeMapConverter( mapper );
     }
 
 
@@ -83,7 +86,10 @@ public class MapConverter extends AbstractCollectionConverter
             UUID keyId = Snapshot.lookupId( entry.getKey(), true );
             writer.addAttribute( XMLConstants.ID_ATTRIBUTE, keyId.toString() );
             writeItem( entry.getKey(), context, writer );
-            writeItem( entry.getValue(), context, writer );
+            if(entry.getValue() instanceof NullableClass)
+                ((NullableClass)entry.getValue()).writeHiddenClass( mapConverter, writer, context );
+            else
+                writeItem( entry.getValue(), context, writer );
 
             writer.endNode();
         }

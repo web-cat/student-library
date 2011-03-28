@@ -699,7 +699,7 @@ public class PersistentStorageManager
             xstream.registerConverter( fConverter, XStream.PRIORITY_VERY_LOW );
 
             // Unrecognized Class Converter
-            UnrecognizedClassConverter ucc = new UnrecognizedClassConverter();
+            UnrecognizedClassConverter ucc = new UnrecognizedClassConverter(xstream.getMapper());
             xstream.registerConverter( ucc, XStream.PRIORITY_VERY_HIGH );
 
             // //Collection Converter

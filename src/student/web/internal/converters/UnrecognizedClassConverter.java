@@ -19,11 +19,18 @@
 
 package student.web.internal.converters;
 
+import java.util.Map;
+import java.util.UUID;
+
 import com.thoughtworks.xstream.converters.Converter;
 import com.thoughtworks.xstream.converters.MarshallingContext;
 import com.thoughtworks.xstream.converters.UnmarshallingContext;
+import com.thoughtworks.xstream.converters.collections.TreeMapConverter;
 import com.thoughtworks.xstream.io.HierarchicalStreamReader;
 import com.thoughtworks.xstream.io.HierarchicalStreamWriter;
+import com.thoughtworks.xstream.mapper.Mapper;
+
+import student.web.internal.Snapshot;
 import student.web.internal.UnrecognizedClass;
 
 
@@ -38,13 +45,15 @@ import student.web.internal.UnrecognizedClass;
  */
 public class UnrecognizedClassConverter implements Converter
 {
+    private TreeMapConverter mapConverter;
     // ----------------------------------------------------------
     /**
      * Default constructor.
      */
-    public UnrecognizedClassConverter()
+    public UnrecognizedClassConverter(Mapper mapper)
     {
         // nothing to do
+        mapConverter = new TreeMapConverter( mapper );
     }
 
 
@@ -65,7 +74,7 @@ public class UnrecognizedClassConverter implements Converter
         HierarchicalStreamWriter writer,
         MarshallingContext context )
     {
-        // do nothing
+        //Do Nothing
     }
 
 
@@ -84,6 +93,17 @@ public class UnrecognizedClassConverter implements Converter
         HierarchicalStreamReader reader,
         UnmarshallingContext context )
     {
+//        String name = reader.getNodeName();
+        if ( reader.getAttribute( XMLConstants.FIELDSET_ATTRIBUTE ) != null )
+        {
+            String objId = reader.getAttribute( XMLConstants.ID_ATTRIBUTE );
+            UUID id = UUID.fromString( objId );
+            @SuppressWarnings("unchecked")
+            Map<String, Object> realFields = (Map<String, Object>)mapConverter.unmarshal( reader,
+                context );
+            Snapshot.getLocal().resolveObject( id, new Object(), realFields );
+            return new NullableClass(reader.getNodeName(),id);
+        }
         // Treat instances if this class as if they were null
         return null;
     }

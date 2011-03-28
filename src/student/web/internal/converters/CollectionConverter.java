@@ -21,6 +21,7 @@ import student.web.internal.Snapshot;
 import com.thoughtworks.xstream.converters.MarshallingContext;
 import com.thoughtworks.xstream.converters.UnmarshallingContext;
 import com.thoughtworks.xstream.converters.collections.AbstractCollectionConverter;
+import com.thoughtworks.xstream.converters.collections.TreeMapConverter;
 import com.thoughtworks.xstream.core.JVM;
 import com.thoughtworks.xstream.io.ExtendedHierarchicalStreamWriterHelper;
 import com.thoughtworks.xstream.io.HierarchicalStreamReader;
@@ -42,7 +43,7 @@ import com.thoughtworks.xstream.mapper.Mapper;
 public class CollectionConverter extends AbstractCollectionConverter
 {
     // private ReflectionProvider rp;
-
+    private TreeMapConverter mapConverter;
     /**
      * Create a new CollectionConverter.
      * @param mapper The mapper to use.
@@ -50,6 +51,7 @@ public class CollectionConverter extends AbstractCollectionConverter
     public CollectionConverter( Mapper mapper )
     {
         super( mapper );
+        mapConverter = new TreeMapConverter(mapper);
         // this.rp = rp;
     }
 
@@ -116,7 +118,7 @@ public class CollectionConverter extends AbstractCollectionConverter
         MarshallingContext context,
         List<Object> localCollection )
     {
-
+        
         // Find the Id for this list. If none exists we know this is a new list.
 
         // The Result of processing if any is required.
@@ -162,12 +164,15 @@ public class CollectionConverter extends AbstractCollectionConverter
         else
         {
             collectionId = Snapshot.lookupId( source, true );
-            patchedSnapshot.addAll( localCollection );
+            if(localCollection != null)
+                patchedSnapshot.addAll( localCollection );
         }
         writer.addAttribute( XMLConstants.ID_ATTRIBUTE, collectionId.toString() );
         // Clear out the old collection. I am going to load it up with the new
         // values
         localCollection.clear();
+        if(source instanceof Collection)
+            ((Collection)source).clear();
         int i = 0;
         for ( Iterator<Object> iterator = patchedSnapshot.iterator();
               iterator.hasNext();
@@ -182,12 +187,17 @@ public class CollectionConverter extends AbstractCollectionConverter
                     item = localVersion;
             }
             localCollection.add( item );
+            if(source instanceof Collection)
+                ((Collection)source).add( item );
             objId = Snapshot.lookupId( item, true );
             ExtendedHierarchicalStreamWriterHelper.startNode( writer,
                 "_item",
                 null );
             writer.addAttribute( XMLConstants.ID_ATTRIBUTE, objId.toString() );
-            writeItem( item, context, writer );
+            if(item instanceof NullableClass)
+                ((NullableClass)item).writeHiddenClass( mapConverter, writer, context );
+            else
+                writeItem( item, context, writer );
             writer.endNode();
 
         }
@@ -201,10 +211,11 @@ public class CollectionConverter extends AbstractCollectionConverter
         {
             return null;
         }
-        if ( source instanceof List )
+        if(Collection.class.isInstance( source ))
         {
-            @SuppressWarnings("unchecked")
-            List<Object> result = (List<Object>)source;
+            Collection col = (Collection)source;
+            List<Object> result = new ArrayList<Object>();
+            result.addAll( col );
             return result;
         }
         if ( source.getClass().isArray() )

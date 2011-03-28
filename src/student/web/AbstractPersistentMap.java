@@ -147,7 +147,8 @@ public abstract class AbstractPersistentMap<T>
                 typeAware.getClassLoader() );
             if ( previous != null )
             {
-                if ( previous.value().getClass().equals( typeAware ) )
+//                if ( previous.value().getClass().equals( typeAware ) )
+                if( typeAware.isInstance( previous.value() ))
                 {
                     previousValue = (T)previous.value();
                 }
@@ -286,7 +287,8 @@ public abstract class AbstractPersistentMap<T>
         if ( latest != null
             && !PSM.hasFieldSetChanged( objectId, latest.timestamp() ) )
         {
-            if ( latest.value().getClass().equals( typeAware ) )
+//            if ( latest.value().getClass().equals( typeAware ) )
+            if( typeAware.isInstance( latest.value() ))
             {
                 result = returnAsType(typeAware, latest.value());
             }

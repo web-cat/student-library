@@ -708,5 +708,20 @@ public class SharedPersistenceMapTest {
 		assertEquals(0, afterPersist.internalDataStruct.size());
 
 	}
-
+	@Test
+	public void testUnknownClass()
+	{
+	    SharedPersistentMap<UnknownClassInside> persistMap = new SharedPersistentMap<UnknownClassInside>(
+	                    UnknownClassInside.class);
+	       try {
+	            restoreTestData("UnknownClass-180.dataxml", "UnknownClass-180.dataxml");
+	        } catch (IOException e) {
+	            e.printStackTrace();
+	            assertTrue(false);
+	        }
+	    
+	    UnknownClassInside inside = persistMap.get( "UnknownClass");
+	    persistMap.put( "UnknownClass", inside );
+	    assertTrue(true);
+	}
 }

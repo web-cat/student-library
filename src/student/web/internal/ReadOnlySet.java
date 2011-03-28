@@ -22,7 +22,11 @@ public class ReadOnlySet<T> extends HashSet<T>
      */
     public ReadOnlySet(Collection<? extends T> c)
     {
-        super(c);
+        super();
+        for(T entry : c)
+        {
+            super.add( entry );
+        }
     }
 
 

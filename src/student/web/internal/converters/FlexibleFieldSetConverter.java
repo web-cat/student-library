@@ -186,6 +186,15 @@ public class FlexibleFieldSetConverter extends ReflectionConverter
             Snapshot.getNewest(),
             source,
             fields );
+        for(String key : updatedFieldSets.keySet())
+        {
+            if(updatedFieldSets.get( key ) instanceof NullableClass)
+            {
+                NullableClass nClass = (NullableClass)updatedFieldSets.get( key );
+                nClass.writeHiddenClass(mapConverter,writer,context);
+                updatedFieldSets.remove( key );
+            }
+        }
         restoreObjectFromFieldMap( source, updatedFieldSets );
         Snapshot.getLocal().resolveObject( id, source, updatedFieldSets );
         mapConverter.marshal( updatedFieldSets, writer, context );
