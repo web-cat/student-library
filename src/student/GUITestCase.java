@@ -450,8 +450,21 @@ public class GUITestCase
         }
         catch (MultipleComponentsFoundException e)
         {
-            fail("Found " + e.getComponents().length + " components matching: "
-                + filter);
+            Component[] comps = e.getComponents();
+            int visibleCount = 0;
+            for(Component c: comps)
+            {
+                if(c.isVisible())
+                {    
+                    visibleCount++;
+                    result = c;
+                }
+                
+            }
+            System.out.println(visibleCount);
+            if(visibleCount != 1)
+                fail("Found " + e.getComponents().length + " components matching: "
+                    + filter);
         }
         return result;
     }
@@ -1327,6 +1340,28 @@ public class GUITestCase
                     chooser.approveSelection();
                 }
             });
+    }
+    /**
+     * Assuming that a JFileChoosers is currently open, selects the given
+     * files and closes the JFileChooser
+     * @param fileName the name of the file to choose
+     */
+    public void selectFilesInChooser(String ... files)
+    {
+        final JFileChooser chooser = getComponent(JFileChooser.class);
+        final File[] chooserFiles = new File[files.length];
+        for(int i = 0; i < files.length; i++)
+            chooserFiles[i] = new File(files[i]);
+        
+        callGUIIOMethod(new Runnable()
+        {
+            public void run()
+            {
+                chooser.setSelectedFiles(chooserFiles);
+                chooser.approveSelection();
+            }
+        });
+        
     }
 
 
