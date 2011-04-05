@@ -100,9 +100,9 @@ public abstract class AbstractPersistentMap<T>
 
     public T remove( Object key )
     {
+        assert key != null : "An key cannot be null";
         assert key instanceof String : "Persistence maps only allows for keys of type String";
         String objectId = (String)key;
-        assert key != null : "An key cannot be null";
         assert objectId.length() > 0 : "An key cannot be an empty string";
         T previousValue = getPrevious( (String)key );
         removePersistentObject( objectId );
@@ -169,9 +169,9 @@ public abstract class AbstractPersistentMap<T>
 
     public T get( Object key )
     {
+        assert key != null : "An objectId cannot be null";
         assert key instanceof String : "Persistence maps only allows for keys of type String";
         String objectId = (String)key;
-        assert key != null : "An objectId cannot be null";
         assert objectId.length() > 0 : "An objectId cannot be an empty string";
         T foundObject = getPersistentObject( objectId );
         if ( context.get( key ) != null
