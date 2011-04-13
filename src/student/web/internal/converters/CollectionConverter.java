@@ -37,21 +37,25 @@ import com.thoughtworks.xstream.mapper.Mapper;
  * Supports java.util.ArrayList, java.util.HashSet, java.util.LinkedList,
  * java.util.Vector and java.util.LinkedHashSet.
  * </p>
- *
+ * 
  * @author Joe Walnes
  */
 public class CollectionConverter extends AbstractCollectionConverter
 {
     // private ReflectionProvider rp;
     private TreeMapConverter mapConverter;
+
+
     /**
      * Create a new CollectionConverter.
-     * @param mapper The mapper to use.
+     * 
+     * @param mapper
+     *            The mapper to use.
      */
     public CollectionConverter( Mapper mapper )
     {
         super( mapper );
-        mapConverter = new TreeMapConverter(mapper);
+        mapConverter = new TreeMapConverter( mapper );
         // this.rp = rp;
     }
 
@@ -118,7 +122,7 @@ public class CollectionConverter extends AbstractCollectionConverter
         MarshallingContext context,
         List<Object> localCollection )
     {
-        
+
         // Find the Id for this list. If none exists we know this is a new list.
 
         // The Result of processing if any is required.
@@ -164,19 +168,18 @@ public class CollectionConverter extends AbstractCollectionConverter
         else
         {
             collectionId = Snapshot.lookupId( source, true );
-            if(localCollection != null)
+            if ( localCollection != null )
                 patchedSnapshot.addAll( localCollection );
         }
         writer.addAttribute( XMLConstants.ID_ATTRIBUTE, collectionId.toString() );
         // Clear out the old collection. I am going to load it up with the new
         // values
         localCollection.clear();
-        if(source instanceof Collection)
-            ((Collection)source).clear();
+        if ( source instanceof Collection )
+            ( (Collection)source ).clear();
         int i = 0;
-        for ( Iterator<Object> iterator = patchedSnapshot.iterator();
-              iterator.hasNext();
-              /* no increment needed */)
+        for ( Iterator<Object> iterator = patchedSnapshot.iterator(); iterator.hasNext();
+        /* no increment needed */)
         {
             Object item = iterator.next();
             UUID objId = Snapshot.lookupId( item, false );
@@ -187,15 +190,17 @@ public class CollectionConverter extends AbstractCollectionConverter
                     item = localVersion;
             }
             localCollection.add( item );
-            if(source instanceof Collection)
-                ((Collection)source).add( item );
+            if ( source instanceof Collection )
+                ( (Collection)source ).add( item );
             objId = Snapshot.lookupId( item, true );
             ExtendedHierarchicalStreamWriterHelper.startNode( writer,
                 "_item",
                 null );
             writer.addAttribute( XMLConstants.ID_ATTRIBUTE, objId.toString() );
-            if(item instanceof NullableClass)
-                ((NullableClass)item).writeHiddenClass( mapConverter, writer, context );
+            if ( item instanceof NullableClass )
+                ( (NullableClass)item ).writeHiddenClass( mapConverter,
+                    writer,
+                    context );
             else
                 writeItem( item, context, writer );
             writer.endNode();
@@ -211,7 +216,7 @@ public class CollectionConverter extends AbstractCollectionConverter
         {
             return null;
         }
-        if(Collection.class.isInstance( source ))
+        if ( Collection.class.isInstance( source ) )
         {
             Collection col = (Collection)source;
             List<Object> result = new ArrayList<Object>();
@@ -287,19 +292,24 @@ public class CollectionConverter extends AbstractCollectionConverter
         UnmarshallingContext context,
         Collection<Object> collection )
     {
+
         reader.moveDown();
         String idAttr = reader.getAttribute( XMLConstants.ID_ATTRIBUTE );
         UUID id = null;
         id = UUID.fromString( idAttr );
-        reader.moveDown();
-        Object item = readItem( reader, context, collection );
-        // If after the read, the item isnt id'd (AKA it is a primitive)
-        // then grab the id stored in the _item tag
-        UUID readGenId = Snapshot.lookupId( item, false );
-        if ( readGenId == null )
-            Snapshot.getLocal().resolveObject( id,
-                item,
-                (Map<String, Object>)null );
+        Object item = null;
+        if ( reader.hasMoreChildren() )
+        {
+            reader.moveDown();
+            item = readItem( reader, context, collection );
+            // If after the read, the item isnt id'd (AKA it is a primitive)
+            // then grab the id stored in the _item tag
+            UUID readGenId = Snapshot.lookupId( item, false );
+            if ( readGenId == null )
+                Snapshot.getLocal().resolveObject( id,
+                    item,
+                    (Map<String, Object>)null );
+        }
         return item;
     }
 }
