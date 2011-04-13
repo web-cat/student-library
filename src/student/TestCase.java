@@ -25,6 +25,8 @@ import java.util.Scanner;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import junit.framework.AssertionFailedError;
+import student.testingsupport.junit4.AdaptiveTimeout;
+import student.testingsupport.junit4.MixRunner;
 import student.testingsupport.MutableStringBufferInputStream;
 import student.testingsupport.PrintStreamWithHistory;
 import student.testingsupport.PrintWriterWithHistory;
@@ -49,9 +51,17 @@ import student.testingsupport.SystemIOUtilities;
  *  @author Last changed by $Author$
  *  @version $Revision$, $Date$
  */
+@org.junit.runner.RunWith(MixRunner.class)
 public class TestCase
     extends junit.framework.TestCase
 {
+    //~ JUnit 4 rules .........................................................
+
+    @org.junit.Rule
+    public static final AdaptiveTimeout ADAPTIVE_TIMEOUT =
+        new AdaptiveTimeout();
+
+
     //~ Instance/static variables .............................................
 
     // These don't use the names "in" or "out" to provide better error
