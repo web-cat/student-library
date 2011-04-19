@@ -19,8 +19,19 @@
 
 package student.web.internal;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.HashMap;
 import java.util.Map;
+
+import com.thoughtworks.xstream.converters.reflection.ReflectionProvider;
+import com.thoughtworks.xstream.core.JVM;
+
+import student.web.internal.PersistentStorageManager.StoredObject;
 
 
 // -------------------------------------------------------------------------
@@ -184,5 +195,97 @@ public class LocalApplicationSupportStrategy
     public String getCurrentPagePath()
     {
         return path;
+    }
+
+
+    public Map<String, StoredObject> getPersistentCache( String cacheId )
+    {
+        Object cache = this.getSessionParameter(cacheId);
+        if(cache == null)
+            return null;
+        return (Map<String,StoredObject>)cache;
+    }
+
+
+    public Map<String,StoredObject> initPersistentCache(
+        String cacheId )
+    {
+        Map<String,StoredObject> cache = new HashMap<String,StoredObject>();
+        this.setSessionParameter( cacheId, cache );
+        return cache;
+    }
+    public Object resolveAlias(Object name)
+    {
+        //Not supported
+        return null;
+    }
+
+
+    public Object getAlias( Object value )
+    {
+        //Not supported
+        return null;
+    }
+    public ReflectionProvider getReflectionProvider()
+    {
+        //Nothing special needed, let xstream pick the best one.
+        return (new JVM()).bestReflectionProvider();
+    }
+
+
+    public InputStream getObjectSource( File src )
+    {
+        if(src.exists())
+        {
+            try
+            {
+                return new FileInputStream(src);
+            }
+            catch ( FileNotFoundException e )
+            {
+                //Just return null so that we mark the file as to not be loaded
+            }
+        }
+        return null;
+    }
+
+
+    public OutputStream getObjectOutput( File dest )
+    {
+        try
+        {
+            return new FileOutputStream(dest);
+        }
+        catch ( FileNotFoundException e )
+        {
+            return null;
+        }
+    }
+
+    public File getPersistentFile( String subDir )
+    {
+        return new File(subDir);
+    }
+    public File getPersistentFile( File baseDir, String subDir )
+    {
+        return new File(baseDir, subDir);
+    }
+
+
+    public File getPersistentBase()
+    {
+        return new File("data");
+    }
+
+    private static final String _SERVER_SESSION_MAP = "_server_session_map";
+    public Map<String, Object> getSessionPersistentMap()
+    {
+        Map<String,Object> self = (Map<String, Object>)getSessionParameter( _SERVER_SESSION_MAP );
+        if ( self == null )
+        {
+            self = new HashMap<String, Object>();
+            setSessionParameter( _SERVER_SESSION_MAP, self );
+        }
+        return self;
     }
 }

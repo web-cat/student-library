@@ -108,8 +108,18 @@ public class SharedPersistentMap<T>
      */
     public SharedPersistentMap( Class<T> genericClass )
     {
-        super( SHARED );
-        typeAware = genericClass;
+        super( SHARED,genericClass );
+//        typeAware = genericClass;
+    }
+    /**
+     * NOT FOR STUDENT USE.  ONLY USE IF YOU KNOW WHAT YOU ARE DOING!
+     * 
+     * @param genericClass Class type
+     * @param loader custom class loader to use to load classes
+     */
+    public SharedPersistentMap(Class<T> genericClass, ClassLoader loader)
+    {
+        super(SHARED,genericClass, loader);
     }
 
 

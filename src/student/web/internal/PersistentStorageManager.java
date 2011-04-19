@@ -19,18 +19,25 @@
 package student.web.internal;
 
 import com.thoughtworks.xstream.XStream;
+import com.thoughtworks.xstream.core.util.CompositeClassLoader;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.PrintWriter;
 import java.io.Writer;
+import java.security.AccessControlException;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.WeakHashMap;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
+
 import student.web.WebUtilities;
 import student.web.internal.converters.ArrayConverter;
 import student.web.internal.converters.CollectionConverter;
@@ -57,7 +64,7 @@ public class PersistentStorageManager
 
     private static final String EXT = ".dataxml";
 
-    private File baseDir = new File( "data" );
+    private File baseDir = LocalityService.getSupportStrategy().getPersistentBase();
 
     private MRUMap<String, String> idCache = new MRUMap<String, String>( 10000,
         0 );
@@ -71,7 +78,8 @@ public class PersistentStorageManager
 
     private long usedIdsTimestamp = 0L;
 
-
+    //This is used to allow other code to lock the persistence store without calling into it.
+    private Lock pLock = new ReentrantLock();
     // ~ Constructor ...........................................................
 
     // ----------------------------------------------------------
@@ -99,7 +107,7 @@ public class PersistentStorageManager
     public static PersistentStorageManager getInstance( String dirName )
     {
         PersistentStorageManager manager = new PersistentStorageManager();
-        manager.baseDir = new File( PSM.baseDir, dirName );
+        manager.baseDir = LocalityService.getSupportStrategy().getPersistentFile( PSM.baseDir.getPath()+"/"+ dirName );
         return manager;
     }
 
@@ -114,7 +122,7 @@ public class PersistentStorageManager
     {
         synchronized ( PSM )
         {
-            PSM.baseDir = dir;
+            PSM.baseDir = LocalityService.getSupportStrategy().getPersistentFile( dir.getPath() );
         }
     }
 
@@ -208,56 +216,79 @@ public class PersistentStorageManager
         String id,
         ClassLoader loader )
     {
-        // System.out.println("==> getFieldSet(" + id + ", " + loader + ")");
-        String sanitizedId = sanitizeId( id );
-
         StoredObject result = null;
-
+        pLock.lock();
         try
         {
-            if ( baseDir.exists() )
+        try
+        {
+            result = getPersistentObjectHelper( id, loader);
+        }
+        finally
+        {
+            Snapshot.clearLocal();
+        }
+        }
+        finally
+        {
+            pLock.unlock();
+        }
+        return result;
+    }
+
+
+    private StoredObject getPersistentObjectHelper(
+        String id,
+        ClassLoader loader)
+    {
+        StoredObject result = null;
+        if ( baseDir.exists() )
+        {
+            String sanitizedId = sanitizeId( id );
+            File src= LocalityService.getSupportStrategy().getPersistentFile( baseDir,sanitizedId + EXT);
+            final InputStream in = LocalityService.getSupportStrategy().getObjectSource(src);
+            if ( in != null )
             {
-                File src = new File( baseDir, sanitizedId + EXT );
-                if ( src.exists() )
+                try
                 {
-                    final FileInputStream in = new FileInputStream( src );
-                    final XStreamBundle bundle = getXStreamFor( loader );
-                    // bundle.fConverter.clearSnapshots();
-                    // bundle.cConverter.setNewSnapshots(bundle.fConverter.getSnapshots());
-                    Snapshot.setLocal( new Snapshot() );
+                    Object object = readObjectFromXML( in, loader, new Snapshot() );
+                    result = new StoredObject( id,
+                        sanitizedId,
+                        object,
+                        Snapshot.getLocal(),
+                        src.lastModified() );
+                }
+                finally
+                {
                     try
                     {
-                        Object object = AccessController.doPrivileged( new PrivilegedAction<Object>()
-                        {
-                            public Object run()
-                            {
-                                return bundle.xstream.fromXML( in );
-                            }
-                        } );
-                        result = new StoredObject( id,
-                            sanitizedId,
-                            object,
-                            Snapshot.getLocal(),
-                            src.lastModified() );
+                    in.close();
                     }
-                    finally
+                    catch(IOException e)
                     {
-                        Snapshot.clearLocal();
-                        in.close();
+                        //Oh well
                     }
                 }
             }
         }
-        catch ( IOException e )
-        {
-            throw new RuntimeException( e );
-        }
-
-        // System.out.println("  fieldset = " + result.value);
-        // System.out.println("\n  idCache = " + idCache);
-        // System.out.println("  idToClassLoader = " + idToClassLoader);
-        // System.out.println("  cache = " + cache);
         return result;
+    }
+
+
+    public Object readObjectFromXML(
+        final InputStream in,
+        final ClassLoader loader, Snapshot local)
+    {
+        Snapshot.setLocal( local );
+        final XStreamBundle bundle = getXStreamFor( loader );
+        Object object = AccessController.doPrivileged( new PrivilegedAction<Object>()
+        {
+            public Object run()
+            {
+                return bundle.xstream.fromXML( in );
+            }
+        } );
+        return object;
     }
 
 
@@ -267,11 +298,9 @@ public class PersistentStorageManager
         long timestamp,
         ClassLoader loader )
     {
-        // System.out.println("==> fieldSetHasChanged("
-        // + id + ", " + timestamp + ", " + loader + ")");
         id = sanitizeId( id );
 
-        File dest = new File( baseDir, id + EXT );
+        File dest = LocalityService.getSupportStrategy().getPersistentFile( baseDir, id+EXT );
         return timestamp < dest.lastModified();
     }
 
@@ -281,15 +310,22 @@ public class PersistentStorageManager
         String id,
         Object object )
     {
-
+        pLock.lock();
+        StoredObject stored = null;
+        try
+        {
         ClassLoader loader = object.getClass().getClassLoader();
-        StoredObject stored = new StoredObject( id,
+        stored = new StoredObject( id,
             sanitizeId( id ),
             object,
-            /* new IdentityHashMap<Object, Map<String, Object>>() */Snapshot.getLocal(),
+            Snapshot.getLocal(),
             0L );
         storePersistentObjectChanges( id, stored, loader );
-
+        }
+        finally
+        {
+            pLock.unlock();
+        }
         return stored;
     }
 
@@ -299,7 +335,15 @@ public class PersistentStorageManager
         final StoredObject object,
         ClassLoader loader )
     {
+        pLock.lock();
+        try
+        {
         storePersistentObjectChanges( id, object, loader, null );
+        }
+        finally
+        {
+            pLock.unlock();
+        }
     }
 
 
@@ -339,21 +383,6 @@ public class PersistentStorageManager
     }
 
 
-    private FileInputStream getFileInputStream( File dest )
-    {
-        FileInputStream in = null;
-        try
-        {
-            in = new FileInputStream( dest );
-        }
-        catch ( FileNotFoundException e )
-        {
-            ;// Eh dont read then!
-        }
-        return in;
-    }
-
-
     // ----------------------------------------------------------
     public synchronized void storePersistentObjectChanges(
         String id,
@@ -361,97 +390,87 @@ public class PersistentStorageManager
         ClassLoader loader,
         final Writer replacementWriter )
     {
-        // System.out.println("==> storeChangedFields("
-        // + id + ", " + fields + ", " + loader + ")");
-        String sanitizedId = sanitizeId( id );
-        Snapshot.setLocal( new Snapshot() );
+        pLock.lock();
         try
         {
-            if ( !baseDir.exists() )
-            {
-                baseDir.mkdirs();
-            }
-            File dest = new File( baseDir, sanitizedId + EXT );
-            final XStreamBundle bundle = getXStreamFor( loader );
-            // bundle.fConverter.clearSnapshots();
-            // bundle.cConverter.setNewSnapshots(bundle.fConverter.getSnapshots());
-            // Create a reference set of snapshots for collecting information
-            // about the newest information in the persistence store.
-            Snapshot.setLocal( new Snapshot() );
-            if ( dest.exists() )
-            {
-                final FileInputStream in = new FileInputStream( dest );
-                try
-                {
-                    AccessController.doPrivileged( new PrivilegedAction<Object>()
-                    {
-                        public Object run()
-                        {
-                            bundle.xstream.fromXML( in );
-                            return null;
-                        }
-                    } );
-                }
-                finally
-                {
-                    in.close();
-                }
+        String sanitizedId = sanitizeId( id );
+        Snapshot.setLocal( new Snapshot() );
+            getPersistentObjectHelper( id, loader );
+           
                 // Leave the snapshots set in the converter
-            }
+            File dest = LocalityService.getSupportStrategy().getPersistentFile( baseDir, sanitizedId + EXT );
             final PrintWriter out;
             if ( replacementWriter == null )
             {
-                out = new PrintWriter( dest );
+                out = new PrintWriter( LocalityService.getSupportStrategy().getObjectOutput(dest) );
             }
             else
             {
                 out = new PrintWriter( replacementWriter );
             }
-            // Cache the newest snapshot for reference. The Local snapshot will
-            // not be set.
-            Snapshot.setNewest( Snapshot.getLocal() );
+            
+            Snapshot local;
             if ( object.fieldset() == null )
             {
-                Snapshot.setLocal( new Snapshot() );
+                local = new Snapshot();
             }
             else
             {
-                Snapshot.setLocal( object.fieldset() );
+                local = object.fieldset();
             }
-            AccessController.doPrivileged( new PrivilegedAction<Object>()
-            {
-                public Object run()
-                {
-                    bundle.xstream.toXML( object.value(), out );
-                    return null;
-                }
-            } );
-            out.close();
+            writeObjectToXML( object.value(), out,loader,Snapshot.getLocal(), local );
             if ( usedIds != null && !usedIds.contains( id ) )
             {
                 usedIdsTimestamp = System.currentTimeMillis();
                 usedIds.add( id );
             }
-            // object.fieldset().clear();
-            // object.fieldset().putAll(bundle.getLastSnapshot());
             object.timestamp = System.currentTimeMillis();
-        }
-        catch ( IOException e )
-        {
-            throw new RuntimeException( e );
-        }
         Snapshot.clearNewest();
         Snapshot.clearLocal();
+        }
+        finally
+        {
+            pLock.unlock();
+        }
+    }
+
+
+    public void writeObjectToXML(
+        final Object object,
+        final Writer out,
+        final ClassLoader loader,
+        Snapshot newest,
+        Snapshot local)
+    {
+        Snapshot.setNewest( newest );
+        Snapshot.setLocal( local );
+        final XStreamBundle bundle = getXStreamFor( loader );
+        AccessController.doPrivileged( new PrivilegedAction<Object>()
+        {
+            public Object run()
+            {
+                bundle.xstream.toXML( object, out );
+                return null;
+            }
+        } );
+
+            try
+            {
+                out.close();
+            }
+            catch ( IOException e )
+            {
+                //Best attempt at close
+            }
     }
 
 
     // ----------------------------------------------------------
     public synchronized boolean hasFieldSetFor( String id, ClassLoader loader )
     {
-        // System.out.println("==> hasFieldSetFor(" + id + ", " + loader + ")");
         id = sanitizeId( id );
 
-        File dest = new File( baseDir, id + EXT );
+        File dest = LocalityService.getSupportStrategy().getPersistentFile( baseDir,id + EXT );
         return dest.exists();
     }
 
@@ -459,7 +478,9 @@ public class PersistentStorageManager
     // ----------------------------------------------------------
     public synchronized void removeFieldSet( String id )
     {
-        // System.out.println("==> removeFieldSet(" + id + ")");
+        pLock.lock();
+        try
+        {
         idCache.remove( id );
         if ( usedIds != null )
         {
@@ -467,13 +488,25 @@ public class PersistentStorageManager
         }
         id = sanitizeId( id );
 
-        File dest = new File( baseDir, id + EXT );
+        File dest = LocalityService.getSupportStrategy().getPersistentFile( baseDir,id + EXT );
         if ( dest.exists() )
         {
             dest.delete();
         }
+        }
+        finally
+        {
+            pLock.unlock();
+        }
     }
-
+    public void lock()
+    {
+        pLock.lock();
+    }
+    public void unlock()
+    {
+        pLock.unlock();
+    }
 
     // ----------------------------------------------------------
     public synchronized void flushCache()
@@ -487,7 +520,6 @@ public class PersistentStorageManager
     // ----------------------------------------------------------
     public synchronized void flushClassCacheFor( ClassLoader loader )
     {
-        // System.out.println("==> flushClassCacheFor(" + loader + ")");
         xstream.remove( loader );
     }
 
@@ -496,7 +528,7 @@ public class PersistentStorageManager
     public static class StoredObject
     {
         private StoredObject( String id, String sanitizedId, Object value,
-        /* Map<Object, Map<String, Object>> */Snapshot fieldset, long timestamp )
+        Snapshot fieldset, long timestamp )
         {
             this.id = id;
             this.sanitizedId = sanitizedId;
@@ -524,7 +556,7 @@ public class PersistentStorageManager
         }
 
 
-        public/* Map<Object, Map<String, Object>> */Snapshot fieldset()
+        public Snapshot fieldset()
         {
             return fieldset;
         }
@@ -553,7 +585,7 @@ public class PersistentStorageManager
 
         private Object value;
 
-        private/* Map<Object, Map<String, Object>> */Snapshot fieldset;
+        private Snapshot fieldset;
 
         private long timestamp;
     }
@@ -686,8 +718,16 @@ public class PersistentStorageManager
 
         public XStreamBundle( ClassLoader loader )
         {
-            xstream = new FlexibleXStream();
-            xstream.setClassLoader( loader );
+            try
+            {
+                if ( System.getSecurityManager() != null )
+                    System.getSecurityManager().checkCreateClassLoader();
+                xstream = new FlexibleXStream(loader);
+            }
+            catch(AccessControlException e)
+            {
+                xstream = new FlexibleXStream(this.getClass().getClassLoader());
+            }
 
             //Prevent Persistent Map from being converted.
             PersistentMapConverter pConverter = new PersistentMapConverter();
@@ -720,7 +760,7 @@ public class PersistentStorageManager
     public boolean hasFieldSetChanged( String key, long timestamp )
     {
         String sanitized = sanitizeId( key );
-        File persisted = new File( baseDir, sanitized + EXT );
+        File persisted = LocalityService.getSupportStrategy().getPersistentFile( baseDir,sanitized + EXT );
         return persisted.exists() && persisted.lastModified() > timestamp;
     }
 }

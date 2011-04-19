@@ -51,7 +51,7 @@ public abstract class AbstractPersistentMap<T>
      * The class type this map is projecting onto the persistence store.
      */
     protected Class<T> typeAware;
-
+    protected ClassLoader loader;
 //    /**
 //     * The latest obtained keyset from the persistence store.
 //     */
@@ -68,7 +68,7 @@ public abstract class AbstractPersistentMap<T>
     /**
      * An extractor object for extracting fields from objects.
      */
-    private ObjectFieldExtractor extractor = new ObjectFieldExtractor();
+    private ObjectFieldExtractor extractor = new ObjectFieldExtractor(LocalityService.getSupportStrategy().getReflectionProvider());
 
     /**
      * The instance of the persistence store this Map is projecting on.
@@ -81,22 +81,32 @@ public abstract class AbstractPersistentMap<T>
     protected abstract String getCacheId();
 
 
-    protected AbstractPersistentMap( String directoryName )
+    protected AbstractPersistentMap( String directoryName, Class<T>  typeAware )
     {
 
+        init( directoryName, typeAware );
+        loader = typeAware.getClassLoader();
+    }
+    protected AbstractPersistentMap(String directoryName, Class<T> typeAware, ClassLoader loader)
+    {
+        init(directoryName, typeAware);
+        this.loader = loader;
+    }
+
+    private void init( String directoryName, Class<T> typeAware )
+    {
         PSM = PersistentStorageManager.getInstance( directoryName );
         support = LocalityService.getSupportStrategy();
-        if ( support.getSessionParameter( getCacheId() ) != null )
+        if ( support.getPersistentCache( getCacheId() ) != null )
         {
-            context = (Map<String, PersistentStorageManager.StoredObject>)support.getSessionParameter( getCacheId() );
+            context = support.getPersistentCache( getCacheId() );
         }
         else
         {
-            context = new HashMap<String, PersistentStorageManager.StoredObject>();
-            support.setSessionParameter( getCacheId(), context );
+            context = support.initPersistentCache( getCacheId());
         }
+        this.typeAware = typeAware;
     }
-
 
     public T remove( Object key )
     {
@@ -295,7 +305,7 @@ public abstract class AbstractPersistentMap<T>
         }
         else
         {
-            ClassLoader loader = typeAware.getClassLoader();
+            
             if ( loader == null )
             {
                 loader = this.getClass().getClassLoader();
@@ -345,7 +355,6 @@ public abstract class AbstractPersistentMap<T>
             if ( latest != null )
             {
                 latest.setValue( object );
-                ClassLoader loader = object.getClass().getClassLoader();
                 if ( loader == null )
                     loader = this.getClass().getClassLoader();
                 PSM.storePersistentObjectChanges( objectId, latest, loader );

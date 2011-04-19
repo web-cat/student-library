@@ -14,16 +14,26 @@ public abstract class LocalityService
             {
                 Class<?> strategyClass = Class.forName( "student.web.internal.ServerApplicationSupportStrategy" );
                 support = (ApplicationSupportStrategy)strategyClass.newInstance();
+                return support;
             }
             catch ( Exception e )
             {
-                System.out.println( "Error initializing application support strategy" );
-                e.printStackTrace();
+                
             }
         }
-        if ( support == null )
+        try
         {
-            support = new LocalApplicationSupportStrategy();
+            Class<?> strategyClass = Class.forName( "cloudspace.ui.applet.AppletApplicationSupportStrategy" );
+            support = (ApplicationSupportStrategy)strategyClass.newInstance();
+            
+        }
+        catch(Exception e2)
+        {
+            if ( support == null )
+            {
+                support = new LocalApplicationSupportStrategy();
+            }
+            //do nothing, default to the local strat.
         }
         return support;
     }

@@ -19,6 +19,14 @@
 
 package student.web.internal;
 
+import java.io.File;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.util.Map;
+
+import com.thoughtworks.xstream.converters.reflection.ReflectionProvider;
+
+
 // -------------------------------------------------------------------------
 /**
  * Defines the support methods needed to implement server-specific storage
@@ -111,5 +119,118 @@ public interface ApplicationSupportStrategy
      *         no value to remove.
      */
     Object removeSessionParameter( String name );
+
+
+    /**
+     * Get the cache for a given persistence id. This cache stores key to
+     * StoredObject Mappings.
+     * 
+     * @param cacheId
+     *            the id of the cache to retrieve
+     * @return the cache for StoredObjects
+     */
+    Map<String, PersistentStorageManager.StoredObject> getPersistentCache(
+        String cacheId );
+
+
+    /**
+     * Create a new cache for a given cacheId. This will remove the old cache
+     * and initialize a new empty cache.
+     * 
+     * @param cacheId
+     *            the cache id to wipe and re initialize
+     * @return a brand new cache for stored objects
+     */
+    Map<String, PersistentStorageManager.StoredObject> initPersistentCache(
+        String cacheId );
+
+
+    /**
+     * Attempt to get an alias for a given object. If the object is unaliasable,
+     * null is returned.
+     * 
+     * @param value
+     *            the value to attempt to retrieve an alias for.
+     * @return the alias object representing the object.
+     */
+    Object getAlias( Object value );
+
+
+    /**
+     * Look at an object and determine if it is an alias. If so, resolve the
+     * alias and return the aliased object. Otherwise return null.
+     * 
+     * @param alias
+     *            the object that is a potential alias
+     * @return the original object or null if it is not an alias.
+     */
+    Object resolveAlias( Object alias );
+
+
+    /**
+     * Get a reflection provider for this application type.
+     * 
+     * @return The reflection provider for this application type.
+     */
+    ReflectionProvider getReflectionProvider();
+
+
+    /**
+     * Get an input stream for a given File. This inputstream will contain the
+     * xml to reconstitute an object from.
+     * 
+     * @param src
+     *            the file to treat as a key
+     * @return InputStream containing Object XML
+     */
+    InputStream getObjectSource( File src );
+
+
+    /**
+     * Get an output stream to write an object to. The file is treated as a key.
+     * 
+     * @param dest
+     *            the key to lookup the object output
+     * @return an OutputStream to write the object to.
+     */
+    OutputStream getObjectOutput( File dest );
+
+
+    /**
+     * Get the File representing the Base Directory of the Persistence Store.
+     * 
+     * @return the base directoyr fo the persistence store.
+     */
+    File getPersistentBase();
+
+
+    /**
+     * Get a file out of the Persistent Store.
+     * 
+     * @param dir
+     *            the directory in the persistent store.
+     * @return a persisted file.
+     */
+    File getPersistentFile( String dir );
+
+
+    /**
+     * Get a persisted file using a parent directory.
+     * 
+     * @param baseDir
+     *            the base directory
+     * @param dir
+     *            the sub directory
+     * @return a file in the persistent store
+     */
+    File getPersistentFile( File baseDir, String dir );
+
+
+    /**
+     * Get the Session Persistent Map for this application
+     * 
+     * @return Session persistent map.
+     */
+    Map<String, Object> getSessionPersistentMap();
 
 }

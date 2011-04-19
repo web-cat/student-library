@@ -23,8 +23,6 @@ import student.web.internal.LocalityService;
  */
 public class SessionPersistentMap<T> implements PersistentMap<T>
 {
-    private static final String _SERVER_SESSION_MAP = "_server_session_map";
-
     private ApplicationSupportStrategy support;
 
     private Class<T> typeAware;
@@ -38,12 +36,8 @@ public class SessionPersistentMap<T> implements PersistentMap<T>
         support = LocalityService.getSupportStrategy();
         this.typeAware = type;
 
-        this.self = (Map<String, Object>)support.getSessionParameter( _SERVER_SESSION_MAP );
-        if ( this.self == null )
-        {
-            this.self = new HashMap<String, Object>();
-            support.setSessionParameter( _SERVER_SESSION_MAP, this.self );
-        }
+        this.self = support.getSessionPersistentMap();
+
     }
 
 
@@ -68,7 +62,7 @@ public class SessionPersistentMap<T> implements PersistentMap<T>
 
     public boolean containsValue( Object value )
     {
-        if ( value == null || !value.getClass().equals( typeAware ) )
+        if ( value == null || !typeAware.isInstance( value ) )
             return false;
         return self.containsValue( value );
     }
@@ -79,7 +73,10 @@ public class SessionPersistentMap<T> implements PersistentMap<T>
     {
         assert key instanceof String : "Persistence maps only allows for keys of type String";
         Object o = self.get( key );
-        if ( o != null && o.getClass().equals( typeAware ) )
+        Object unAlias = support.resolveAlias( o );
+        if(unAlias != null)
+            o = unAlias;
+        if ( o != null && typeAware.isInstance( o ) )
             return (T)o;
         return null;
     }
@@ -92,10 +89,18 @@ public class SessionPersistentMap<T> implements PersistentMap<T>
         assert key.length() > 0 : "An objectId cannot be an empty string";
         assert !( value instanceof Class ) : "The object to store cannot be a class; perhaps you wanted "
             + "to provide an instance of this class instead?";
-        Object o = self.get( key );
-        if ( o == null || !o.getClass().equals( typeAware ) )
+        Object o = get( key );
+        Object aliasValue = support.getAlias(value);
+        if ( o == null || !typeAware.isInstance( o ) )
             o = null;
-        self.put( key, value );
+        if(aliasValue != null)
+        {
+            self.put( key, aliasValue );
+        }
+        else
+        {
+            self.put( key, value );
+        }
         return (T)o;
     }
 
@@ -107,7 +112,7 @@ public class SessionPersistentMap<T> implements PersistentMap<T>
         String objectId = (String)key;
         assert objectId != null : "An key cannot be null";
         Object o = self.get( objectId );
-        if ( o == null || !o.getClass().equals( typeAware ) )
+        if ( o == null || !typeAware.isInstance( o ) )
             o = null;
         self.remove( objectId );
         return (T)o;
@@ -140,7 +145,7 @@ public class SessionPersistentMap<T> implements PersistentMap<T>
         for ( String key : keys )
         {
             Object o = self.get( key );
-            if ( o.getClass().equals( typeAware ) )
+            if ( typeAware.isInstance( o ) )
             {
                 values.add( (T)o );
             }
@@ -162,9 +167,9 @@ public class SessionPersistentMap<T> implements PersistentMap<T>
         {
             String key = entry.getKey();
             T value;
-            if ( entry.getValue().getClass().equals( typeAware ) )
+            if ( typeAware.isInstance( self.get( key ) ) )
             {
-                value = (T)entry.getValue();
+                value = (T)self.get(key);
             }
             else
             {
@@ -174,6 +179,6 @@ public class SessionPersistentMap<T> implements PersistentMap<T>
             projectedEntrySet.add( newEntry );
         }
 
-        return null;
+        return projectedEntrySet;
     }
 }

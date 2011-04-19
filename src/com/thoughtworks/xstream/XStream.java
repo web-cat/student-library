@@ -133,6 +133,7 @@ import java.util.TreeMap;
 import java.util.TreeSet;
 import java.util.Vector;
 
+import student.testingsupport.SystemIOUtilities;
 
 /**
  * Simple facade to XStream library, a Java-XML serialization tool. <p/>
@@ -276,11 +277,13 @@ public class XStream {
     // self-serialization!
     private ReflectionProvider reflectionProvider;
     private HierarchicalStreamDriver hierarchicalStreamDriver;
-    private ClassLoaderReference classLoaderReference;
+    //PATCH
+    private ClassLoader classLoaderReference;
     private MarshallingStrategy marshallingStrategy;
     private ConverterLookup converterLookup;
     private ConverterRegistry converterRegistry;
-    private Mapper mapper;
+    //PATCH
+    public Mapper mapper;
 
     private PackageAliasingMapper packageAliasingMapper;
     private ClassAliasingMapper classAliasingMapper;
@@ -382,7 +385,8 @@ public class XStream {
      */
     public XStream(
             ReflectionProvider reflectionProvider, Mapper mapper, HierarchicalStreamDriver driver) {
-        this(reflectionProvider, driver, new ClassLoaderReference(new CompositeClassLoader()), mapper, new DefaultConverterLookup(), null);
+        //PATCH
+        this(reflectionProvider, driver, new CompositeClassLoader()/*new ClassLoaderReference(new CompositeClassLoader())*/, mapper, new DefaultConverterLookup(), null);
     }
 
     /**
@@ -432,7 +436,9 @@ public class XStream {
         }
         this.reflectionProvider = reflectionProvider;
         this.hierarchicalStreamDriver = driver;
-        this.classLoaderReference = classLoader instanceof ClassLoaderReference ? (ClassLoaderReference)classLoader : new ClassLoaderReference(classLoader);
+        //PATCH
+        this.classLoaderReference = classLoader;
+//        this.classLoaderReference = classLoader instanceof ClassLoaderReference ? (ClassLoaderReference)classLoader : new ClassLoaderReference(classLoader);
         this.converterLookup = converterLookup;
         this.converterRegistry = converterRegistry != null 
             ? converterRegistry 
@@ -485,7 +491,8 @@ public class XStream {
             String className, Class[] constructorParamTypes,
             Object[] constructorParamValues) {
         try {
-            Class type = Class.forName(className, false, classLoaderReference.getReference());
+            //PATCH
+            Class type = Class.forName(className, false, classLoaderReference/*.getReference()*/);
             Constructor constructor = type.getConstructor(constructorParamTypes);
             return (Mapper)constructor.newInstance(constructorParamValues);
         } catch (Exception e) {
@@ -644,7 +651,11 @@ public class XStream {
         registerConverter(new MapConverter(mapper), PRIORITY_NORMAL);
         registerConverter(new TreeMapConverter(mapper), PRIORITY_NORMAL);
         registerConverter(new TreeSetConverter(mapper), PRIORITY_NORMAL);
-        registerConverter(new PropertiesConverter(), PRIORITY_NORMAL);
+        //PATCH
+        //BAD BAD BAD.... why do they have to muck with things here?
+        if(!SystemIOUtilities.isInApplet())
+            registerConverter(new PropertiesConverter(), PRIORITY_NORMAL);
+            
         registerConverter(new EncodedByteArrayConverter(), PRIORITY_NORMAL);
 
         registerConverter(new FileConverter(), PRIORITY_NORMAL);
@@ -659,7 +670,9 @@ public class XStream {
         if(jvm.supportsAWT()) {
 	        registerConverter(new FontConverter(), PRIORITY_NORMAL);
 	        registerConverter(new ColorConverter(), PRIORITY_NORMAL);
-	        registerConverter(new TextAttributeConverter(), PRIORITY_NORMAL);
+	        //PATCH
+	        if(!SystemIOUtilities.isInApplet())
+	            registerConverter(new TextAttributeConverter(), PRIORITY_NORMAL);
         }
         if(jvm.supportsSwing()) {
             registerConverter(new LookAndFeelConverter(mapper, reflectionProvider), PRIORITY_NORMAL);
@@ -699,12 +712,19 @@ public class XStream {
             dynamicallyRegisterConverter(
                     "com.thoughtworks.xstream.converters.enums.EnumConverter", PRIORITY_NORMAL,
                     null, null);
-            dynamicallyRegisterConverter(
-                    "com.thoughtworks.xstream.converters.enums.EnumSetConverter", PRIORITY_NORMAL,
-                    new Class[]{Mapper.class}, new Object[]{mapper});
-            dynamicallyRegisterConverter(
-                    "com.thoughtworks.xstream.converters.enums.EnumMapConverter", PRIORITY_NORMAL,
-                    new Class[]{Mapper.class}, new Object[]{mapper});
+            
+            //PATCH
+            if ( !SystemIOUtilities.isInApplet() )
+            {
+                dynamicallyRegisterConverter( "com.thoughtworks.xstream.converters.enums.EnumSetConverter",
+                    PRIORITY_NORMAL,
+                    new Class[] { Mapper.class },
+                    new Object[] { mapper } );
+                dynamicallyRegisterConverter( "com.thoughtworks.xstream.converters.enums.EnumMapConverter",
+                    PRIORITY_NORMAL,
+                    new Class[] { Mapper.class },
+                    new Object[] { mapper } );
+            }
             dynamicallyRegisterConverter(
                 "com.thoughtworks.xstream.converters.basic.StringBuilderConverter", PRIORITY_NORMAL,
                 null, null);
@@ -720,7 +740,8 @@ public class XStream {
             String className, int priority, Class[] constructorParamTypes,
             Object[] constructorParamValues) {
         try {
-            Class type = Class.forName(className, false, classLoaderReference.getReference());
+            //PATCH
+            Class type = Class.forName(className, false, classLoaderReference/*.getReference()*/);
             Constructor constructor = type.getConstructor(constructorParamTypes);
             Object instance = constructor.newInstance(constructorParamValues);
             if (instance instanceof Converter) {
@@ -1535,7 +1556,9 @@ public class XStream {
      * @since 1.1.1
      */
     public void setClassLoader(ClassLoader classLoader) {
-        classLoaderReference.setReference(classLoader);
+        //PATCH
+        classLoaderReference = classLoader;
+//        classLoaderReference.setReference(classLoader);
     }
 
     /**
@@ -1544,7 +1567,9 @@ public class XStream {
      * @since 1.1.1
      */
     public ClassLoader getClassLoader() {
-        return classLoaderReference.getReference();
+        //PATCH
+        //        return classLoaderReference.getReference();
+        return classLoaderReference;
     }
 
     /**

@@ -38,7 +38,7 @@ public class ObjectFieldExtractor
 {
     // ~ Instance/static variables .............................................
 
-    private transient ReflectionProvider reflectionProvider = ( new JVM() ).bestReflectionProvider();
+    private transient ReflectionProvider reflectionProvider;
 
     private transient ReflectionProvider pjReflectionProvider = new PureJavaReflectionProvider();
 
@@ -49,9 +49,9 @@ public class ObjectFieldExtractor
     /**
      * Creates a new object.
      */
-    public ObjectFieldExtractor()
+    public ObjectFieldExtractor(ReflectionProvider rp)
     {
-        // Nothing to do
+        reflectionProvider = rp;
     }
 
 

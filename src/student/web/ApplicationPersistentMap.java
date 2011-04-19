@@ -63,8 +63,20 @@ public class ApplicationPersistentMap<T> extends AbstractPersistentMap<T>
         String applicationIdentifier,
         Class<T> genericClass )
     {
-        super( APP + File.separator + checkId( applicationIdentifier ) );
-        typeAware = genericClass;
+        super( APP + File.separator + checkId( applicationIdentifier ),genericClass );
+//        typeAware = genericClass;
+    }
+    /**
+     * NOT FOR STUDENT USE.  ONLY USE IF YOU KNOW WHAT YOU ARE DOING!
+     * 
+     * @param genericClass Class type
+     * @param loader custom class loader to use to load classes
+     */
+    /* package */ ApplicationPersistentMap(
+        String applicationIdentifier,
+        Class<T> genericClass, ClassLoader loader)
+    {
+        super(APP + File.separator + checkId( applicationIdentifier ),genericClass, loader);
     }
 
 

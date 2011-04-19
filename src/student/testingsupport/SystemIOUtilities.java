@@ -211,6 +211,30 @@ public class SystemIOUtilities
         }
         return inServlet;
     }
+    public static boolean isInApplet()
+    {
+        boolean inApplet = false;
+        if(!isOnServer())
+        {
+        try
+        {
+            
+            if (SystemIOUtilities.class.getClassLoader()
+                    .loadClass("cloudspace.ui.applet.AppletApplicationSupportStrategy") != null)
+            {
+                inApplet = true;
+            }
+        }
+        catch (ClassNotFoundException e)
+        {
+            // If that class isn't around, then we're not running under
+            // the ZK servlet engine, so assume tweaking System.in/out
+            // is OK.
+            inApplet = false;
+        }
+        }
+        return inApplet;
+    }
 
 
     // ----------------------------------------------------------
