@@ -28,10 +28,13 @@ import java.io.OutputStream;
 import java.util.HashMap;
 import java.util.Map;
 
+
 import com.thoughtworks.xstream.converters.reflection.ReflectionProvider;
 import com.thoughtworks.xstream.core.JVM;
 
+import student.web.SharedPersistentMap;
 import student.web.internal.PersistentStorageManager.StoredObject;
+import student.web.internal.converters.Alias;
 
 
 // -------------------------------------------------------------------------
@@ -200,31 +203,76 @@ public class LocalApplicationSupportStrategy
 
     public Map<String, StoredObject> getPersistentCache( String cacheId )
     {
-        Object cache = this.getSessionParameter(cacheId);
+        Map<String, Map<String,StoredObject>> cacheStore = getCacheStore();
+        
+        Object cache = cacheStore.get( cacheId );
         if(cache == null)
             return null;
         return (Map<String,StoredObject>)cache;
     }
 
 
+    private Map<String, Map<String, StoredObject>> getCacheStore()
+    {
+        Object cacheStoreRaw = this.getSessionParameter("persistent_cache");
+        if(cacheStoreRaw == null)
+        {
+            cacheStoreRaw = new HashMap<String,Map<String,StoredObject>>();
+            this.setSessionParameter( "persistent_cache", cacheStoreRaw );
+        }
+        return (Map<String, Map<String,StoredObject>>)cacheStoreRaw;
+    }
+
+
     public Map<String,StoredObject> initPersistentCache(
         String cacheId )
     {
+        Map<String, Map<String,StoredObject>> cacheStore = getCacheStore();
         Map<String,StoredObject> cache = new HashMap<String,StoredObject>();
-        this.setSessionParameter( cacheId, cache );
+        cacheStore.put( cacheId, cache );
         return cache;
     }
-    public Object resolveAlias(Object name)
+    private String getAliasId(Object value)
     {
-        //Not supported
+//        Map<String, Alias> aliasMap = getInternalAliasSessionMap();
+        Map<String,Map<String,StoredObject>> allCaches = this.getCacheStore();
+        if(allCaches == null)
+            return null;
+        for(String cacheId : allCaches.keySet())
+        {
+            Map<String,StoredObject> cache  = allCaches.get( cacheId );
+            for(String cachedObject : cache.keySet())
+                if(cache.get( cachedObject ).value() == value)
+                {
+                    return cachedObject;
+                }
+            
+        }
         return null;
+    }
+    public Object resolveAlias(Object value)
+    {
+        if(value != null && value instanceof Alias)
+        {
+            //Ew.... my trick didnt work, if I dont grab a custom loader, i cant find the classes when i reload it.
+            Snapshot preserveLocal = Snapshot.getLocal();
+            SharedPersistentMap<Object> pMap = new SharedPersistentMap<Object>(Object.class, this.getClass().getClassLoader());
+            Object resolved =  pMap.get( ((Alias)value).getKey() );
+            Snapshot.setLocal( preserveLocal );
+            return resolved;
+        }
+        return value;
     }
 
 
     public Object getAlias( Object value )
     {
-        //Not supported
-        return null;
+        String id = getAliasId(value);
+        if(id == null)
+        {
+            return value;
+        }
+        return new Alias(id);
     }
     public ReflectionProvider getReflectionProvider()
     {

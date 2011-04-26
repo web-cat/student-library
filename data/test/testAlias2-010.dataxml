@@ -1,0 +1,19 @@
+<student.web.internal.tests.support.AliasClass fieldset="true" id="b0065552-9269-4371-bfbd-ca453c22d4bf">
+  <no-comparator/>
+  <java.util.Map_-Entry>
+    <string>alias</string>
+    <student.web.internal.tests.support.AliasClass>
+      <student.web.internal.converters.Alias fieldset="true" id="91dcc69c-016a-41f7-b678-bb2387826701">
+        <no-comparator/>
+        <java.util.Map_-Entry>
+          <string>key</string>
+          <string>testAlias</string>
+        </java.util.Map_-Entry>
+      </student.web.internal.converters.Alias>
+    </student.web.internal.tests.support.AliasClass>
+  </java.util.Map_-Entry>
+  <java.util.Map_-Entry>
+    <string>key</string>
+    <string>alias2</string>
+  </java.util.Map_-Entry>
+</student.web.internal.tests.support.AliasClass>

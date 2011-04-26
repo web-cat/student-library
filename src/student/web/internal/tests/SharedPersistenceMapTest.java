@@ -915,4 +915,39 @@ public class SharedPersistenceMapTest
         pMap.put( "containsQueue", new ContainsQueue() );
 //        assertEquals(1,((Integer)cQueue.internalQueue.get( 0 )).intValue());
     }
+    @Test
+    public void classInAClassPut()
+    {
+        SharedPersistentMap<AliasClass> pMap = new SharedPersistentMap<AliasClass>( AliasClass.class );
+            AliasClass alias = new AliasClass();
+            alias.key = "alias1";
+            pMap.put( "testAlias", alias );
+            AliasClass alias2 = new AliasClass();
+            alias2.alias = alias;
+            alias2.key = "alias2";
+            pMap.put( "testAlias2", alias2 );            
+        assertTrue(true);
+    }
+    @Test
+    public void classInAClassGet()
+    {
+        SharedPersistentMap<AliasClass> pMap = new SharedPersistentMap<AliasClass>( AliasClass.class );
+        AliasClass oldAlias = new AliasClass();
+        oldAlias.key = "alias1";
+//        pMap.put( "testAlias", oldAlias );
+        try
+        {
+            restoreTestData( "testAlias2-010.dataxml",
+                "testAlias2-010.dataxml" );
+        }
+        catch ( IOException e )
+        {
+            e.printStackTrace();
+            assertTrue( false );
+        }
+            AliasClass alias2 = pMap.get( "testAlias2" );
+            assertNotNull(alias2.alias);
+            assertEquals("alias1",alias2.alias.key);
+            assertEquals("alias2",alias2.key);
+    }
 }

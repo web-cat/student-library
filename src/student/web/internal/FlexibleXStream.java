@@ -18,7 +18,10 @@
 
 package student.web.internal;
 
+import student.web.internal.converters.CachedClassConverter;
+
 import com.thoughtworks.xstream.XStream;
+import com.thoughtworks.xstream.converters.Converter;
 import com.thoughtworks.xstream.core.DefaultConverterLookup;
 import com.thoughtworks.xstream.io.xml.XppDriver;
 
@@ -36,22 +39,28 @@ import com.thoughtworks.xstream.io.xml.XppDriver;
  */
 public class FlexibleXStream extends XStream
 {
-    // ----------------------------------------------------------
-    /**
-     * Create a new object.
-     */
-    public FlexibleXStream()
+    private static class CachedClassPriorityConverterLookup extends DefaultConverterLookup
     {
-        super(LocalityService.getSupportStrategy().getReflectionProvider());
-        super.mapper = new FlexibleMapper(getMapper());
+        private CachedClassConverter ccc;
+    
+        public CachedClassPriorityConverterLookup( CachedClassConverter ccc )
+        {
+            this.ccc = ccc;
+        }
+        public Converter lookupConverterForType(Class type)
+        {
+            if(ccc.canConvert( type ))
+                return ccc;
+            return super.lookupConverterForType( type );
+        }
     }
-    public FlexibleXStream(ClassLoader loader)
+    // ----------------------------------------------------------
+    public FlexibleXStream(ClassLoader loader, CachedClassConverter ccc)
     {
         super(
             LocalityService.getSupportStrategy().getReflectionProvider(), new XppDriver(),   
-            loader, null, new DefaultConverterLookup(), 
+            loader, null, new CachedClassPriorityConverterLookup(ccc), 
             null);
         super.mapper = new FlexibleMapper(getMapper());
-//        Mapper mapper = new FlexibleMapper( getMapper() );
     }
 }

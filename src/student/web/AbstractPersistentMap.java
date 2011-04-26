@@ -14,6 +14,7 @@ import student.web.internal.ObjectFieldExtractor;
 import student.web.internal.PersistentStorageManager;
 import student.web.internal.ReadOnlySet;
 import student.web.internal.PersistentStorageManager.StoredObject;
+import student.web.internal.converters.AliasService;
 
 
 /**
@@ -106,6 +107,7 @@ public abstract class AbstractPersistentMap<T>
             context = support.initPersistentCache( getCacheId());
         }
         this.typeAware = typeAware;
+        AliasService.addAliasClass( typeAware );
     }
 
     public T remove( Object key )
@@ -201,7 +203,6 @@ public abstract class AbstractPersistentMap<T>
     {
         assert key instanceof String : "Persistence maps only allows for keys of type String";
         String objectId = (String)key;
-        // TODO: Bug passing loader should be fixed
         return PSM.hasFieldSetFor( objectId, null );
     }
 

@@ -93,14 +93,7 @@ public class SessionPersistentMap<T> implements PersistentMap<T>
         Object aliasValue = support.getAlias(value);
         if ( o == null || !typeAware.isInstance( o ) )
             o = null;
-        if(aliasValue != null)
-        {
-            self.put( key, aliasValue );
-        }
-        else
-        {
-            self.put( key, value );
-        }
+        self.put( key, aliasValue );
         return (T)o;
     }
 

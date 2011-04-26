@@ -147,7 +147,7 @@ public interface ApplicationSupportStrategy
 
     /**
      * Attempt to get an alias for a given object. If the object is unaliasable,
-     * null is returned.
+     * the original object is returned.
      * 
      * @param value
      *            the value to attempt to retrieve an alias for.

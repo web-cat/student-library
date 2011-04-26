@@ -39,7 +39,9 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 import student.web.WebUtilities;
+import student.web.internal.converters.AliasConverter;
 import student.web.internal.converters.ArrayConverter;
+import student.web.internal.converters.CachedClassConverter;
 import student.web.internal.converters.CollectionConverter;
 import student.web.internal.converters.FlexibleFieldSetConverter;
 import student.web.internal.converters.MapConverter;
@@ -527,7 +529,7 @@ public class PersistentStorageManager
     // ----------------------------------------------------------
     public static class StoredObject
     {
-        private StoredObject( String id, String sanitizedId, Object value,
+        public StoredObject( String id, String sanitizedId, Object value,
         Snapshot fieldset, long timestamp )
         {
             this.id = id;
@@ -607,7 +609,7 @@ public class PersistentStorageManager
      *            The id to transform
      * @return A version of the id safe for use as a file name.
      */
-    private String sanitizeId( String id )
+    public String sanitizeId( String id )
     {
         String result = idCache.get( id );
         if ( result == null )
@@ -639,7 +641,7 @@ public class PersistentStorageManager
 
 
     // ----------------------------------------------------------
-    private String unsanitizeId( String id )
+    public String unsanitizeId( String id )
     {
         String result = idReverseCache.get( id );
         if ( result == null )
@@ -698,6 +700,7 @@ public class PersistentStorageManager
             } );
             xstream.put( loader, result );
         }
+        result.init();
         return result;
     }
 
@@ -714,28 +717,34 @@ public class PersistentStorageManager
         private MapConverter mConverter;
 
         private ArrayConverter aConverter;
-
+        private AliasConverter aliasConverter;
+        private CachedClassConverter cachedClassConverter;
 
         public XStreamBundle( ClassLoader loader )
         {
+            cachedClassConverter= new CachedClassConverter();
             try
             {
                 if ( System.getSecurityManager() != null )
                     System.getSecurityManager().checkCreateClassLoader();
-                xstream = new FlexibleXStream(loader);
+                if(loader == null)
+                    loader = this.getClass().getClassLoader();
+                xstream = new FlexibleXStream(loader,cachedClassConverter);
             }
             catch(AccessControlException e)
             {
-                xstream = new FlexibleXStream(this.getClass().getClassLoader());
+                xstream = new FlexibleXStream(this.getClass().getClassLoader(),cachedClassConverter);
             }
-
+            fConverter = new FlexibleFieldSetConverter( xstream.getMapper(),
+                xstream.getReflectionProvider() );
+            cachedClassConverter.setFlexibleFieldSetConverter(fConverter);
             //Prevent Persistent Map from being converted.
             PersistentMapConverter pConverter = new PersistentMapConverter();
             xstream.registerConverter( pConverter, XStream.PRIORITY_VERY_HIGH );
-
+            aliasConverter = new AliasConverter(fConverter);
+            xstream.registerConverter( aliasConverter,XStream.PRIORITY_VERY_HIGH );
+//            xstream.registerConverter( cachedClassConverter, XStream.PRIORITY_VERY_HIGH);
             // flex field converter
-            fConverter = new FlexibleFieldSetConverter( xstream.getMapper(),
-                xstream.getReflectionProvider() );
             xstream.registerConverter( fConverter, XStream.PRIORITY_VERY_LOW );
 
             // Unrecognized Class Converter
@@ -753,6 +762,9 @@ public class PersistentStorageManager
             // //Array Converter
             aConverter = new ArrayConverter( xstream.getMapper() );
             xstream.registerConverter( aConverter, XStream.PRIORITY_VERY_HIGH );
+        }
+        public void init(){
+            cachedClassConverter.init();
         }
     }
 
