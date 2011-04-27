@@ -934,7 +934,7 @@ public class SharedPersistenceMapTest
         SharedPersistentMap<AliasClass> pMap = new SharedPersistentMap<AliasClass>( AliasClass.class );
         AliasClass oldAlias = new AliasClass();
         oldAlias.key = "alias1";
-//        pMap.put( "testAlias", oldAlias );
+        pMap.put( "testAlias", oldAlias );
         try
         {
             restoreTestData( "testAlias2-010.dataxml",
@@ -949,5 +949,24 @@ public class SharedPersistenceMapTest
             assertNotNull(alias2.alias);
             assertEquals("alias1",alias2.alias.key);
             assertEquals("alias2",alias2.key);
+    }
+    @Test
+    public void removeAllPersist()
+    {
+        try
+        {
+            restoreTestData( "friendList-040.dataxml",
+                "friendList-040.dataxml" );
+        }
+        catch ( IOException e )
+        {
+            e.printStackTrace();
+            assertTrue( false );
+        }
+        SharedPersistentMap<FriendList> pMap = new SharedPersistentMap<FriendList>(FriendList.class);
+        FriendList list = pMap.get( "friendList" );
+        list.friends.remove( 0 );
+        pMap.put( "friendList", list );
+        assertTrue(true);
     }
 }

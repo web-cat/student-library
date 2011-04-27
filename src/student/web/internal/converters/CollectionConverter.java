@@ -122,9 +122,6 @@ public class CollectionConverter extends AbstractCollectionConverter
         MarshallingContext context,
         List<Object> localCollection )
     {
-
-        // Find the Id for this list. If none exists we know this is a new list.
-
         // The Result of processing if any is required.
         List<Object> patchedSnapshot = new ArrayList<Object>();
         // Check if this is a new list. If so, merge with existing lists.
@@ -156,7 +153,7 @@ public class CollectionConverter extends AbstractCollectionConverter
             DiffList<Object> diffList = localDiff.getDifferences();
             // Prepare a patcher to patch the new local items onto the most
             // current list from the store.
-            DiffPatcher<Object> patcher = new DiffPatcher<Object>( diffList.computeSecondList(),
+            DiffPatcher<Object> patcher = new DiffPatcher<Object>( baseList,
                 diffList,
                 new ObjectIdComparator() );
             // Patching app result
