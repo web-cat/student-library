@@ -584,6 +584,19 @@ public abstract class GObjectFilter
 
         // ----------------------------------------------------------
         /**
+         * Create a filter that checks a GObject's fill color.
+         * @param color The required Color.
+         * @return A new filter that succeeds only on GObjects that are
+         * filled with Color color.
+         */
+        public GObjectFilter fillColorIs(final Color color)
+        {
+            return applySelfTo(GObjectFilter.fillColorIs(color));
+        }
+
+
+        // ----------------------------------------------------------
+        /**
          * Create a filter that checks whether a GObject is filled.
          * @param filled The required boolean value.
          * @return A new filter that succeeds only on GObjects whose
@@ -1082,6 +1095,21 @@ public abstract class GObjectFilter
             public boolean test( GObject gobj )
             {
                 return gobj.getColor().equals(color);
+            }
+        };
+        return f;
+    }
+
+
+    // ----------------------------------------------------------
+    private static final GObjectFilter fillColorIs(final Color color)
+    {
+        GObjectFilter f = new GObjectFilter("fillColor = " + color)
+        {
+            public boolean test( GObject gobj )
+            {
+                return gobj instanceof GFillable
+                    && ((GFillable)gobj).getFillColor().equals(color);
             }
         };
         return f;
