@@ -1,7 +1,7 @@
 /*==========================================================================*\
  |  $Id$
  |*-------------------------------------------------------------------------*|
- |  Copyright (C) 2007-2010 Virginia Tech
+ |  Copyright (C) 2007-2011 Virginia Tech
  |
  |  This file is part of the Student-Library.
  |
@@ -25,6 +25,10 @@ import java.util.Scanner;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import junit.framework.AssertionFailedError;
+import org.junit.After;
+import org.junit.AfterClass;
+import org.junit.Before;
+import org.junit.Rule;
 import student.testingsupport.junit4.AdaptiveTimeout;
 import student.testingsupport.junit4.MixRunner;
 import student.testingsupport.MutableStringBufferInputStream;
@@ -57,7 +61,11 @@ public class TestCase
 {
     //~ JUnit 4 rules .........................................................
 
-    @org.junit.Rule
+    /**
+     * Applies adaptive timeout control to test methods to cope with
+     * non-terminating methods.
+     */
+    @Rule
     public static final AdaptiveTimeout ADAPTIVE_TIMEOUT =
         new AdaptiveTimeout();
 
@@ -66,7 +74,7 @@ public class TestCase
 
     // These don't use the names "in" or "out" to provide better error
     // messages if students type those method names and accidentally leave
-    // off the parens.
+    // off the parentheses.
     private PrintWriterWithHistory tcOut = null;
     private Scanner                tcIn  = null;
     private MutableStringBufferInputStream tcInBuf = null;
@@ -90,7 +98,6 @@ public class TestCase
     public TestCase()
     {
         super();
-        resetIO();
     }
 
 
@@ -102,29 +109,10 @@ public class TestCase
     public TestCase(String name)
     {
         super(name);
-        resetIO();
     }
 
 
     //~ Methods ...............................................................
-
-    @Override
-    public void runBare()
-        throws Throwable
-    {
-        predicateReturnsTrueReason = null;
-        predicateReturnsFalseReason = null;
-        instrumentIO();
-        try
-        {
-            super.runBare();
-        }
-        finally
-        {
-            resetIO();
-        }
-    }
-
 
     // ----------------------------------------------------------
     /**
@@ -200,10 +188,7 @@ public class TestCase
         tcOut = null;
         tcInBuf = null;
 
-        // Make sure these are history-wrapped
-        SystemIOUtilities.out().clearHistory();
-        SystemIOUtilities.err().clearHistory();
-        SystemIOUtilities.restoreSystemIn();
+        resetSystemIO();
     }
 
 
@@ -1086,7 +1071,8 @@ public class TestCase
      * @return True if the largerString contains all of the specified
      * substrings in order.
      */
-    public boolean fuzzyContainsRegex(String largerString, String ... substrings)
+    public boolean fuzzyContainsRegex(
+        String largerString, String ... substrings)
     {
         Pattern[] patterns = new Pattern[substrings.length];
         for (int i = 0; i < substrings.length; i++)
@@ -1112,10 +1098,64 @@ public class TestCase
      * @return True if the largerString contains all of the specified
      * substrings in order.
      */
-    public boolean fuzzyContainsRegex(String largerString, Pattern ... substrings)
+    public boolean fuzzyContainsRegex(
+        String largerString, Pattern ... substrings)
     {
         return containsRegex(
             stringNormalizer().normalize(largerString), substrings);
+    }
+
+
+    // ----------------------------------------------------------
+    /**
+     * Resets IO and output reasons, then instruments IO for next method.
+     */
+    @Before
+    public void prepareIO()
+    {
+        resetIO();
+        predicateReturnsTrueReason = null;
+        predicateReturnsFalseReason = null;
+        instrumentIO();
+    }
+
+
+    // ----------------------------------------------------------
+    /**
+     * An internal helper that resets the system part of the input/output
+     * buffering after each test case.
+     */
+    @AfterClass
+    public static void resetSystemIO()
+    {
+        // Make sure these are history-wrapped
+        SystemIOUtilities.out().clearHistory();
+        SystemIOUtilities.err().clearHistory();
+        SystemIOUtilities.restoreSystemIn();
+    }
+
+
+    // ----------------------------------------------------------
+    /**
+     * Collect timing date on the test method that just finished.
+     */
+    @After
+    public void getStats()
+    {
+        ADAPTIVE_TIMEOUT.logTestMethod(true);
+    }
+
+
+    // ----------------------------------------------------------
+    /**
+     * This method is for internal use only and should not be called
+     * by other code.  It is used to hook into the data collection
+     * mechanisms of the AdaptiveTimeout test timing control rule.
+     */
+    @AfterClass
+    public static void writeStats()
+    {
+        ADAPTIVE_TIMEOUT.appendStatsToFile();
     }
 
 

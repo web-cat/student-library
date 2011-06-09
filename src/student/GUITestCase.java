@@ -217,7 +217,7 @@ public class GUITestCase
 
     // ----------------------------------------------------------
     /**
-     * Override the default {@link TestCase#runBare()}
+     * Hook into the custom test execution machinery provided by MixRunner
      * to ensure proper test harness setup and tear down that won't
      * likely be accidentally overridden by a derived class.
      * <p>
@@ -225,7 +225,76 @@ public class GUITestCase
      * as errors.  They will not, however supersede any failures/errors
      * thrown by the test itself unless thrown prior to the main test
      * failure.
+     *
+     * @param statement The (JUnit4-style) test method to be executed.
+     *
+     * @throws Throwable If any exception occurs in the test case or on the
+     *         event dispatch thread.
      */
+    protected void runTestMethod(org.junit.runners.model.Statement statement)
+        throws Throwable
+    {
+        if (Boolean.getBoolean("abbot.skip_ui_tests"))
+        {
+            return;
+        }
+
+        Throwable exception = null;
+        long exceptionTime = -1;
+        try
+        {
+            try
+            {
+                fixtureSetUp();
+                statement.evaluate();
+            }
+            catch (Throwable e)
+            {
+                exception = e;
+            }
+            finally
+            {
+                try
+                {
+                    fixtureTearDown();
+                }
+                catch (Throwable tearingDown)
+                {
+                    if (exception == null)
+                    {
+                        exception = tearingDown;
+                    }
+                }
+            }
+            if (exception != null)
+            {
+                throw exception;
+            }
+        }
+        catch (Throwable e)
+        {
+            exceptionTime = System.currentTimeMillis();
+            exception = e;
+        }
+        finally
+        {
+            // Cf. StepRunner.runStep()
+            // Any EDT exception which occurred *prior* to when the
+            // exception on the main thread was thrown should be used
+            // instead.
+            if (edtException != null
+                && (exception == null
+                    || edtExceptionTime < exceptionTime))
+            {
+                exception = new EventDispatchException(edtException);
+            }
+        }
+        if (exception != null) {
+            throw exception;
+        }
+    }
+
+
     public void runBare()
         throws Throwable
     {
@@ -386,7 +455,7 @@ public class GUITestCase
         }
         else
             fail("Cannot find component matching: " + nameFilter);
-        
+
         return result;
     }
 
@@ -452,19 +521,20 @@ public class GUITestCase
         {
             Component[] comps = e.getComponents();
             int visibleCount = 0;
-            for(Component c: comps)
+            for (Component c: comps)
             {
                 if(c.isVisible())
-                {    
+                {
                     visibleCount++;
                     result = c;
                 }
-                
+
             }
-            System.out.println(visibleCount);
-            if(visibleCount != 1)
+            if (visibleCount != 1)
+            {
                 fail("Found " + e.getComponents().length + " components matching: "
                     + filter);
+            }
         }
         return result;
     }
@@ -1352,7 +1422,7 @@ public class GUITestCase
         final File[] chooserFiles = new File[files.length];
         for(int i = 0; i < files.length; i++)
             chooserFiles[i] = new File(files[i]);
-        
+
         callGUIIOMethod(new Runnable()
         {
             public void run()
@@ -1361,7 +1431,7 @@ public class GUITestCase
                 chooser.approveSelection();
             }
         });
-        
+
     }
 
 
@@ -1393,7 +1463,7 @@ public class GUITestCase
                 }
             });
     }
-    
+
     /**
      * Assuming that a Dialog of some sort is currently
      * open, this method clicks the specified button.
@@ -1411,7 +1481,7 @@ public class GUITestCase
                 {
                     b.doClick();
                 }
-            });   
+            });
         }
         catch ( ComponentNotFoundException e )
         {
@@ -1429,7 +1499,7 @@ public class GUITestCase
         {
             fail("Found " + e.getComponents().length + " components matching search criteria.");
         }
-       
+
     }
 
 
@@ -1456,7 +1526,7 @@ public class GUITestCase
         click(getComponent(
             JButton.class, where.textIs("OK").and.parentIs(panel)));
     }
-    
+
     public void setSwitchFocus(boolean switchFocus)
     {
         this.switchFocus = switchFocus;
@@ -1700,7 +1770,7 @@ public class GUITestCase
             Robot.setEventMode(Robot.EM_AWT);
         }
     }
-    
-    
+
+
     private static boolean switchFocus;
 }
