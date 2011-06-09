@@ -1,19 +1,16 @@
 package student.web;
 
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.AbstractMap.SimpleEntry;
-
 import student.web.internal.ApplicationSupportStrategy;
 import student.web.internal.LocalityService;
 import student.web.internal.ObjectFieldExtractor;
 import student.web.internal.PersistentStorageManager;
 import student.web.internal.ReadOnlySet;
-import student.web.internal.PersistentStorageManager.StoredObject;
 import student.web.internal.converters.AliasService;
 
 
@@ -31,13 +28,13 @@ import student.web.internal.converters.AliasService;
  *
  * @author mjw87
  *
- * @param <T>
+ * @param <T> The type of objects stored in the map.
  */
 public abstract class AbstractPersistentMap<T>
     implements PersistentMap<T>
 {
 //    /**
-//     * Seperator character for keywords within a persisted object id. This is
+//     * Separator character for keywords within a persisted object id. This is
 //     * used for conversion to a remote map.
 //     */
 //    protected static final String SEPARATOR = "-.-";
@@ -52,6 +49,9 @@ public abstract class AbstractPersistentMap<T>
      * The class type this map is projecting onto the persistence store.
      */
     protected Class<T> typeAware;
+    /**
+     * The class loader to use when looking up classes of objects being loaded.
+     */
     protected ClassLoader loader;
 //    /**
 //     * The latest obtained keyset from the persistence store.
@@ -62,14 +62,15 @@ public abstract class AbstractPersistentMap<T>
 
     /**
      * The cached context map for objects retrieved from the store. It is used
-     * to reconsititue objects.
+     * to reconstitute objects.
      */
     private Map<String, PersistentStorageManager.StoredObject> context;
 
     /**
      * An extractor object for extracting fields from objects.
      */
-    private ObjectFieldExtractor extractor = new ObjectFieldExtractor(LocalityService.getSupportStrategy().getReflectionProvider());
+    private ObjectFieldExtractor extractor = new ObjectFieldExtractor(
+        LocalityService.getSupportStrategy().getReflectionProvider());
 
     /**
      * The instance of the persistence store this Map is projecting on.
@@ -79,16 +80,31 @@ public abstract class AbstractPersistentMap<T>
     private ApplicationSupportStrategy support;
 
 
+    /**
+     * Get the cache ID for this map.
+     * @return This map's cache ID.
+     */
     protected abstract String getCacheId();
 
 
-    protected AbstractPersistentMap( String directoryName, Class<T>  typeAware )
+    /**
+     * Create a new map.
+     * @param directoryName The directory name to use to back this map.
+     * @param typeAware The type of objects stored in this map.
+     */
+    protected AbstractPersistentMap(String directoryName, Class<T>  typeAware)
     {
-
-        init( directoryName, typeAware );
-        loader = typeAware.getClassLoader();
+        this( directoryName, typeAware, typeAware.getClassLoader());
     }
-    protected AbstractPersistentMap(String directoryName, Class<T> typeAware, ClassLoader loader)
+    /**
+     * Create a new map.
+     * @param directoryName The directory name to use to back this map.
+     * @param typeAware The type of objects stored in this map.
+     * @param loader The class loader to use when looking up classes of
+     *               loaded objects.
+     */
+    protected AbstractPersistentMap(
+        String directoryName, Class<T> typeAware, ClassLoader loader)
     {
         init(directoryName, typeAware);
         this.loader = loader;
@@ -136,33 +152,36 @@ public abstract class AbstractPersistentMap<T>
     }
 
 
-    private T getPrevious( String key )
+    private T getPrevious(String key)
     {
-        PersistentStorageManager.StoredObject cached = context.get( key );
+        PersistentStorageManager.StoredObject cached = context.get(key);
         T previousValue = null;
-        if ( cached != null )
+        if (cached != null)
         {
             try
             {
-                previousValue = (T)cached.value();
+                @SuppressWarnings("unchecked")
+                T pv = (T)cached.value();
+                previousValue = pv;
             }
-            catch ( ClassCastException e )
+            catch (ClassCastException e)
             {
-                // Cant cast!
-                ;
+                // Can't cast!
             }
         }
 
-        if ( cached == null )
+        if (cached == null)
         {
-            PersistentStorageManager.StoredObject previous = PSM.getPersistentObject( key,
-                typeAware.getClassLoader() );
-            if ( previous != null )
+            PersistentStorageManager.StoredObject previous =
+                PSM.getPersistentObject(key, typeAware.getClassLoader());
+            if (previous != null)
             {
 //                if ( previous.value().getClass().equals( typeAware ) )
-                if( typeAware.isInstance( previous.value() ))
+                if (typeAware.isInstance(previous.value()))
                 {
-                    previousValue = (T)previous.value();
+                    @SuppressWarnings("unchecked")
+                    T pv = (T)previous.value();
+                    previousValue = pv;
                 }
             }
         }
@@ -291,6 +310,11 @@ public abstract class AbstractPersistentMap<T>
     }
 
 
+    /**
+     * Look up the persistent object with the given ID.
+     * @param objectId The object ID to look up.
+     * @return The object associated with the given ID.
+     */
     protected T getPersistentObject( String objectId )
     {
         T result = null;
@@ -306,7 +330,7 @@ public abstract class AbstractPersistentMap<T>
         }
         else
         {
-            
+
             if ( loader == null )
             {
                 loader = this.getClass().getClassLoader();
@@ -326,7 +350,6 @@ public abstract class AbstractPersistentMap<T>
     }
 
 
-    @SuppressWarnings("unchecked")
     private <V> V returnAsType( Class<V> t, Object value )
     {
         if ( value == null )
@@ -335,20 +358,30 @@ public abstract class AbstractPersistentMap<T>
         }
         if ( value instanceof TreeMap && !TreeMap.class.isAssignableFrom( t ) )
         {
-            value = extractor.fieldMapToObject( t, (Map<String, Object>)value );
+            @SuppressWarnings("unchecked")
+            Map<String, Object> valueAsMap = (Map<String, Object>)value;
+            value = extractor.fieldMapToObject(t, valueAsMap);
         }
         if ( t.isAssignableFrom( value.getClass() ) )
         {
-            return (V)value;
+            @SuppressWarnings("unchecked")
+            V valueAsV = (V)value;
+            return valueAsV;
         }
 
         return null;
     }
 
 
+    /**
+     * Set/store the persistent object for a given ID.
+     * @param <ObjectType> The type of object to store.
+     * @param objectId The ID to associate the object with.
+     * @param object The object to store.
+     */
     protected <ObjectType> void setPersistentObject(
         String objectId,
-        ObjectType object )
+        ObjectType object)
     {
         try
         {
@@ -374,6 +407,10 @@ public abstract class AbstractPersistentMap<T>
     }
 
 
+    /**
+     * Remove a persistent object from the store.
+     * @param objectId The ID of the object to remove.
+     */
     protected void removePersistentObject( String objectId )
     {
         PSM.removeFieldSet( objectId );
