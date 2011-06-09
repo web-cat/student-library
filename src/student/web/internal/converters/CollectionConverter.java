@@ -37,7 +37,7 @@ import com.thoughtworks.xstream.mapper.Mapper;
  * Supports java.util.ArrayList, java.util.HashSet, java.util.LinkedList,
  * java.util.Vector and java.util.LinkedHashSet.
  * </p>
- * 
+ *
  * @author Joe Walnes
  */
 public class CollectionConverter extends AbstractCollectionConverter
@@ -48,7 +48,7 @@ public class CollectionConverter extends AbstractCollectionConverter
 
     /**
      * Create a new CollectionConverter.
-     * 
+     *
      * @param mapper
      *            The mapper to use.
      */
@@ -173,8 +173,7 @@ public class CollectionConverter extends AbstractCollectionConverter
         // values
         localCollection.clear();
         if ( source instanceof Collection )
-            ( (Collection)source ).clear();
-        int i = 0;
+            ( (Collection<?>)source ).clear();
         for ( Iterator<Object> iterator = patchedSnapshot.iterator(); iterator.hasNext();
         /* no increment needed */)
         {
@@ -188,7 +187,13 @@ public class CollectionConverter extends AbstractCollectionConverter
             }
             localCollection.add( item );
             if ( source instanceof Collection )
-                ( (Collection)source ).add( item );
+            {
+                @SuppressWarnings("unchecked")
+                Collection<Object> sourceCollection =
+                    (Collection<Object>)source;
+                sourceCollection.add( item );
+
+            }
             objId = Snapshot.lookupId( item, true );
             ExtendedHierarchicalStreamWriterHelper.startNode( writer,
                 "_item",
@@ -213,9 +218,10 @@ public class CollectionConverter extends AbstractCollectionConverter
         {
             return null;
         }
-        if ( Collection.class.isInstance( source ) )
+        if (source instanceof Collection)
         {
-            Collection col = (Collection)source;
+            @SuppressWarnings("unchecked")
+            Collection<Object> col = (Collection<Object>)source;
             List<Object> result = new ArrayList<Object>();
             result.addAll( col );
             return result;

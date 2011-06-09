@@ -29,7 +29,7 @@ import java.util.TreeMap;
 /**
  * Allows an object to be converted to a map of field name/value pairs and vice
  * versa. Also provides helper methods for comparing and merging such maps.
- * 
+ *
  * @author Stephen Edwards
  * @author Last changed by $Author$
  * @version $Revision$, $Date$
@@ -60,7 +60,7 @@ public class ObjectFieldExtractor
     // ----------------------------------------------------------
     /**
      * Convert an object to a map of field name/value pairs.
-     * 
+     *
      * @param object
      *            The object to convert
      * @return The object's field values in map form
@@ -72,7 +72,7 @@ public class ObjectFieldExtractor
         reflectionProvider.visitSerializableFields( object,
             new ReflectionProvider.Visitor()
             {
-                @SuppressWarnings("unchecked")
+                @SuppressWarnings("rawtypes")
                 public void visit(
                     String fieldName,
                     Class type,
@@ -90,13 +90,14 @@ public class ObjectFieldExtractor
     // ----------------------------------------------------------
     /**
      * Convert an object to a map of field name/value pairs.
-     * 
+     *
      * @param object
      *            The object to convert
      * @return The object's field values in map form
      */
     @SuppressWarnings("unchecked")
-    public <T> T fieldMapToObject( Class<T> t, final Map<String, Object> fields )
+    public <T> T fieldMapToObject(
+        Class<T> t, final Map<String, Object> fields)
     {
         if ( fields == null )
         {
@@ -133,7 +134,7 @@ public class ObjectFieldExtractor
     // ----------------------------------------------------------
     /**
      * Convert an object to a map of field name/value pairs.
-     * 
+     *
      * @param object
      *            The object to convert
      * @param fields
@@ -151,6 +152,7 @@ public class ObjectFieldExtractor
         reflectionProvider.visitSerializableFields( result,
             new ReflectionProvider.Visitor()
             {
+                @SuppressWarnings("rawtypes")
                 public void visit(
                     String fieldName,
                     Class type,
@@ -181,7 +183,7 @@ public class ObjectFieldExtractor
      * entries that duplicate those in the "original". In other words, what
      * entries in "changes" map to different values than the same entries in
      * "original"?
-     * 
+     *
      * @param original
      *            The base field set to compare against
      * @param changes

@@ -19,9 +19,9 @@ import org.apache.commons.collections.BidiMap;
  * maps, and arrays. The context for these are different then normal field sets.
  * For these objects, we must remember the old ordering of objects so we can
  * merge changes from the persistence store.
- * 
+ *
  * @author mjw87
- * 
+ *
  */
 public class Snapshot
 {
@@ -53,9 +53,9 @@ public class Snapshot
 
 
     /**
-     * Get the snapshot for the object in use in the application
-     * 
-     * @return
+     * Get the snapshot for the object in use in the application.
+     *
+     * @return The snapshot.
      */
     public static Snapshot getLocal()
     {
@@ -64,10 +64,10 @@ public class Snapshot
 
 
     /**
-     * Get the newest snapshot found for the current object being persisted or
-     * retrieved.
-     * 
-     * @return
+     * Get the newest snapshot found for the current object being persisted
+     * or retrieved.
+     *
+     * @return The newest snapshot.
      */
     public static Snapshot getNewest()
     {
@@ -76,15 +76,13 @@ public class Snapshot
 
 
     /**
-     * This looks up the id for the source object using local context from when
-     * the object was retrieved or a snapshot tagged as the new version of an
-     * object.
-     * 
-     * @param source
-     *            the object to find the id for
-     * @param generate
-     *            if you want a new id for the object to be generated.
-     * @return
+     * This looks up the id for the source object using local context from
+     * when the object was retrieved or a snapshot tagged as the new version
+     * of an object.
+     *
+     * @param source The object to find the id for.
+     * @param generate Indicates whether to generate a new id for the object.
+     * @return The ID.
      */
     public static UUID lookupId( Object source, boolean generate )
     {
@@ -104,10 +102,10 @@ public class Snapshot
 
 
     /**
-     * Set the local snapshot that conatains all of the information about the
+     * Set the local snapshot that contains all of the information about the
      * object currently in use by the application.
-     * 
-     * @param snapshot
+     *
+     * @param snapshot The snapshot to remember as the local snapshot.
      */
     public static void setLocal( Snapshot snapshot )
     {
@@ -118,17 +116,19 @@ public class Snapshot
     /**
      * Set the newest snapshot found for the current object being analyzed by
      * the persistence store.
-     * 
-     * @param snap
+     *
+     * @param snapshot   The snapshot to remember as the newest snapshot.
      */
-    public static void setNewest( Snapshot snap )
+    public static void setNewest( Snapshot snapshot )
     {
-        newest = snap;
+        newest = snapshot;
     }
 
-    Map<Object, Map<String, Object>> objToFieldSet = new IdentityHashMap<Object, Map<String, Object>>();
+    Map<Object, Map<String, Object>> objToFieldSet =
+        new IdentityHashMap<Object, Map<String, Object>>();
 
-    Map<Object, Collection<Object>> objToOrigObj = new IdentityHashMap<Object, Collection<Object>>();
+    Map<Object, Collection<Object>> objToOrigObj =
+        new IdentityHashMap<Object, Collection<Object>>();
 
     // <Object,UUID>
     BidiMap objToUuid = new DualBidiIdentityHashMap<Object, UUID>();
@@ -137,7 +137,7 @@ public class Snapshot
     /**
      * Using a provided object, find the UUID that identifies it or null if
      * there is none.
-     * 
+     *
      * @param source
      *            the object to lookup a UUID for
      * @return the UUID that identifies this object in the persistence store.
@@ -151,7 +151,7 @@ public class Snapshot
     /**
      * Find the object that is identified by a UUID. This is limited to the
      * scope of the Snapshot.
-     * 
+     *
      * @param collectionId
      *            The UUID to lookup an object for
      * @return The object corresponding to this id
@@ -167,7 +167,7 @@ public class Snapshot
      * non null if the UUID identifies a collection, map, or array. Otherwise,
      * there is no base object. This method is provided to obtain original
      * collections to identify a different ordering in a list.
-     * 
+     *
      * @param sourceId
      *            The UUID to lookup
      * @return the list with the original ordering as seen when the object was
@@ -185,7 +185,7 @@ public class Snapshot
     /**
      * Using an Id, lookup the corresponding fieldset as seen when the object
      * was retrieved from the store.
-     * 
+     *
      * @param id
      *            the identifier for the object.
      * @return the field set corresponding to the id.
@@ -202,9 +202,9 @@ public class Snapshot
     /**
      * Using an object reference, lookup the corresponding fieldset from the
      * store.
-     * 
-     * @param source
-     * @return
+     *
+     * @param source The object to look up.
+     * @return The fieldset for the source object.
      */
     public Map<String, Object> getFieldSetFromObject( Object source )
     {
@@ -215,7 +215,7 @@ public class Snapshot
     /**
      * Resolve a Collection or array to this snapshot. This will track the
      * object for eventual persistence back to the store.
-     * 
+     *
      * @param id
      *            the UUID to associate with this object
      * @param result
@@ -236,7 +236,7 @@ public class Snapshot
 
     /**
      * Resolve a non collection or array object in this snapshot.
-     * 
+     *
      * @param id
      *            the UUID to associate with this object
      * @param result

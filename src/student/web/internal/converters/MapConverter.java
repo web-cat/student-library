@@ -30,20 +30,21 @@ import student.web.internal.Snapshot;
  * <p>
  * Supports java.util.HashMap, java.util.Hashtable and java.util.LinkedHashMap.
  * </p>
- * 
+ *
  * @author Joe Walnes
  */
-public class MapConverter extends AbstractCollectionConverter
+public class MapConverter
+    extends AbstractCollectionConverter
 {
     private TreeMapConverter mapConverter;
-    
+
     // Snapshot newSnapshot;
     // Snapshot oldSnapshot;
 
-    public MapConverter( Mapper mapper )
+    public MapConverter(Mapper mapper)
     {
-        super( mapper );
-        mapConverter = new TreeMapConverter( mapper );
+        super(mapper);
+        mapConverter = new TreeMapConverter(mapper);
     }
 
 
@@ -53,15 +54,18 @@ public class MapConverter extends AbstractCollectionConverter
     // oldSnapshot = oldSnap;
     // }
 
-    public boolean canConvert( Class type )
+    @SuppressWarnings("rawtypes")
+    public boolean canConvert(Class type)
     {
-        if ( type == null )
+        if (type == null)
+        {
             return false;
-        return type.equals( HashMap.class ) || type.equals( Hashtable.class )
-            || type.getName().equals( "java.util.LinkedHashMap" )
-            || type.getName().equals( "sun.font.AttributeMap" ) // Used by
-                                                                // java.awt.Font
-                                                                // in JDK 6
+        }
+        return type.equals(HashMap.class) || type.equals(Hashtable.class)
+            || type.getName().equals("java.util.LinkedHashMap")
+            || type.getName().equals("sun.font.AttributeMap") // Used by
+                                                              // java.awt.Font
+                                                              // in JDK 6
         ;
     }
 
@@ -69,59 +73,66 @@ public class MapConverter extends AbstractCollectionConverter
     public void marshal(
         Object source,
         HierarchicalStreamWriter writer,
-        MarshallingContext context )
+        MarshallingContext context)
     {
         Map<?, ?> map = (Map<?, ?>)source;
 
         // UUID oldId = Snapshot.findId(map, newSnapshot, oldSnapshot);
-        UUID id = Snapshot.lookupId( source, true );
-        writer.addAttribute( XMLConstants.ID_ATTRIBUTE, id.toString() );
-        updateMap( (Map<Object, Object>)map );
-        for ( Iterator<?> iterator = map.entrySet().iterator(); iterator.hasNext(); )
+        UUID id = Snapshot.lookupId(source, true);
+        writer.addAttribute(XMLConstants.ID_ATTRIBUTE, id.toString());
+        updateMap((Map<Object, Object>)map);
+        for (Iterator<?> iterator = map.entrySet().iterator();
+            iterator.hasNext(); )
         {
             Entry<?, ?> entry = (Entry<?, ?>)iterator.next();
-            ExtendedHierarchicalStreamWriterHelper.startNode( writer,
-                mapper().serializedClass( Map.Entry.class ),
-                Map.Entry.class );
-            UUID keyId = Snapshot.lookupId( entry.getKey(), true );
-            writer.addAttribute( XMLConstants.ID_ATTRIBUTE, keyId.toString() );
-            writeItem( entry.getKey(), context, writer );
-            if(entry.getValue() instanceof NullableClass)
-                ((NullableClass)entry.getValue()).writeHiddenClass( mapConverter, writer, context );
+            ExtendedHierarchicalStreamWriterHelper.startNode(
+                writer,
+                mapper().serializedClass(Map.Entry.class),
+                Map.Entry.class);
+            UUID keyId = Snapshot.lookupId(entry.getKey(), true);
+            writer.addAttribute(XMLConstants.ID_ATTRIBUTE, keyId.toString());
+            writeItem(entry.getKey(), context, writer);
+            if (entry.getValue() instanceof NullableClass)
+            {
+                ((NullableClass)entry.getValue())
+                    .writeHiddenClass(mapConverter, writer, context);
+            }
             else
-                writeItem( entry.getValue(), context, writer );
+            {
+                writeItem(entry.getValue(), context, writer);
+            }
 
             writer.endNode();
         }
     }
 
 
-    public static void updateMap( Map<Object, Object> source )
+    public static void updateMap(Map<Object, Object> source)
     {
         // Lookup the id for this map
-        UUID mapId = Snapshot.lookupId( source, false );
+        UUID mapId = Snapshot.lookupId(source, false);
         // Get the newest copy of this map
-        Map newestMap = (Map)Snapshot.getNewest().findObject( mapId );
+        Map newestMap = (Map)Snapshot.getNewest().findObject(mapId);
         // If there is something newer we should start the update process
-        if ( newestMap != null )
+        if (newestMap != null)
         {
             // Look at every key in the new map
-            for ( Object newObject : newestMap.keySet() )
+            for (Object newObject : newestMap.keySet())
             {
                 // Do we know about this object locally?
-                UUID id = Snapshot.getNewest().findId( newObject );
-                Object localLookup = Snapshot.getLocal().findObject( id );
-                // If the id is null, we know that we have never seen this item
-                // before. Push it into the list.
-                if ( localLookup == null )
+                UUID id = Snapshot.getNewest().findId(newObject);
+                Object localLookup = Snapshot.getLocal().findObject(id);
+                // If the id is null, we know that we have never seen this
+                // item before. Push it into the list.
+                if (localLookup == null)
                 {
-                    source.put( newObject, newestMap.get( newObject ) );
+                    source.put(newObject, newestMap.get(newObject));
                 }
                 // else
                 // If the id is not null we have seen this item before. The
                 // current logic is that if we have seen it, we have either
-                // removed it intentionally or it still exists in the map. If it
-                // is still in the map then we should just let the flexible
+                // removed it intentionally or it still exists in the map. If
+                // it is still in the map then we should just let the flexible
                 // field set converter deal with it.
             }
         }
@@ -130,12 +141,15 @@ public class MapConverter extends AbstractCollectionConverter
 
     public Object unmarshal(
         HierarchicalStreamReader reader,
-        UnmarshallingContext context )
+        UnmarshallingContext context)
     {
-        Map map = (Map)createCollection( context.getRequiredType() );
-        UUID id = UUID.fromString( reader.getAttribute( XMLConstants.ID_ATTRIBUTE ) );
-        populateMap( reader, context, map );
-        Snapshot.getLocal().resolveObject( id, map, (Map<String, Object>)null );
+        @SuppressWarnings("unchecked")
+        Map<Object, Object> map = (Map<Object, Object>)createCollection(
+            context.getRequiredType());
+        UUID id = UUID.fromString(
+            reader.getAttribute(XMLConstants.ID_ATTRIBUTE));
+        populateMap(reader, context, map);
+        Snapshot.getLocal().resolveObject(id, map, (Map<String, Object>)null);
         return map;
     }
 
@@ -143,24 +157,26 @@ public class MapConverter extends AbstractCollectionConverter
     protected void populateMap(
         HierarchicalStreamReader reader,
         UnmarshallingContext context,
-        Map map )
+        Map<Object, Object> map)
     {
-        while ( reader.hasMoreChildren() )
+        while (reader.hasMoreChildren())
         {
             reader.moveDown();
-            UUID id = UUID.fromString( reader.getAttribute( XMLConstants.ID_ATTRIBUTE ) );
+            UUID id = UUID.fromString(
+                reader.getAttribute(XMLConstants.ID_ATTRIBUTE));
             reader.moveDown();
-            Object key = readItem( reader, context, map );
+            Object key = readItem(reader, context, map);
             reader.moveUp();
 
             reader.moveDown();
-            Object value = readItem( reader, context, map );
+            Object value = readItem(reader, context, map);
             reader.moveUp();
 
-            map.put( key, value );
-            Snapshot.getLocal().resolveObject( id,
+            map.put(key, value);
+            Snapshot.getLocal().resolveObject(
+                id,
                 key,
-                (Map<String, Object>)null );
+                (Map<String, Object>)null);
             reader.moveUp();
         }
     }

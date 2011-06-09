@@ -22,29 +22,29 @@ import com.thoughtworks.xstream.mapper.CannotResolveClassException;
 import com.thoughtworks.xstream.mapper.Mapper;
 import com.thoughtworks.xstream.mapper.MapperWrapper;
 
-
 // -------------------------------------------------------------------------
 /**
  * A custom XStream class mapper that handles non-existent classes by mapping
  * them to {@link UnrecognizedClass} rather than throwing an exception.
- * 
+ *
  * @author Stephen Edwards
  * @author Last changed by $Author$
  * @version $Revision$, $Date$
  */
-public class FlexibleMapper extends MapperWrapper
+public class FlexibleMapper
+    extends MapperWrapper
 {
     // ----------------------------------------------------------
     /**
      * Create a new mapper, which delegates to another wrapper.
-     * 
+     *
      * @param wrapped
      *            The mapper to delegate all work to. The FlexibleMapper only
      *            handles cases that the wrapped mapper says are not found.
      */
-    public FlexibleMapper( Mapper wrapped )
+    public FlexibleMapper(Mapper wrapped)
     {
-        super( wrapped );
+        super(wrapped);
     }
 
 
@@ -52,21 +52,20 @@ public class FlexibleMapper extends MapperWrapper
     /**
      * Look up the class that corresponds to an XStream-encoded XML tag name
      * (which here is interpreted only as a Java class name).
-     * 
+     *
      * @param elementName
      *            The name of the Java class (that is, XML element name in an
      *            XStream-stored Java object) to look up.
      * @return The corresponding Class object.
      */
-    @SuppressWarnings("unchecked")
     @Override
-    public Class realClass( String elementName )
+    public Class<?> realClass(String elementName)
     {
         try
         {
-            return super.realClass( elementName );
+            return super.realClass(elementName);
         }
-        catch ( CannotResolveClassException e )
+        catch (CannotResolveClassException e)
         {
             return UnrecognizedClass.class;
         }

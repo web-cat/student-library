@@ -18,6 +18,7 @@ public class PersistentMapConverter
     implements Converter
 {
 
+    @SuppressWarnings("rawtypes")
     public boolean canConvert(Class type)
     {
         return type != null

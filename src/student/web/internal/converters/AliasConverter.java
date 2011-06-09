@@ -22,6 +22,7 @@ public class AliasConverter implements Converter
     }
 
 
+    @SuppressWarnings("rawtypes")
     public boolean canConvert( Class type )
     {
         return type != null && type.equals( Alias.class );

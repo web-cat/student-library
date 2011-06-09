@@ -48,6 +48,7 @@ public class CachedClassConverter implements Converter
     }
 
 
+    @SuppressWarnings("rawtypes")
     public boolean canConvert( Class type )
     {
         if ( disable )

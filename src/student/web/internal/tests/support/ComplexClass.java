@@ -1,6 +1,9 @@
 package student.web.internal.tests.support;
 
-public class ComplexClass  extends PlainClass implements Comparable{
+public class ComplexClass
+    extends PlainClass
+    implements Comparable<Object>
+{
 	public String complexStuff = "!!!!";
 
 	public int compareTo(Object o) {

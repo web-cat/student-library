@@ -38,7 +38,7 @@ import student.web.internal.UnrecognizedClass;
 /**
  * An XStream {@link Converter} for handling {@link UnrecognizedClass} values.
  * All <code>UnrecognizedClass</code> values are converted to <code>null</code>.
- * 
+ *
  * @author Stephen Edwards
  * @author Last changed by $Author$
  * @version $Revision$, $Date$
@@ -61,7 +61,7 @@ public class UnrecognizedClassConverter implements Converter
     /**
      * Store an <code>UnrecognizedClass</code> value, which should never happen.
      * This method does nothing, so such values are never actually stored.
-     * 
+     *
      * @param source
      *            The value to store.
      * @param writer
@@ -82,7 +82,7 @@ public class UnrecognizedClassConverter implements Converter
     /**
      * Reconstitute an <code>UnrecognizedClass</code> value, which is always
      * reconstructed as <code>null</code>.
-     * 
+     *
      * @param reader
      *            The input source to read from.
      * @param context
@@ -112,13 +112,13 @@ public class UnrecognizedClassConverter implements Converter
     // ----------------------------------------------------------
     /**
      * Return true for any class that this converter can handle.
-     * 
+     *
      * @param type
      *            The class to check.
      * @return True if <code>type</code> is <code>UnrecognizedClass</code>, and
      *         false otherwise.
      */
-    @SuppressWarnings("unchecked")
+    @SuppressWarnings("rawtypes")
     public boolean canConvert( Class type )
     {
         return UnrecognizedClass.class.equals( type );

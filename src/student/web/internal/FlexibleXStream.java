@@ -32,21 +32,24 @@ import com.thoughtworks.xstream.io.xml.XppDriver;
  * reconstruction of objects. Missing classes don't cause errors--the
  * corresponding objects are reconstituted as null. Missing fields do not cause
  * errors, either--they are simply ignored.
- * 
+ *
  * @author Stephen Edwards
  * @author Last changed by $Author$
  * @version $Revision$, $Date$
  */
-public class FlexibleXStream extends XStream
+public class FlexibleXStream
+    extends XStream
 {
-    private static class CachedClassPriorityConverterLookup extends DefaultConverterLookup
+    private static class CachedClassPriorityConverterLookup
+        extends DefaultConverterLookup
     {
 //        private CachedClassConverter ccc;
-    
+
 //        public CachedClassPriorityConverterLookup( CachedClassConverter ccc )
 //        {
 ////            this.ccc = ccc;
 //        }
+        @SuppressWarnings("rawtypes")
         public Converter lookupConverterForType(Class type)
         {
 //            if(ccc.canConvert( type ))
@@ -58,8 +61,11 @@ public class FlexibleXStream extends XStream
     public FlexibleXStream(ClassLoader loader/*, CachedClassConverter ccc*/)
     {
         super(
-            LocalityService.getSupportStrategy().getReflectionProvider(), new XppDriver(),   
-            loader, null, new CachedClassPriorityConverterLookup(/*ccc*/), 
+            LocalityService.getSupportStrategy().getReflectionProvider(),
+            new XppDriver(),
+            loader,
+            null,
+            new CachedClassPriorityConverterLookup(/*ccc*/),
             null);
         super.mapper = new FlexibleMapper(getMapper());
     }
