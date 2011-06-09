@@ -237,7 +237,7 @@ public class IOHelper
      * @param file  the file to read from
      * @return      instance of {@link BufferedReader} for reading from
      *               the file
-     * @throws IOException if there is an error opening the file
+     * @throws RuntimeException if there is an error opening the file
      */
     public static BufferedReader createBufferedReader( File file )
     {
@@ -291,7 +291,7 @@ public class IOHelper
      *                  file to read from
      * @return          instance of {@link BufferedReader} for reading from
      *                  the named file
-     * @throws IOException if there is an error opening the file
+     * @throws RuntimeException if there is an error opening the file
      */
     public static BufferedReader createBufferedReader( String pathname )
     {
@@ -329,7 +329,7 @@ public class IOHelper
      * @param url  the URL to read from
      * @return     instance of {@link BufferedReader} for reading from
      *             the URL
-     * @throws IOException if there is an error opening the URL
+     * @throws RuntimeException if there is an error opening the URL
      */
     public static BufferedReader createBufferedReader( URL url )
     {
@@ -386,8 +386,8 @@ public class IOHelper
      * @param url  a string denoting a URL to read from
      * @return     instance of {@link BufferedReader} for reading from
      *             the given URL
-     * @throws IOException if there is an error opening the URL or the
-     *                     url is syntactically incorrect
+     * @throws RuntimeException if there is an error opening the URL or the
+     *                     URL is syntactically incorrect
      */
     public static BufferedReader createBufferedReaderForURL( String url )
     {

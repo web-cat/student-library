@@ -587,6 +587,11 @@ public class CSVDataTable
 
 
     // ----------------------------------------------------------
+    /**
+     * Get the URL used to load this data table.
+     * @return The URL used to load this data table, or null if it was
+     * not loaded from a URL.
+     */
     public String getUrl()
     {
         return url;
@@ -703,8 +708,6 @@ public class CSVDataTable
     * value that is set with the setDelimiter() method.
     *
     * @param filename the path to the file to save the CSVDataTable to.
-    * @throws IOException when there is a problem writing to the file.
-    *
     */
     public void save(String filename)
     {
