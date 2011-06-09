@@ -159,13 +159,11 @@ public class Reflection
      * result is "or"ed together.
      * @param filter The filter to alter.
      * @param <ConcreteFilterType> This type is deduced from the filter.
-     * @param <FilteredObjectType> This type is deduced from the filter.
      * @return A new filter that behaves like the different one, but uses
      * the desired quantification strategy.
      */
-    public static <ConcreteFilterType, FilteredObjectType>
-        ConcreteFilterType atLeastOne(
-        Filter<ConcreteFilterType, FilteredObjectType> filter)
+    public static <ConcreteFilterType extends Filter<ConcreteFilterType, ?>>
+        ConcreteFilterType atLeastOne(ConcreteFilterType filter)
     {
         return Filter.atLeastOne(filter);
     }
@@ -178,13 +176,11 @@ public class Reflection
      * result is "xor"ed together.
      * @param filter The filter to alter.
      * @param <ConcreteFilterType> This type is deduced from the filter.
-     * @param <FilteredObjectType> This type is deduced from the filter.
      * @return A new filter that behaves like the different one, but uses
      * the desired quantification strategy.
      */
-    public static <ConcreteFilterType, FilteredObjectType>
-        ConcreteFilterType onlyOne(
-        Filter<ConcreteFilterType, FilteredObjectType> filter)
+    public static <ConcreteFilterType extends Filter<ConcreteFilterType, ?>>
+        ConcreteFilterType onlyOne(ConcreteFilterType filter)
     {
         return Filter.onlyOne(filter);
     }
@@ -197,13 +193,11 @@ public class Reflection
      * result is "and"ed together.
      * @param filter The filter to alter.
      * @param <ConcreteFilterType> This type is deduced from the filter.
-     * @param <FilteredObjectType> This type is deduced from the filter.
      * @return A new filter that behaves like the different one, but uses
      * the desired quantification strategy.
      */
-    public static <ConcreteFilterType, FilteredObjectType>
-        ConcreteFilterType every(
-        Filter<ConcreteFilterType, FilteredObjectType> filter)
+    public static <ConcreteFilterType extends Filter<ConcreteFilterType, ?>>
+        ConcreteFilterType every(ConcreteFilterType filter)
     {
         return Filter.every(filter);
     }

@@ -37,7 +37,7 @@ import java.lang.reflect.Modifier;
  *  @author  Last changed by $Author$
  *  @version $Revision$, $Date$
  */
-public abstract class VisibilityFilter<ConcreteFilterType, FilteredObjectType>
+public abstract class ModifierFilter<ConcreteFilterType, FilteredObjectType>
     extends Filter<ConcreteFilterType, FilteredObjectType>
 {
     //~ Fields ................................................................
@@ -55,8 +55,9 @@ public abstract class VisibilityFilter<ConcreteFilterType, FilteredObjectType>
      * @param descriptionOfConstraint A description of the constraint imposed
      * by this filter (just one step in the chain).
      */
-    protected VisibilityFilter(
-        Filter<?, ?> previous, String descriptionOfConstraint)
+    protected ModifierFilter(
+        ModifierFilter<ConcreteFilterType, FilteredObjectType> previous,
+        String descriptionOfConstraint)
     {
         super(previous, descriptionOfConstraint);
     }
@@ -246,10 +247,10 @@ public abstract class VisibilityFilter<ConcreteFilterType, FilteredObjectType>
                 return true;
             }
             else if (previousFilter() != null
-                && previousFilter() instanceof VisibilityFilter)
+                && previousFilter() instanceof ModifierFilter)
             {
                 @SuppressWarnings("rawtypes")
-                VisibilityFilter filter = (VisibilityFilter)previousFilter();
+                ModifierFilter filter = (ModifierFilter)previousFilter();
                 return filter.hasModifiers(remaining);
             }
             else
@@ -303,10 +304,10 @@ public abstract class VisibilityFilter<ConcreteFilterType, FilteredObjectType>
                 return true;
             }
             else if (previousFilter() != null
-                && previousFilter() instanceof VisibilityFilter)
+                && previousFilter() instanceof ModifierFilter)
             {
                 @SuppressWarnings("rawtypes")
-                VisibilityFilter filter = (VisibilityFilter)previousFilter();
+                ModifierFilter filter = (ModifierFilter)previousFilter();
                 return filter.doesNotHaveModifiers(remaining);
             }
             else
@@ -364,10 +365,10 @@ public abstract class VisibilityFilter<ConcreteFilterType, FilteredObjectType>
     protected int defaultRequiredModifiers()
     {
         if (previousFilter() != null
-            && previousFilter() instanceof VisibilityFilter)
+            && previousFilter() instanceof ModifierFilter)
         {
             @SuppressWarnings("rawtypes")
-            VisibilityFilter filter = (VisibilityFilter)previousFilter();
+            ModifierFilter filter = (ModifierFilter)previousFilter();
             return filter.defaultRequiredModifiers();
         }
         return Modifier.PUBLIC;
@@ -395,10 +396,10 @@ public abstract class VisibilityFilter<ConcreteFilterType, FilteredObjectType>
     protected int defaultMustNotHaveModifiers()
     {
         if (previousFilter() != null
-            && previousFilter() instanceof VisibilityFilter)
+            && previousFilter() instanceof ModifierFilter)
         {
             @SuppressWarnings("rawtypes")
-            VisibilityFilter filter = (VisibilityFilter)previousFilter();
+            ModifierFilter filter = (ModifierFilter)previousFilter();
             return filter.defaultMustNotHaveModifiers();
         }
         return Modifier.STATIC;
@@ -414,14 +415,15 @@ public abstract class VisibilityFilter<ConcreteFilterType, FilteredObjectType>
      * @param description The description of this constraint.
      * @return The restricted filter.
      */
+    @SuppressWarnings("unchecked")
     protected ConcreteFilterType withModifiers(
         int modifiers, String description)
     {
-        ConcreteFilterType result = createFreshFilter(this, description);
+        ConcreteFilterType result =
+            createFreshFilter((ConcreteFilterType)this, description);
 
-        @SuppressWarnings("unchecked")
-        VisibilityFilter<ConcreteFilterType, FilteredObjectType> filter =
-            (VisibilityFilter<ConcreteFilterType, FilteredObjectType>)result;
+        ModifierFilter<ConcreteFilterType, FilteredObjectType> filter =
+            (ModifierFilter<ConcreteFilterType, FilteredObjectType>)result;
         filter.requiredModifiers = modifiers;
 
         return result;
@@ -437,14 +439,14 @@ public abstract class VisibilityFilter<ConcreteFilterType, FilteredObjectType>
      * @param description The description of this constraint.
      * @return The restricted filter.
      */
+    @SuppressWarnings("unchecked")
     protected ConcreteFilterType withoutModifiers(
         int modifiers, String description)
     {
-        ConcreteFilterType result = createFreshFilter(this, description);
-
-        @SuppressWarnings("unchecked")
-        VisibilityFilter<ConcreteFilterType, FilteredObjectType> filter =
-            (VisibilityFilter<ConcreteFilterType, FilteredObjectType>)result;
+        ConcreteFilterType result =
+            createFreshFilter((ConcreteFilterType)this, description);
+        ModifierFilter<ConcreteFilterType, FilteredObjectType> filter =
+            (ModifierFilter<ConcreteFilterType, FilteredObjectType>)result;
         filter.mustNotHaveModifiers = modifiers;
 
         return result;

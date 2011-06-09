@@ -267,12 +267,13 @@ public abstract class Filter<ConcreteFilterType, FilteredObjectType>
      * @return A new filter that behaves like the different one, but uses
      * the desired quantification strategy.
      */
+    @SuppressWarnings("unchecked")
     public static <ConcreteFilterType, FilteredObjectType>
-        ConcreteFilterType atLeastOne(
-        Filter<ConcreteFilterType, FilteredObjectType> filter)
+        ConcreteFilterType atLeastOne(ConcreteFilterType filter)
     {
-        ConcreteFilterType result = filter.createFreshFilter(filter, null);
-        @SuppressWarnings("unchecked")
+        ConcreteFilterType result =
+            ((Filter<ConcreteFilterType, FilteredObjectType>)filter)
+            .createFreshFilter(filter, null);
         Filter<ConcreteFilterType, FilteredObjectType> f =
             (Filter<ConcreteFilterType, FilteredObjectType>)result;
         f.quantify = f.AT_LEAST_ONE;
@@ -291,12 +292,13 @@ public abstract class Filter<ConcreteFilterType, FilteredObjectType>
      * @return A new filter that behaves like the different one, but uses
      * the desired quantification strategy.
      */
+    @SuppressWarnings("unchecked")
     public static <ConcreteFilterType, FilteredObjectType>
-        ConcreteFilterType onlyOne(
-        Filter<ConcreteFilterType, FilteredObjectType> filter)
+        ConcreteFilterType onlyOne(ConcreteFilterType filter)
     {
-        ConcreteFilterType result = filter.createFreshFilter(filter, null);
-        @SuppressWarnings("unchecked")
+        ConcreteFilterType result =
+            ((Filter<ConcreteFilterType, FilteredObjectType>)filter)
+            .createFreshFilter(filter, null);
         Filter<ConcreteFilterType, FilteredObjectType> f =
             (Filter<ConcreteFilterType, FilteredObjectType>)result;
         f.quantify = f.ONLY_ONE;
@@ -315,12 +317,13 @@ public abstract class Filter<ConcreteFilterType, FilteredObjectType>
      * @return A new filter that behaves like the different one, but uses
      * the desired quantification strategy.
      */
+    @SuppressWarnings("unchecked")
     public static <ConcreteFilterType, FilteredObjectType>
-        ConcreteFilterType every(
-        Filter<ConcreteFilterType, FilteredObjectType> filter)
+        ConcreteFilterType every(ConcreteFilterType filter)
     {
-        ConcreteFilterType result = filter.createFreshFilter(filter, null);
-        @SuppressWarnings("unchecked")
+        ConcreteFilterType result =
+            ((Filter<ConcreteFilterType, FilteredObjectType>)filter)
+            .createFreshFilter(filter, null);
         Filter<ConcreteFilterType, FilteredObjectType> f =
             (Filter<ConcreteFilterType, FilteredObjectType>)result;
         f.quantify = f.EVERY;
@@ -341,7 +344,7 @@ public abstract class Filter<ConcreteFilterType, FilteredObjectType>
      */
     protected abstract ConcreteFilterType
         createFreshFilter(
-            Filter<?, ?> previous, String descriptionOfThisStage);
+            ConcreteFilterType previous, String descriptionOfThisStage);
 
 
     // ----------------------------------------------------------

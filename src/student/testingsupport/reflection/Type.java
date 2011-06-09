@@ -31,6 +31,8 @@ import student.testingsupport.reflection.internal.Types;
 /**
  *  TODO: document.
  *
+ *  TODO: add annotation support.
+ *
  *  @param <ClassType> If present, this is a constraint on the type that
  *  this object represents.
  *
@@ -78,14 +80,13 @@ public class Type<ClassType>
      * @param descriptionOfThisStage A description of this stage in the
      * filter chain.
      */
-    protected Type(Filter<?, ?> previous, String descriptionOfThisStage)
+    protected Type(Type<ClassType> previous, String descriptionOfThisStage)
     {
         super(previous, descriptionOfThisStage);
     }
 
 
     //~ Public Methods ........................................................
-
 
     // ----------------------------------------------------------
     /**
@@ -215,15 +216,16 @@ public class Type<ClassType>
      * @return A constrained version of this type that represents a
      *         subclass of the given superClass.
      */
+    @SuppressWarnings("unchecked")
     public <T> Type<T> as(final Class<T> superClass)
     {
         if (superClass == null)
         {
-            @SuppressWarnings("unchecked")
             Type<T> result = (Type<T>)type;
             return result;
         }
-        return new Type<T>(this, "as " + superClass.getCanonicalName())
+        return new Type<T>(
+            (Type<T>)this, "as " + superClass.getCanonicalName())
         {
             private Type<T> clazz = type(superClass);
             @Override
@@ -244,15 +246,16 @@ public class Type<ClassType>
      * @return A constrained version of this type that represents a
      *         subclass of the given superClass.
      */
+    @SuppressWarnings("unchecked")
     public <T> Type<T> as(final Type<T> superClass)
     {
         if (superClass == null)
         {
-            @SuppressWarnings("unchecked")
             Type<T> result = (Type<T>)type;
             return result;
         }
-        return new Type<T>(this, "as " + superClass.getNameOrUnknown())
+        return new Type<T>(
+            (Type<T>)this, "as " + superClass.getNameOrUnknown())
         {
             @Override
             protected boolean thisFilterAccepts(Class<T> object)
@@ -298,16 +301,16 @@ public class Type<ClassType>
      * @param <T> This parameter is deduced from the superClass.
      * @return The restricted filter.
      */
+    @SuppressWarnings("unchecked")
     public <T> Type<T> extendingClass(final Type<T> superClass)
     {
         if (superClass == null)
         {
-            @SuppressWarnings("unchecked")
             Type<T> result = (Type<T>)type;
             return result;
         }
         return new Type<T>(
-            this, "extending class " + superClass.getNameOrUnknown())
+            (Type<T>)this, "extending class " + superClass.getNameOrUnknown())
         {
             @Override
             protected boolean thisFilterAccepts(Class<T> object)
@@ -400,16 +403,17 @@ public class Type<ClassType>
      * @param <T> This parameter is deduced from anInterface.
      * @return The restricted type filter.
      */
+    @SuppressWarnings("unchecked")
     public <T> Type<T> implementingInterface(final Type<T> anInterface)
     {
         if (anInterface == null)
         {
-            @SuppressWarnings("unchecked")
             Type<T> result = (Type<T>)type;
             return result;
         }
         return new Type<T>(
-            this, "implementing interface " + anInterface.getNameOrUnknown())
+            (Type<T>)this,
+            "implementing interface " + anInterface.getNameOrUnknown())
         {
             @Override
             protected boolean thisFilterAccepts(Class<T> object)
@@ -592,6 +596,30 @@ public class Type<ClassType>
     public boolean isAbstract()
     {
         return hasModifiers(Modifier.ABSTRACT);
+    }
+
+
+    // ----------------------------------------------------------
+    /**
+     * Restrict this filter to only admit declarations of abstract classes.
+     * @return The restricted filter.
+     */
+    @SuppressWarnings("unchecked")
+    public Type<ClassType> declaredAsAnnotation()
+    {
+        return (Type<ClassType>)implementingInterface(
+            java.lang.annotation.Annotation.class);
+    }
+
+
+    // ----------------------------------------------------------
+    /**
+     * Determine whether this type is an abstract class.
+     * @return True if this is an abstract class.
+     */
+    public boolean isAnnotation()
+    {
+        return implementsInterface(java.lang.annotation.Annotation.class);
     }
 
 
@@ -858,7 +886,7 @@ public class Type<ClassType>
     // ----------------------------------------------------------
     @Override
     protected Type<ClassType> createFreshFilter(
-        Filter<?, ?> previous, String descriptionOfThisStage)
+        Type<ClassType> previous, String descriptionOfThisStage)
     {
         return new Type<ClassType>(previous, descriptionOfThisStage);
     }

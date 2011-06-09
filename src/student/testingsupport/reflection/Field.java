@@ -55,7 +55,7 @@ public class Field<FieldType>
      * @param descriptionOfThisStage A description of this stage in the
      * filter chain.
      */
-    protected Field(Filter<?, ?> previous, String descriptionOfThisStage)
+    protected Field(Field<FieldType> previous, String descriptionOfThisStage)
     {
         super(previous, descriptionOfThisStage);
     }
@@ -106,15 +106,16 @@ public class Field<FieldType>
      * @param <T> TODO: describe
      * @return TODO: describe
      */
+    @SuppressWarnings("unchecked")
     public <T> Field<T> ofType(final Class<T> type)
     {
         if (type == null)
         {
-            @SuppressWarnings("unchecked")
             Field<T> result = (Field<T>)this;
             return result;
         }
-        return new Field<T>(this, "of type " + type.getCanonicalName())
+        return new Field<T>(
+            (Field<T>)this, "of type " + type.getCanonicalName())
         {
             // ----------------------------------------------------------
             @Override
@@ -750,7 +751,7 @@ public class Field<FieldType>
     // ----------------------------------------------------------
     @Override
     protected Field<FieldType> createFreshFilter(
-        Filter<?, ?> previous, String descriptionOfThisStage)
+        Field<FieldType> previous, String descriptionOfThisStage)
     {
         return new Field<FieldType>(previous, descriptionOfThisStage);
     }

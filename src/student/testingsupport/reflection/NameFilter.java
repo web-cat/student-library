@@ -38,7 +38,7 @@ import java.util.regex.Pattern;
  *  @version $Revision$, $Date$
  */
 public abstract class NameFilter<ConcreteFilterType, FilteredObjectType>
-    extends VisibilityFilter<ConcreteFilterType, FilteredObjectType>
+    extends AnnotationFilter<ConcreteFilterType, FilteredObjectType>
 {
     //~ Fields ................................................................
 
@@ -56,7 +56,9 @@ public abstract class NameFilter<ConcreteFilterType, FilteredObjectType>
      * @param descriptionOfConstraint A description of the constraint imposed
      * by this filter (just one step in the chain).
      */
-    protected NameFilter(Filter<?, ?> previous, String descriptionOfConstraint)
+    protected NameFilter(
+        NameFilter<ConcreteFilterType, FilteredObjectType> previous,
+        String descriptionOfConstraint)
     {
         super(previous, descriptionOfConstraint);
         requiredName = null;
@@ -72,18 +74,17 @@ public abstract class NameFilter<ConcreteFilterType, FilteredObjectType>
      * @param name The name required by the resulting filter.
      * @return A new filter with the given restriction.
      */
+    @SuppressWarnings("unchecked")
     public ConcreteFilterType withName(String name)
     {
         if (name == null)
         {
-            @SuppressWarnings("unchecked")
             ConcreteFilterType result = (ConcreteFilterType)this;
             return result;
         }
         ConcreteFilterType result = createFreshFilter(
-            this, "with name \"" + name + '"');
+            (ConcreteFilterType)this, "with name \"" + name + '"');
 
-        @SuppressWarnings("unchecked")
         NameFilter<ConcreteFilterType, FilteredObjectType> filter =
             (NameFilter<ConcreteFilterType, FilteredObjectType>)result;
         filter.requiredName = name;
@@ -99,18 +100,17 @@ public abstract class NameFilter<ConcreteFilterType, FilteredObjectType>
      * @param pattern The pattern required by the resulting filter
      * @return A new filter with the given restriction.
      */
+    @SuppressWarnings("unchecked")
     public ConcreteFilterType withNameMatching(Pattern pattern)
     {
         if (pattern == null)
         {
-            @SuppressWarnings("unchecked")
             ConcreteFilterType result = (ConcreteFilterType)this;
             return result;
         }
         ConcreteFilterType result = createFreshFilter(
-            this, "with name matching \"" + pattern + '"');
+            (ConcreteFilterType)this, "with name matching \"" + pattern + '"');
 
-        @SuppressWarnings("unchecked")
         NameFilter<ConcreteFilterType, FilteredObjectType> filter =
             (NameFilter<ConcreteFilterType, FilteredObjectType>)result;
         filter.matchPattern = pattern;
@@ -146,18 +146,17 @@ public abstract class NameFilter<ConcreteFilterType, FilteredObjectType>
      * @param pattern The pattern required by the resulting filter
      * @return A new filter with the given restriction.
      */
+    @SuppressWarnings("unchecked")
     public ConcreteFilterType withNameContaining(Pattern pattern)
     {
         if (pattern == null)
         {
-            @SuppressWarnings("unchecked")
             ConcreteFilterType result = (ConcreteFilterType)this;
             return result;
         }
         ConcreteFilterType result = createFreshFilter(
-            this, "with name matching \"" + pattern + '"');
+            (ConcreteFilterType)this, "with name matching \"" + pattern + '"');
 
-        @SuppressWarnings("unchecked")
         NameFilter<ConcreteFilterType, FilteredObjectType> filter =
             (NameFilter<ConcreteFilterType, FilteredObjectType>)result;
         filter.containsPattern = pattern;
