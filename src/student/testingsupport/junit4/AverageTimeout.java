@@ -1,3 +1,24 @@
+/*==========================================================================*\
+ |  $Id$
+ |*-------------------------------------------------------------------------*|
+ |  Copyright (C) 2011 Virginia Tech
+ |
+ |  This file is part of the Student-Library.
+ |
+ |  The Student-Library is free software; you can redistribute it and/or
+ |  modify it under the terms of the GNU Lesser General Public License as
+ |  published by the Free Software Foundation; either version 3 of the
+ |  License, or (at your option) any later version.
+ |
+ |  The Student-Library is distributed in the hope that it will be useful,
+ |  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ |  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ |  GNU Lesser General Public License for more details.
+ |
+ |  You should have received a copy of the GNU Lesser General Public License
+ |  along with the Student-Library; if not, see <http://www.gnu.org/licenses/>.
+\*==========================================================================*/
+
 package student.testingsupport.junit4;
 
 import org.junit.internal.runners.statements.FailOnTimeout;
@@ -5,14 +26,23 @@ import org.junit.rules.MethodRule;
 import org.junit.runners.model.FrameworkMethod;
 import org.junit.runners.model.Statement;
 
+//-------------------------------------------------------------------------
 /**
- * Attemps to give test methods in a class enough time to execute, while at the
- * same time watching out for long-running methods, based on the running
+ * Attempts to give test methods in a class enough time to execute, while at
+ * the same time watching out for long-running methods, based on the running
  * average.
  *
+ * This class is really just a proof-of-concept class for experimental
+ * purposes.
+ *
  * @author Craig Estep
+ * @author Last changed by $Author$
+ * @version $Revision$, $Date$
  */
-public class AverageTimeout implements MethodRule {
+public class AverageTimeout
+    implements MethodRule
+{
+    //~ Instance/static variables .............................................
 
 	private static long start;
 	private static long last;
@@ -27,24 +57,31 @@ public class AverageTimeout implements MethodRule {
 
 	private int count;
 
+
+    //~ Constructors ..........................................................
+
+    // ----------------------------------------------------------
 	/**
 	 * Sets the default values of 5x average runtime when a test has not timed
 	 * out, and a 2x multiplier if one has.
 	 */
-	public AverageTimeout() {
+	public AverageTimeout()
+	{
 		this(5, 2);
 	}
 
+
+    // ----------------------------------------------------------
 	/**
 	 * Sets the multipliers to the values provided.
 	 *
-	 * @param allowanceMultiplier
-	 *            the multiplier on the average that each method is allowed
-	 *            before a timeout has occurred.
-	 * @param strictMultiplier
-	 *            the multiplier after a timout has occurred.
+	 * @param allowanceMultiplier  the multiplier on the average that each
+	 *                             method is allowed before a timeout has
+	 *                             occurred.
+	 * @param strictMultiplier     the multiplier after a timout has occurred.
 	 */
-	public AverageTimeout(int allowanceMultiplier, int strictMultiplier) {
+	public AverageTimeout(int allowanceMultiplier, int strictMultiplier)
+	{
 		start = System.currentTimeMillis();
 		last = start;
 		allowance = allowanceMultiplier;
@@ -55,21 +92,27 @@ public class AverageTimeout implements MethodRule {
 		// times = new ArrayList<Integer>();
 	}
 
+
+    //~ Methods ...............................................................
+
+    // ----------------------------------------------------------
 	/**
-	 * Applies the appropriate multiplier to the running average and gives this
-	 * method that as the maximum running time before timeout.
+	 * Applies the appropriate multiplier to the running average and gives
+	 * this method that as the maximum running time before timeout.
 	 */
 	public Statement apply(
 	    Statement base, FrameworkMethod method, Object target)
 	{
 		long curr = System.currentTimeMillis();
 
-		if (last != start) {
+		if (last != start)
+		{
 			int diff = (int) (curr - last);
 			boolean exceeded = false;
 			int t = (avg * ((exceeded) ? strict : allowance));
 			// System.out.println("d: " + diff + ", t: " + t);
-			if (t > 0 && diff > t) {
+			if (t > 0 && diff > t)
+			{
 				exceeded = true;
 				// System.out.println("timeout detected");
 			}
@@ -79,7 +122,8 @@ public class AverageTimeout implements MethodRule {
 			// System.out.println("last method took " + diff + "ms. Average "
 			// + avg + "ms");
 
-			if (exceeded) {
+			if (exceeded)
+			{
 				// System.out.println("last method timed out");
 				this.exceeded = true;
 			}
@@ -87,20 +131,26 @@ public class AverageTimeout implements MethodRule {
 		last = curr;
 		count++;
 
-		if (avg != 0) {
+		if (avg != 0)
+		{
 			// if (exceeded)
 			// System.out.println("timeout was exceeded previously");
 			int timeout = (exceeded) ? avg * strict : avg * allowance;
 			// System.out.println("giving next test " + timeout + "ms to run");
 			return new FailOnTimeout(base, timeout);
 		} else
+		{
 			return base;
+		}
 	}
 
+
+    // ----------------------------------------------------------
 	/**
 	 * Prints statistics of run tests to the console.
 	 */
-	public void printStats() {
+	public void printStats()
+	{
 		System.out.println();
 		System.out.println("printing adaptive timeout stats");
 		System.out.println(count + " test(s) run");
@@ -109,8 +159,12 @@ public class AverageTimeout implements MethodRule {
 		avg = (int) ((curr - start) / count);
 		System.out.println("average: " + avg + "ms");
 		if (exceeded)
+		{
 			System.out.println("a test timed out");
+		}
 		else
+		{
 			System.out.println("no tests timed out");
+		}
 	}
 }
