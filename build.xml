@@ -3,6 +3,7 @@
   <property name="jar.file" value="${ant.project.name}.jar"/>
   <property name="jar.web.file" value="${ant.project.name}-web.jar"/>
   <property file="build.properties"/>
+  <property file="${user.home}/build.properties"/>
   <property name="tmpdir" value="${java.io.tmpdir}/" />
 
   <target name="export.jar" depends="compile"
@@ -36,6 +37,8 @@
       <fileset dir="${build.classes}">
         <exclude name="student/web/internal/tests/"/>
         <exclude name="student/tests/"/>
+        <exclude name="student/testingsupport/reflection/test/"/>
+        <exclude name="Foo.java"/>
       </fileset>
       <fileset dir="." includes="COPYING, COPYING.LESSER, LICENSE"/>
       <zipfileset src="${build.lib}/utils.jar">
