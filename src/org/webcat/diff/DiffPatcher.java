@@ -263,11 +263,11 @@ public class DiffPatcher<T>
             {
                 // patch_splitMax will only provide an oversized pattern in the case of
                 // a monster delete.
-                start_loc = new DiffMatcher(list, list1.subList(0,
+                start_loc = new DiffMatcher<T>(list, list1.subList(0,
                         this.Match_MaxBits), expected_loc, comparator).getBestMatchIndex();
                 if (start_loc != -1)
                 {
-                    end_loc = new DiffMatcher(list, list1.subList(list1.size()
+                    end_loc = new DiffMatcher<T>(list, list1.subList(list1.size()
                             - this.Match_MaxBits, list1.size()), expected_loc
                             + list1.size() - this.Match_MaxBits, comparator).getBestMatchIndex();
                     if (end_loc == -1 || start_loc >= end_loc)
@@ -279,7 +279,7 @@ public class DiffPatcher<T>
             }
             else
             {
-                start_loc = new DiffMatcher(list, list1, expected_loc, comparator).getBestMatchIndex();
+                start_loc = new DiffMatcher<T>(list, list1, expected_loc, comparator).getBestMatchIndex();
             }
             if (start_loc == -1)
             {
@@ -315,7 +315,7 @@ public class DiffPatcher<T>
                 {
                     // Imperfect match.  Run a diff to get a framework of equivalent
                     // indices.
-                    DiffList<T> diffs = new Differ(list1, list2, comparator).getDifferences();
+                    DiffList<T> diffs = new Differ<T>(list1, list2, comparator).getDifferences();
                     if (list1.size() > this.Match_MaxBits
                             && diffs.getLevenshteinDistance() / (float) list1.size() > this.Patch_DeleteThreshold)
                     {
@@ -326,7 +326,7 @@ public class DiffPatcher<T>
                     {
                         //diff_cleanupSemanticLossless(diffs);
                         int index1 = 0;
-                        for (Diff aDiff : aPatch.diffs)
+                        for (Diff<T> aDiff : aPatch.diffs)
                         {
                             if (aDiff.operation != Diff.Operation.EQUAL)
                             {
@@ -404,7 +404,7 @@ public class DiffPatcher<T>
         else if (paddingLength > diffs.getFirst().list.size())
         {
             // Grow first equality.
-            Diff firstDiff = diffs.getFirst();
+            Diff<T> firstDiff = diffs.getFirst();
             int extraLength = paddingLength - firstDiff.list.size();
             firstDiff.list = addLists(
                     nullPadding.subList(firstDiff.list.size(), nullPadding.size()),
@@ -428,7 +428,7 @@ public class DiffPatcher<T>
         else if (paddingLength > diffs.getLast().list.size())
         {
             // Grow last equality.
-            Diff lastDiff = diffs.getLast();
+            Diff<T> lastDiff = diffs.getLast();
             int extraLength = paddingLength - lastDiff.list.size();
             lastDiff.list = addLists(lastDiff.list, nullPadding.subList(0, extraLength));
             patch.length1 += extraLength;

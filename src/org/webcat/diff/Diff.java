@@ -15,9 +15,14 @@ public class Diff<T>
      * Diff(Operation.EQUAL, " world.")} which means: delete "Hello", add
      * "Goodbye" and keep " world."
      */
-    public enum Operation
+    public static enum Operation
     {
-        DELETE, INSERT, EQUAL
+        /** Represents a deletion operation. */
+        DELETE,
+        /** Represents an insertion operation. */
+        INSERT,
+        /** Represents a "keep unchanged" operation. */
+        EQUAL
     }
 
     /**
@@ -57,7 +62,7 @@ public class Diff<T>
     public String toString()
     {
         String prettyText = this.list.toString();
-        return "Diff(" + this.operation + ",\"" + prettyText + "\")";
+        return "Diff(" + this.operation + ", \"" + prettyText + "\")";
     }
 
 
@@ -71,12 +76,14 @@ public class Diff<T>
      */
     public boolean equals(Object d)
     {
-        try
+        if (d instanceof Diff)
         {
-            return (((Diff) d).operation == this.operation)
-                    && (((Diff) d).list.equals(this.list));
+            @SuppressWarnings("unchecked")
+            Diff<T> other = (Diff<T>)d;
+            return (other.operation == this.operation)
+                && other.list.equals(this.list);
         }
-        catch (ClassCastException e)
+        else
         {
             return false;
         }

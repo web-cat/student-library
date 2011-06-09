@@ -35,7 +35,7 @@ import java.util.List;
  */
 public class Differ<T>
 {
-	
+
     //~ Static/instance variables .............................................
 
     private Comparator<T> comparator;
@@ -95,7 +95,7 @@ public class Differ<T>
      *            slightly less optimal diff.
      * @return Linked List of Diff objects.
      */
-    private DiffList doDiff(List<T> text1, List<T> text2)
+    private DiffList<T> doDiff(List<T> text1, List<T> text2)
     {
         // Check for null inputs.
         if (text1 == null || text2 == null)
@@ -104,10 +104,10 @@ public class Differ<T>
         }
 
         // Check for equality (speedup).
-        DiffList diffs;
+        DiffList<T> diffs;
         if (text1.equals(text2))
         {
-            diffs = new DiffList();
+            diffs = new DiffList<T>();
             if (text1.size() != 0)
             {
                 diffs.add(new Diff<T>(Diff.Operation.EQUAL, text1));
@@ -162,9 +162,9 @@ public class Differ<T>
      *            Time when the diff should be complete by.
      * @return Linked List of Diff objects.
      */
-    private DiffList compute(List<T> text1, List<T> text2)
+    private DiffList<T> compute(List<T> text1, List<T> text2)
     {
-        DiffList diffs = new DiffList();
+        DiffList<T> diffs = new DiffList<T>();
 
         if (text1.size() == 0)
         {
@@ -215,8 +215,8 @@ public class Differ<T>
             List<T> text2_b = hm[3];
             List<T> mid_common = hm[4];
             // Send both pairs off for separate processing.
-            DiffList diffs_a = doDiff(text1_a, text2_a);
-            DiffList diffs_b = doDiff(text1_b, text2_b);
+            DiffList<T> diffs_a = doDiff(text1_a, text2_a);
+            DiffList<T> diffs_b = doDiff(text1_b, text2_b);
             // Merge the results.
             diffs = diffs_a;
             diffs.add(new Diff<T>(Diff.Operation.EQUAL, mid_common));
@@ -242,7 +242,7 @@ public class Differ<T>
      *            Time at which to bail if not yet complete.
      * @return LinkedList of Diff objects.
      */
-    private DiffList bisect(List<T> text1, List<T> text2)
+    private DiffList<T> bisect(List<T> text1, List<T> text2)
     {
         // Cache the text lengths to prevent multiple calls.
         int text1_length = text1.size();
@@ -375,7 +375,7 @@ public class Differ<T>
         }
         // Diff took too long and hit the deadline or
         // number of diffs equals number of characters, no commonality at all.
-        DiffList diffs = new DiffList();
+        DiffList<T> diffs = new DiffList<T>();
         diffs.add(new Diff<T>(Diff.Operation.DELETE, text1));
         diffs.add(new Diff<T>(Diff.Operation.INSERT, text2));
         return diffs;
@@ -399,7 +399,7 @@ public class Differ<T>
      *            Time at which to bail if not yet complete.
      * @return LinkedList of Diff objects.
      */
-    private DiffList bisectSplit(List<T> text1, List<T> text2,
+    private DiffList<T> bisectSplit(List<T> text1, List<T> text2,
             int x, int y)
     {
         List<T> text1a = text1.subList(0, x);
@@ -408,8 +408,8 @@ public class Differ<T>
         List<T> text2b = text2.subList(y, text2.size());
 
         // Compute both diffs serially.
-        DiffList diffs = doDiff(text1a, text2a);
-        DiffList diffsb = doDiff(text1b, text2b);
+        DiffList<T> diffs = doDiff(text1a, text2a);
+        DiffList<T> diffsb = doDiff(text1b, text2b);
 
         diffs.addAll(diffsb);
         return diffs;

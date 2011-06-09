@@ -69,7 +69,7 @@ public class Patch<T>
                 .append(" @@\n");
 
         // Escape the body of the patch with %xx notation.
-        for (Diff aDiff : this.diffs)
+        for (Diff<T> aDiff : this.diffs)
         {
             switch (aDiff.operation)
             {

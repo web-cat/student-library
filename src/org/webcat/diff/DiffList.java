@@ -22,16 +22,13 @@ public class DiffList<T> extends LinkedList<Diff<T>>
     // ----------------------------------------------------------
     /**
      * Compute and return the source text (all equalities and deletions).
-     *
-     * @param diffs
-     *            LinkedList of Diff objects.
      * @return Source text.
      */
     public List<T> computeFirstList()
     {
         ArrayList<T> list = new ArrayList<T>();
 
-        for (Diff aDiff : this)
+        for (Diff<T> aDiff : this)
         {
             if (aDiff.operation != Diff.Operation.INSERT)
             {
@@ -46,16 +43,13 @@ public class DiffList<T> extends LinkedList<Diff<T>>
     // ----------------------------------------------------------
     /**
      * Compute and return the destination text (all equalities and insertions).
-     *
-     * @param diffs
-     *            LinkedList of Diff objects.
      * @return Destination text.
      */
     public List<T> computeSecondList()
     {
         ArrayList<T> list = new ArrayList<T>();
 
-        for (Diff aDiff : this)
+        for (Diff<T> aDiff : this)
         {
             if (aDiff.operation != Diff.Operation.DELETE)
             {
@@ -71,9 +65,6 @@ public class DiffList<T> extends LinkedList<Diff<T>>
     /**
      * Compute the Levenshtein distance; the number of inserted, deleted or
      * substituted characters.
-     *
-     * @param diffs
-     *            LinkedList of Diff objects.
      * @return Number of changes.
      */
     public int getLevenshteinDistance()
@@ -82,7 +73,7 @@ public class DiffList<T> extends LinkedList<Diff<T>>
         int insertions = 0;
         int deletions = 0;
 
-        for (Diff aDiff : this)
+        for (Diff<T> aDiff : this)
         {
             switch (aDiff.operation)
             {
@@ -110,11 +101,9 @@ public class DiffList<T> extends LinkedList<Diff<T>>
 
     // ----------------------------------------------------------
     /**
-     * loc is a location in text1, compute and return the equivalent location in
-     * text2. e.g. "The cat" vs "The big cat", 1->1, 5->8
+     * loc is a location in text1, compute and return the equivalent location
+     * in text2. e.g. "The cat" vs "The big cat", 1->1, 5->8
      *
-     * @param diffs
-     *            LinkedList of Diff objects.
      * @param loc
      *            Location within text1.
      * @return Location within text2.
@@ -126,8 +115,8 @@ public class DiffList<T> extends LinkedList<Diff<T>>
         int last_chars1 = 0;
         int last_chars2 = 0;
 
-        Diff lastDiff = null;
-        for (Diff aDiff : this)
+        Diff<T> lastDiff = null;
+        for (Diff<T> aDiff : this)
         {
             if (aDiff.operation != Diff.Operation.INSERT)
             {
