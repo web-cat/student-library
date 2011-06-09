@@ -668,13 +668,13 @@ public class Robot implements AWTConstants {
         if (eventPostDelay > autoDelay) {
             delay(eventPostDelay - autoDelay);
         }
-        Collection queues = tracker.getEventQueues();
+        Collection<?> queues = tracker.getEventQueues();
         if (queues.size() == 1) {
             waitForIdle(toolkit.getSystemEventQueue());
         }
         else {
             // FIXME this resurrects dead event queues
-            Iterator iter = queues.iterator();
+            Iterator<?> iter = queues.iterator();
             while (iter.hasNext()) {
                 EventQueue eq = (EventQueue)iter.next();
                 waitForIdle(eq);

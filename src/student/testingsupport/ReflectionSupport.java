@@ -506,11 +506,11 @@ public class ReflectionSupport
         Object ... params)
     {
         Object result = null;
-        Class targetClass = receiver.getClass();
-        Class[] paramProfile = null;
+        Class<?> targetClass = receiver.getClass();
+        Class<?>[] paramProfile = null;
         if (params != null)
         {
-            paramProfile = new Class[params.length];
+            paramProfile = new Class<?>[params.length];
             for (int i = 0; i < params.length; i++)
             {
                 if ( params[i] == null)
@@ -670,11 +670,11 @@ public class ReflectionSupport
         throws Exception
     {
         Object result = null;
-        Class targetClass = receiver.getClass();
-        Class[] paramProfile = null;
+        Class<?> targetClass = receiver.getClass();
+        Class<?>[] paramProfile = null;
         if (params != null)
         {
-            paramProfile = new Class[params.length];
+            paramProfile = new Class<?>[params.length];
             for (int i = 0; i < params.length; i++)
             {
                 if ( params[i] == null)
@@ -916,11 +916,13 @@ public class ReflectionSupport
      * any thrown exceptions into RuntimeExceptions.
      * @param constructor The constructor to invoke
      * @param params The parameters to pass to the constructor
+     * @param <T> The generic parameter T is deduced from the provided
+     *            constructor
      * @return The newly created object
      */
-    public static Object create(Constructor<?> constructor, Object ... params)
+    public static <T> T create(Constructor<T> constructor, Object ... params)
     {
-        Object result = null;
+        T result = null;
         try
         {
             result = constructor.newInstance(params);
@@ -968,10 +970,10 @@ public class ReflectionSupport
         Object ... params)
     {
         Object result = null;
-        Class[] paramProfile = null;
+        Class<?>[] paramProfile = null;
         if (params != null)
         {
-            paramProfile = new Class[params.length];
+            paramProfile = new Class<?>[params.length];
             for (int i = 0; i < params.length; i++)
             {
                 if ( params[i] == null)
@@ -986,7 +988,7 @@ public class ReflectionSupport
                 }
             }
         }
-        Constructor c = getMatchingConstructor(returnType, paramProfile);
+        Constructor<?> c = getMatchingConstructor(returnType, paramProfile);
 
         result = create(c, params);
 
@@ -1087,10 +1089,10 @@ public class ReflectionSupport
         throws Exception
     {
         Object result = null;
-        Class[] paramProfile = null;
+        Class<?>[] paramProfile = null;
         if (params != null)
         {
-            paramProfile = new Class[params.length];
+            paramProfile = new Class<?>[params.length];
             for (int i = 0; i < params.length; i++)
             {
                 if ( params[i] == null)
@@ -1105,7 +1107,7 @@ public class ReflectionSupport
                 }
             }
         }
-        Constructor c = getMatchingConstructor(returnType, paramProfile);
+        Constructor<?> c = getMatchingConstructor(returnType, paramProfile);
 
         result = createEx(c, params);
 

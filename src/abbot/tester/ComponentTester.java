@@ -195,7 +195,7 @@ public class ComponentTester extends Robot {
     /** Add any method names here which should <em>not</em> show up in a
         dynamically generated list of property methods.
     */
-    protected static Set IGNORED_METHODS = new HashSet();
+    protected static Set<String> IGNORED_METHODS = new HashSet<String>();
 
     static {
         // Omit from method lookup deprecated methods or others we want to
@@ -208,7 +208,8 @@ public class ComponentTester extends Robot {
     }
 
     /** Maps class names to their corresponding Tester object. */
-    private static HashMap testers = new HashMap();
+    private static HashMap<String, ComponentTester> testers =
+        new HashMap<String, ComponentTester>();
 
     /** Establish the given ComponentTester as the one to use for the given
      * class.  This may be used to override the default tester for a given
@@ -216,7 +217,7 @@ public class ComponentTester extends Robot {
      * the framework class loader, not those loaded by the class loader for
      * the code under test.
      */
-    public static void setTester(Class forClass, ComponentTester tester) {
+    public static void setTester(Class<?> forClass, ComponentTester tester) {
         testers.put(forClass.getName(), tester);
     }
 
@@ -245,9 +246,9 @@ public class ComponentTester extends Robot {
         an instance of the desired type of <code>ComponentTester</code> for
         local use.
     */
-    public static ComponentTester getTester(Class componentClass) {
+    public static ComponentTester getTester(Class<?> componentClass) {
         String className = componentClass.getName();
-        ComponentTester tester = (ComponentTester)testers.get(className);
+        ComponentTester tester = testers.get(className);
         if (tester == null) {
             if (!Component.class.isAssignableFrom(componentClass)) {
                 String msg = "Class " + className
@@ -309,11 +310,13 @@ public class ComponentTester extends Robot {
 
     /** Look up the given class, using special class loading rules to maintain
         framework consistency. */
-    private static Class resolveClass(String testerName, Class componentClass)
-        throws ClassNotFoundException {
+    private static Class<?> resolveClass(
+        String testerName, Class<?> componentClass)
+        throws ClassNotFoundException
+    {
         // Extension testers must be loaded in the context of the code under
         // test.
-        Class cls;
+        Class<?> cls;
         if (testerName.startsWith("abbot.tester.extensions")) {
             cls = Class.forName(testerName, true,
                                 componentClass.getClassLoader());
@@ -328,9 +331,9 @@ public class ComponentTester extends Robot {
 
     /** Look up the given class with a specific class loader. */
     private static ComponentTester findTester(String testerName,
-                                              Class componentClass) {
+                                              Class<?> componentClass) {
         ComponentTester tester = null;
-        Class testerClass = null;
+        Class<?> testerClass = null;
         try {
             testerClass = resolveClass(testerName, componentClass);
             tester = (ComponentTester)testerClass.newInstance();
@@ -395,7 +398,7 @@ public class ComponentTester extends Robot {
     }
 
     /** Returns whether the given class is not a core JRE class. */
-    protected boolean isCustom(Class c) {
+    protected boolean isCustom(Class<?> c) {
         return !(c.getName().startsWith("javax.swing.")
                  || c.getName().startsWith("java.awt."));
     }
@@ -477,7 +480,7 @@ public class ComponentTester extends Robot {
 
     /** Selects an AWT menu item ({@link java.awt.MenuItem}) and returns when
         the invocation has triggered (though not necessarily completed).
-        @param menuFrame
+        @param menuFrame The frame containing the menu to select from.
         @param path either a unique label or the menu path.
         @see Robot#selectAWTMenuItem(Frame,String)
     */
