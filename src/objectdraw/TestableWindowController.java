@@ -143,50 +143,65 @@ public class TestableWindowController extends objectdraw.FrameWindowController
      *
      * @return true if it has the 2D object specified, false if not.
      */
-    public boolean has2DObject(Class<?> shape,
-                      Location loc, Double width, Double height,
-                      java.awt.Color color, Boolean visible)
+    public boolean has2DObject(
+        Class<? extends Drawable2DInterface> shape,
+        Location loc,
+        Double width,
+        Double height,
+        java.awt.Color color,
+        Boolean visible)
     {
         DrawableIterator i = canvas.getDrawableIterator();
 
-        while(i.hasNext()) {
+        while (i.hasNext())
+        {
             DrawableInterface obj = i.next();
-            if(obj instanceof Drawable2DInterface) {
+            if (obj instanceof Drawable2DInterface)
+            {
                 Drawable2DInterface obj2d = (Drawable2DInterface) obj;
-                if(shape != null && !shape.isAssignableFrom(obj2d.getClass())) {
+                if (shape != null && !shape.isAssignableFrom(obj2d.getClass()))
+                {
                     //if the shape is not the same as specified
                     continue;
                 }
-                if(loc != null && ! loc.equals(obj2d.getLocation())) {
+
+                if (loc != null && ! loc.equals(obj2d.getLocation()))
+                {
                     continue;
                 }
 
-                if(width != null && width.doubleValue() != obj2d.getWidth()) {
+                if (width != null && width.doubleValue() != obj2d.getWidth())
+                {
                     continue;
                 }
 
-                if(height != null && height.doubleValue() != obj2d.getHeight()) {
+                if (height != null
+                    && height.doubleValue() != obj2d.getHeight())
+                {
                     continue;
                 }
 
-                if(color != null && ! color.equals(obj2d.getColor())) {
+                if (color != null && ! color.equals(obj2d.getColor()))
+                {
                     continue;
                 }
 
-                if(visible != null && visible.booleanValue() == obj2d.isHidden()) {
+                if (visible != null
+                    && visible.booleanValue() == obj2d.isHidden())
+                {
                     continue;
                 }
-                return true; //all criteria passed
-            } //else it's not a 2d interface so move on.
+                return true; // all criteria passed
+            } // else it's not a 2d interface so move on.
 
-        } //end of while
+        } // end of while
         return false;
     }
 
     /**
-     * get2dObject returns an arbitrary shape that meets the specified parameters.
-     * That arbitrary shape is the first one that appears in the DrawableIterator
-     * for the canvas.  A null parameter can mean "any"
+     * get2dObject returns an arbitrary shape that meets the specified
+     * parameters.  That arbitrary shape is the first one that appears in
+     * the DrawableIterator for the canvas.  A null parameter can mean "any".
      *
      * @param shape     the shape of the object. null for any shape.
      * @param loc       the location of the object on the canvas, null for any
@@ -200,68 +215,88 @@ public class TestableWindowController extends objectdraw.FrameWindowController
      * @return an arbitrary shape that fits the parameters passed, or null
      * if no such element exists.
      */
-    public Drawable2DInterface get2DObject(Class<?> shape,
-                      Location loc, Double width, Double height,
-                      java.awt.Color color, Boolean visible)
+    public Drawable2DInterface get2DObject(
+        Class<? extends Drawable2DInterface> shape,
+        Location loc,
+        Double width,
+        Double height,
+        java.awt.Color color,
+        Boolean visible)
     {
         Drawable2DInterface element = null;
         boolean found = false;
         DrawableIterator i = canvas.getDrawableIterator();
 
-        while(i.hasNext() && !found) {
+        while(i.hasNext() && !found)
+        {
             DrawableInterface obj = i.next();
-            if(obj instanceof Drawable2DInterface) {
+            if (obj instanceof Drawable2DInterface)
+            {
                 Drawable2DInterface obj2d = (Drawable2DInterface) obj;
-                if(shape != null && !shape.isAssignableFrom(obj2d.getClass())) {
+                if (shape != null && !shape.isAssignableFrom(obj2d.getClass()))
+                {
                     //if the shape is not the same as specified
                     continue;
                 }
-                if(loc != null && ! loc.equals(obj2d.getLocation())) {
+
+                if (loc != null && ! loc.equals(obj2d.getLocation()))
+                {
                     continue;
                 }
 
-                if(width != null && width.doubleValue() != obj2d.getWidth()) {
+                if (width != null && width.doubleValue() != obj2d.getWidth())
+                {
                     continue;
                 }
 
-                if(height != null && height.doubleValue() != obj2d.getHeight()) {
+                if (height != null
+                    && height.doubleValue() != obj2d.getHeight())
+                {
                     continue;
                 }
 
-                if(color != null && ! color.equals(obj2d.getColor())) {
+                if (color != null && ! color.equals(obj2d.getColor()))
+                {
                     continue;
                 }
 
-                if(visible != null && visible.booleanValue() == obj2d.isHidden()) {
+                if (visible != null
+                    && visible.booleanValue() == obj2d.isHidden())
+                {
                     continue;
                 }
-                element = obj2d; //all criteria passed
+                element = obj2d; // all criteria passed
                 found = true;
-            } //else it's not a 2d interface so move on.
+            } // else it's not a 2d interface so move on.
 
-        } //end of while
+        } // end of while
         return element;
     }
 
     /**
-     * getLine returns an arbitrary Line object that fits the parameters that are passed to
-     * the function.  A null parameter means "any."
+     * getLine returns an arbitrary Line object that fits the parameters that
+     * are passed to the function.  A null parameter means "any."
      *
-     * @param start     the starting point of the line, null for any starting location
+     * @param start     the starting point of the line, null for any starting
+     *                  location
      * @param end       the end location of the line, null for any end location
      * @param color     the color of the line, null for any color.
      * @param visible   whether the line is visible on the canvas or not.
      *                  pass null, if either.
      *
-     * @return  an arbitrary Line that fits the parameters passed, or null, if no such line exists.
+     * @return  an arbitrary Line that fits the parameters passed, or null,
+     * if no such line exists.
      */
-    public Line getLine(Location start, Location end, java.awt.Color color, Boolean visible) {
+    public Line getLine(
+        Location start, Location end, java.awt.Color color, Boolean visible)
+    {
 
         Line element = null;
 
         DrawableIterator i = canvas.getDrawableIterator();
 
-        while(i.hasNext()) {
+        while (i.hasNext())
+        {
             DrawableInterface obj = i.next();
             if(obj instanceof Line) {
                 Line line = (Line) obj;
@@ -368,21 +403,29 @@ public class TestableWindowController extends objectdraw.FrameWindowController
      * @param visible   whether the object is visible on the canvas or not.
      *                  pass null, if either.
      */
-    public void assertHas2DObject(Class shape,
-                      Location loc, Double width, Double height,
-                      java.awt.Color color, Boolean visible)
+    public void assertHas2DObject(
+        Class<? extends Drawable2DInterface> shape,
+        Location loc,
+        Double width,
+        Double height,
+        java.awt.Color color,
+        Boolean visible)
     {
-        if( ! has2DObject(shape, loc, width, height, color, visible) ) {
+        if (!has2DObject(shape, loc, width, height, color, visible))
+        {
             Assert.fail("Did not find 2d object of type: "
                 + shape.getClass().toString()
-                + " location: " + loc + " width: " + width + "height: " + height
-                + " color: " + color + " visibility: " + visible);
+                + " location: " + loc
+                + " width: " + width
+                + " height: " + height
+                + " color: " + color
+                + " visibility: " + visible);
         }
     }
 
     /**
-     * inverse of assertHas2DObject, this method will fail if an object specified
-     * by the parameters is found, suceed otherwise.
+     * Inverse of assertHas2DObject(), this method will fail if an object
+     * specified by the parameters is found, succeed otherwise.
      *
      * @param shape     the shape of the object. null for any shape.
      * @param loc       the location of the object on the canvas, null for any
@@ -394,15 +437,23 @@ public class TestableWindowController extends objectdraw.FrameWindowController
      *                  pass null, if either.
      *
      */
-    public void assertNo2DObject(Class shape,
-                      Location loc, Double width, Double height,
-                      java.awt.Color color, Boolean visible)
+    public void assertNo2DObject(
+        Class<? extends Drawable2DInterface> shape,
+        Location loc,
+        Double width,
+        Double height,
+        java.awt.Color color,
+        Boolean visible)
     {
-        if(has2DObject(shape, loc, width, height, color, visible) ) {
+        if (has2DObject(shape, loc, width, height, color, visible) )
+        {
             Assert.fail("Found a 2d object of type: "
                 + shape.getClass().toString()
-                + " location: " + loc + " width: " + width + "height: " + height
-                + " color: " + color + " visibility: " + visible);
+                + " location: " + loc
+                + " width: " + width
+                + " height: " + height
+                + " color: " + color
+                + " visibility: " + visible);
         }
     }
 
@@ -544,11 +595,17 @@ public class TestableWindowController extends objectdraw.FrameWindowController
      * @param visible   whether the object is visible on the canvas or not.
      *                  pass null, if either.
      */
-    public void assertHas2DObject(String hint, Class shape,
-                      Location loc, Double width, Double height,
-                      java.awt.Color color, Boolean visible)
+    public void assertHas2DObject(
+        String hint,
+        Class<? extends Drawable2DInterface> shape,
+        Location loc,
+        Double width,
+        Double height,
+        java.awt.Color color,
+        Boolean visible)
     {
-        if( ! has2DObject(shape, loc, width, height, color, visible) ) {
+        if (!has2DObject(shape, loc, width, height, color, visible))
+        {
             Assert.fail(hint);
         }
     }
@@ -569,11 +626,17 @@ public class TestableWindowController extends objectdraw.FrameWindowController
      *                  pass null, if either.
      *
      */
-    public void assertNo2DObject(String hint, Class shape,
-                      Location loc, Double width, Double height,
-                      java.awt.Color color, Boolean visible)
+    public void assertNo2DObject(
+        String hint,
+        Class<? extends Drawable2DInterface> shape,
+        Location loc,
+        Double width,
+        Double height,
+        java.awt.Color color,
+        Boolean visible)
     {
-        if(has2DObject(shape, loc, width, height, color, visible) ) {
+        if (has2DObject(shape, loc, width, height, color, visible) )
+        {
             Assert.fail(hint);
         }
     }
