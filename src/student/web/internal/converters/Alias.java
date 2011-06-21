@@ -4,6 +4,13 @@ public class Alias
 {
 
     private String key;
+    private String contextMap;
+
+
+    public String getContextMap()
+    {
+        return contextMap;
+    }
 
 
     // Needed for persistence stuff DONT DELETE
@@ -13,9 +20,10 @@ public class Alias
     }
 
 
-    public Alias( String key )
+    public Alias( String key, String contextMap )
     {
         this.key = key;
+        this.contextMap = contextMap;
     }
 
 
@@ -28,9 +36,9 @@ public class Alias
     public Object _get_value_( String fieldName )
     {
         if ( fieldName.equals( "key" ) )
-        {
             return key;
-        }
+        if (fieldName.equals( "contextMap" ))
+            return contextMap;
         return null;
     }
 
@@ -39,5 +47,7 @@ public class Alias
     {
         if ( fieldName.equals( "key" ) )
             key = (String)value;
+        if ( fieldName.equals( "contextMap" ))
+            contextMap = (String)value;
     }
 }

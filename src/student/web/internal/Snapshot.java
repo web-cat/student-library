@@ -25,6 +25,7 @@ import org.apache.commons.collections.BidiMap;
  */
 public class Snapshot
 {
+    
     // This snapshot records all of the information about he object currently in
     // use by the application
     private static Snapshot local = null;

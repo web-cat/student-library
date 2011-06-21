@@ -78,7 +78,7 @@ public class SharedPersistentMap<T>
 {
     // ~ Instance/static variables ............................................
 
-    private static final String CONTEXT_OBJECT = "context-object";
+    public static final String CONTEXT_OBJECT = "context-object";
 
     private static final String SHARED = "shared";
 
@@ -108,7 +108,7 @@ public class SharedPersistentMap<T>
      */
     public SharedPersistentMap( Class<T> genericClass )
     {
-        super( SHARED,genericClass );
+        super("",SHARED,genericClass );
 //        typeAware = genericClass;
     }
     /**
@@ -119,7 +119,7 @@ public class SharedPersistentMap<T>
      */
     public SharedPersistentMap(Class<T> genericClass, ClassLoader loader)
     {
-        super(SHARED,genericClass, loader);
+        super("",SHARED,genericClass, loader);
     }
 
 
@@ -156,7 +156,7 @@ public class SharedPersistentMap<T>
      * @return The context cache ID.
      */
     @Override
-    protected String getCacheId()
+    protected String getCacheId(String uniqueId)
     {
         return CONTEXT_OBJECT;
     }

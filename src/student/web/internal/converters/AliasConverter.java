@@ -33,10 +33,6 @@ public class AliasConverter implements Converter
         HierarchicalStreamReader reader,
         UnmarshallingContext context )
     {
-        // if(!reader.getNodeName().equals( Alias.class.getName() ))
-        // {
-        // reader.moveDown();
-        // }
         ApplicationSupportStrategy support = LocalityService.getSupportStrategy();
         if ( !reader.getNodeName().equals( Alias.class.getName() ) )
             throw new IllegalArgumentException( "The object of type "
@@ -46,7 +42,7 @@ public class AliasConverter implements Converter
                 + "loaded.  Please delete this object from the store and create a new one." );
         Object alias = ffsc.unmarshal( reader, context );
         Object lookup = support.resolveAlias( alias );
-        // reader.moveUp();
+        
         return lookup;
     }
 

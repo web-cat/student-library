@@ -28,7 +28,7 @@ public class ApplicationPersistentMap<T> extends AbstractPersistentMap<T>
 {
     // ~ Instance/static variables .............................................
 
-    private static final String APP_STORE = "app-store";
+    public static final String APP_STORE = "app-store";
 
     private static final String APP = "app";
 
@@ -63,8 +63,7 @@ public class ApplicationPersistentMap<T> extends AbstractPersistentMap<T>
         String applicationIdentifier,
         Class<T> genericClass )
     {
-        super( APP + File.separator + checkId( applicationIdentifier ),genericClass );
-//        typeAware = genericClass;
+        super(applicationIdentifier, APP + File.separator + checkId( applicationIdentifier ),genericClass );
     }
     /**
      * NOT FOR STUDENT USE.  ONLY USE IF YOU KNOW WHAT YOU ARE DOING!
@@ -72,11 +71,11 @@ public class ApplicationPersistentMap<T> extends AbstractPersistentMap<T>
      * @param genericClass Class type
      * @param loader custom class loader to use to load classes
      */
-    /* package */ ApplicationPersistentMap(
+    public ApplicationPersistentMap(
         String applicationIdentifier,
         Class<T> genericClass, ClassLoader loader)
     {
-        super(APP + File.separator + checkId( applicationIdentifier ),genericClass, loader);
+        super(applicationIdentifier, APP + File.separator + checkId( applicationIdentifier ),genericClass, loader);
     }
 
 
@@ -91,8 +90,12 @@ public class ApplicationPersistentMap<T> extends AbstractPersistentMap<T>
 
 
     @Override
-    protected String getCacheId()
+    protected String getCacheId(String uniqueId)
     {
-        return APP_STORE;
+        return APP_STORE+"-"+uniqueId;
+    }
+    public static String findIdentifier( String contextMap )
+    {
+        return contextMap.substring( APP_STORE.length()+1 );
     }
 }

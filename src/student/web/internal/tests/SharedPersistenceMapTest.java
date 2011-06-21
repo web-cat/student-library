@@ -120,11 +120,13 @@ public class SharedPersistenceMapTest
         assertEquals( localAppStore.values().size(), 0 );
         assertEquals( localAppStore.entrySet().size(), 0 );
     }
+
+
     @Test
     public void persistNoDefaultConst()
     {
         SharedPersistentMap<NoDefaultConst> map = new SharedPersistentMap<NoDefaultConst>( NoDefaultConst.class );
-        map.put( "toPersist", new NoDefaultConst("Foo") );
+        map.put( "toPersist", new NoDefaultConst( "Foo" ) );
         try
         {
             restoreTestData( "toPersist-400.dataxml", "toPersist-400.dataxml" );
@@ -136,12 +138,16 @@ public class SharedPersistenceMapTest
         }
         map.get( "toPersist" );
     }
+
+
     @Test
     public void getOnNull()
     {
         SharedPersistentMap<String> map = new SharedPersistentMap<String>( String.class );
-        map.get("blah");
+        map.get( "blah" );
     }
+
+
     @Test
     public void testSharedPersistenceMapPersist()
     {
@@ -902,32 +908,36 @@ public class SharedPersistenceMapTest
     public void testLoadListAsQueue()
     {
         SharedPersistentMap<ContainsQueue> pMap = new SharedPersistentMap<ContainsQueue>( ContainsQueue.class );
-//        try
-//        {
-//            restoreTestData("containsQueue-0010.dataxml","containsQueue-0010.dataxml");
-//        }
-//        catch ( IOException e )
-//        {
-//            e.printStackTrace();
-//            assertTrue( false );
-//        }
-//        ContainsQueue cQueue = pMap.get( "containsQueue" );
+        // try
+        // {
+        // restoreTestData("containsQueue-0010.dataxml","containsQueue-0010.dataxml");
+        // }
+        // catch ( IOException e )
+        // {
+        // e.printStackTrace();
+        // assertTrue( false );
+        // }
+        // ContainsQueue cQueue = pMap.get( "containsQueue" );
         pMap.put( "containsQueue", new ContainsQueue() );
-//        assertEquals(1,((Integer)cQueue.internalQueue.get( 0 )).intValue());
+        // assertEquals(1,((Integer)cQueue.internalQueue.get( 0 )).intValue());
     }
+
+
     @Test
     public void classInAClassPut()
     {
         SharedPersistentMap<AliasClass> pMap = new SharedPersistentMap<AliasClass>( AliasClass.class );
-            AliasClass alias = new AliasClass();
-            alias.key = "alias1";
-            pMap.put( "testAlias", alias );
-            AliasClass alias2 = new AliasClass();
-            alias2.alias = alias;
-            alias2.key = "alias2";
-            pMap.put( "testAlias2", alias2 );            
-        assertTrue(true);
+        AliasClass alias = new AliasClass();
+        alias.key = "alias1";
+        pMap.put( "testAlias", alias );
+        AliasClass alias2 = new AliasClass();
+        alias2.alias = alias;
+        alias2.key = "alias2";
+        pMap.put( "testAlias2", alias2 );
+        assertTrue( true );
     }
+
+
     @Test
     public void classInAClassGet()
     {
@@ -937,36 +947,76 @@ public class SharedPersistenceMapTest
         pMap.put( "testAlias", oldAlias );
         try
         {
-            restoreTestData( "testAlias2-010.dataxml",
-                "testAlias2-010.dataxml" );
+            restoreTestData( "testAlias2-010.dataxml", "testAlias2-010.dataxml" );
         }
         catch ( IOException e )
         {
             e.printStackTrace();
             assertTrue( false );
         }
-            AliasClass alias2 = pMap.get( "testAlias2" );
-            assertNotNull(alias2.alias);
-            assertEquals("alias1",alias2.alias.key);
-            assertEquals("alias2",alias2.key);
+        AliasClass alias2 = pMap.get( "testAlias2" );
+        assertNotNull( alias2.alias );
+        assertEquals( "alias1", alias2.alias.key );
+        assertEquals( "alias2", alias2.key );
     }
+
+
     @Test
     public void removeAllPersist()
     {
         try
         {
-            restoreTestData( "friendList-040.dataxml",
-                "friendList-040.dataxml" );
+            restoreTestData( "friendList-040.dataxml", "friendList-040.dataxml" );
         }
         catch ( IOException e )
         {
             e.printStackTrace();
             assertTrue( false );
         }
-        SharedPersistentMap<FriendList> pMap = new SharedPersistentMap<FriendList>(FriendList.class);
+        SharedPersistentMap<FriendList> pMap = new SharedPersistentMap<FriendList>( FriendList.class );
         FriendList list = pMap.get( "friendList" );
         list.friends.remove( 0 );
         pMap.put( "friendList", list );
-        assertTrue(true);
+        assertTrue( true );
+    }
+
+
+    @Test
+    public void circularReferencePut()
+    {
+        SharedPersistentMap<CircularClass> pMap = new SharedPersistentMap<CircularClass>( CircularClass.class );
+        CircularClass class1 = new CircularClass();
+        CircularClass class2 = new CircularClass();
+        pMap.put( "class1", class1 );
+        pMap.put( "class2", class2 );
+        class1.ref = class2;
+        class2.ref = class1;
+        pMap.put( "class1", class1 );
+        pMap.put( "class2", class2 );
+        assertEquals( class1.ref, class2 );
+        assertEquals( class2.ref, class1 );
+
+    }
+
+
+    @Test
+    public void circularReferenceGet()
+    {
+        try
+        {
+            restoreTestData( "class1-00.dataxml", "class1-00.dataxml" );
+            restoreTestData( "class2-00.dataxml", "class2-00.dataxml" );
+        }
+        catch ( IOException e )
+        {
+            e.printStackTrace();
+            assertTrue( false );
+        }
+        SharedPersistentMap<CircularClass> pMap = new SharedPersistentMap<CircularClass>( CircularClass.class );
+        CircularClass class1 = pMap.get( "class1" );
+        CircularClass class2 = pMap.get( "class2" );
+        assertEquals(class1.ref,class2);
+        assertEquals(class2.ref,class1);
+
     }
 }

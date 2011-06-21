@@ -79,22 +79,22 @@ public abstract class AbstractPersistentMap<T>
 
     private ApplicationSupportStrategy support;
 
-
     /**
      * Get the cache ID for this map.
      * @return This map's cache ID.
      */
-    protected abstract String getCacheId();
-
+    protected abstract String getCacheId(String uniqueId);
 
     /**
      * Create a new map.
      * @param directoryName The directory name to use to back this map.
      * @param typeAware The type of objects stored in this map.
      */
-    protected AbstractPersistentMap(String directoryName, Class<T>  typeAware)
+    protected AbstractPersistentMap(String uniqueId, String directoryName, Class<T>  typeAware )
     {
-        this( directoryName, typeAware, typeAware.getClassLoader());
+
+        init( uniqueId, directoryName, typeAware );
+        loader = typeAware.getClassLoader();
     }
     /**
      * Create a new map.
@@ -103,24 +103,23 @@ public abstract class AbstractPersistentMap<T>
      * @param loader The class loader to use when looking up classes of
      *               loaded objects.
      */
-    protected AbstractPersistentMap(
-        String directoryName, Class<T> typeAware, ClassLoader loader)
+    protected AbstractPersistentMap(String uniqueId, String directoryName, Class<T> typeAware, ClassLoader loader)
     {
-        init(directoryName, typeAware);
+        init(uniqueId, directoryName, typeAware);
         this.loader = loader;
     }
 
-    private void init( String directoryName, Class<T> typeAware )
+    private void init(String uniqueId, String directoryName, Class<T> typeAware )
     {
         PSM = PersistentStorageManager.getInstance( directoryName );
         support = LocalityService.getSupportStrategy();
-        if ( support.getPersistentCache( getCacheId() ) != null )
+        if ( support.getPersistentCache( getCacheId(uniqueId) ) != null )
         {
-            context = support.getPersistentCache( getCacheId() );
+            context = support.getPersistentCache( getCacheId(uniqueId) );
         }
         else
         {
-            context = support.initPersistentCache( getCacheId());
+            context = support.initPersistentCache( getCacheId(uniqueId));
         }
         this.typeAware = typeAware;
         AliasService.addAliasClass( typeAware );
@@ -172,9 +171,9 @@ public abstract class AbstractPersistentMap<T>
 
         if (cached == null)
         {
-            PersistentStorageManager.StoredObject previous =
-                PSM.getPersistentObject(key, typeAware.getClassLoader());
-            if (previous != null)
+            PersistentStorageManager.StoredObject previous = PSM.getPersistentObject( key, context,
+                typeAware.getClassLoader() );
+            if ( previous != null )
             {
 //                if ( previous.value().getClass().equals( typeAware ) )
                 if (typeAware.isInstance(previous.value()))
@@ -209,7 +208,7 @@ public abstract class AbstractPersistentMap<T>
             && PSM.hasFieldSetChanged( (String)key, context.get( key )
                 .timestamp() ) )
         {
-            PSM.refreshPersistentObject( (String)key,
+            PSM.refreshPersistentObject( (String)key, context,
                 context.get( key ),
                 typeAware.getClassLoader() );
         }
@@ -335,7 +334,7 @@ public abstract class AbstractPersistentMap<T>
             {
                 loader = this.getClass().getClassLoader();
             }
-            latest = PSM.getPersistentObject( objectId, loader );
+            latest = PSM.getPersistentObject( objectId, context, loader );
             context.put( objectId, latest );
             if ( latest != null )
             {
@@ -391,11 +390,12 @@ public abstract class AbstractPersistentMap<T>
                 latest.setValue( object );
                 if ( loader == null )
                     loader = this.getClass().getClassLoader();
-                PSM.storePersistentObjectChanges( objectId, latest, loader );
+                PSM.storePersistentObjectChanges( objectId, context, latest, loader );
+                context.put( objectId, latest );
             }
             else
             {
-                latest = PSM.storePersistentObject( objectId, object );
+                latest = PSM.storePersistentObject( objectId, context, object );
                 context.put( objectId, latest );
             }
         }

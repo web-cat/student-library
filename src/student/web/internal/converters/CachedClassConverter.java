@@ -1,5 +1,7 @@
 package student.web.internal.converters;
 
+import java.util.Map;
+
 import student.web.internal.ApplicationSupportStrategy;
 import student.web.internal.LocalityService;
 
@@ -13,8 +15,11 @@ import com.thoughtworks.xstream.io.HierarchicalStreamWriter;
 public class CachedClassConverter implements Converter
 {
     private FlexibleFieldSetConverter ffsc;
-
-
+    private Map<String,Object> context;
+    public CachedClassConverter(Map<String,Object> context)
+    {
+        this.context = context;
+    }
     public void marshal(
         Object source,
         HierarchicalStreamWriter writer,

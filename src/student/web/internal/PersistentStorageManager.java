@@ -31,6 +31,7 @@ import java.io.Writer;
 import java.security.AccessControlException;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -42,6 +43,8 @@ import student.web.WebUtilities;
 //import student.web.internal.converters.AliasConverter;
 import student.web.internal.converters.ArrayConverter;
 //import student.web.internal.converters.CachedClassConverter;
+import student.web.internal.converters.AliasConverter;
+import student.web.internal.converters.CachedClassConverter;
 import student.web.internal.converters.CollectionConverter;
 import student.web.internal.converters.FlexibleFieldSetConverter;
 import student.web.internal.converters.MapConverter;
@@ -220,6 +223,7 @@ public class PersistentStorageManager
     // ----------------------------------------------------------
     public synchronized StoredObject getPersistentObject(
         String id,
+        Map<String, StoredObject> cache,
         ClassLoader loader )
     {
         StoredObject result = null;
@@ -228,7 +232,7 @@ public class PersistentStorageManager
         {
         try
         {
-            result = getPersistentObjectHelper( id, loader);
+            result = getPersistentObjectHelper( id, cache, loader);
         }
         finally
         {
@@ -245,6 +249,7 @@ public class PersistentStorageManager
 
     private StoredObject getPersistentObjectHelper(
         String id,
+        Map<String, StoredObject> cache,
         ClassLoader loader)
     {
         StoredObject result = null;
@@ -257,7 +262,7 @@ public class PersistentStorageManager
             {
                 try
                 {
-                    Object object = readObjectFromXML( in, loader, new Snapshot() );
+                    Object object = readObjectFromXML(id,cache, in, loader, new Snapshot() );
                     result = new StoredObject( id,
                         sanitizedId,
                         object,
@@ -282,11 +287,13 @@ public class PersistentStorageManager
 
 
     public Object readObjectFromXML(
+        String key,
+        Map<String, StoredObject> cache,
         final InputStream in,
         final ClassLoader loader, Snapshot local)
     {
         Snapshot.setLocal( local );
-        final XStreamBundle bundle = getXStreamFor( loader );
+        final XStreamBundle bundle = getXStreamFor( loader, key, cache );
         Object object = AccessController.doPrivileged( new PrivilegedAction<Object>()
         {
             public Object run()
@@ -314,6 +321,7 @@ public class PersistentStorageManager
     // ----------------------------------------------------------
     public synchronized StoredObject storePersistentObject(
         String id,
+        Map<String, StoredObject> cache,
         Object object )
     {
         pLock.lock();
@@ -326,7 +334,7 @@ public class PersistentStorageManager
             object,
             Snapshot.getLocal(),
             0L );
-        storePersistentObjectChanges( id, stored, loader );
+        storePersistentObjectChanges( id, cache, stored, loader );
         }
         finally
         {
@@ -338,13 +346,14 @@ public class PersistentStorageManager
 
     public synchronized void storePersistentObjectChanges(
         String id,
+        Map<String, StoredObject> cache,
         final StoredObject object,
         ClassLoader loader )
     {
         pLock.lock();
         try
         {
-        storePersistentObjectChanges( id, object, loader, null );
+        storePersistentObjectChanges( id, cache, object, loader, null );
         }
         finally
         {
@@ -382,39 +391,44 @@ public class PersistentStorageManager
 
     public synchronized void refreshPersistentObject(
         String id,
+        Map<String, StoredObject> cache,
         final StoredObject object,
         ClassLoader loader )
     {
-        storePersistentObjectChanges( id, object, loader, new FakePrintWriter() );
+        storePersistentObjectChanges( id, cache, object, loader, new FakePrintWriter() );
     }
 
 
     // ----------------------------------------------------------
     public synchronized void storePersistentObjectChanges(
         String id,
+        Map<String, StoredObject> cache,
         final StoredObject object,
         ClassLoader loader,
         final Writer replacementWriter )
     {
         pLock.lock();
+        StoredObject obj = null;
         try
         {
-        String sanitizedId = sanitizeId( id );
-        Snapshot.setLocal( new Snapshot() );
-            getPersistentObjectHelper( id, loader );
-           
-                // Leave the snapshots set in the converter
-            File dest = LocalityService.getSupportStrategy().getPersistentFile( baseDir, sanitizedId + EXT );
+            String sanitizedId = sanitizeId( id );
+            Snapshot.setLocal( new Snapshot() );
+            obj = getPersistentObjectHelper( id, cache, loader );
+
+            // Leave the snapshots set in the converter
+            File dest = LocalityService.getSupportStrategy()
+                .getPersistentFile( baseDir, sanitizedId + EXT );
             final PrintWriter out;
             if ( replacementWriter == null )
             {
-                out = new PrintWriter( LocalityService.getSupportStrategy().getObjectOutput(dest) );
+                out = new PrintWriter( LocalityService.getSupportStrategy()
+                    .getObjectOutput( dest ) );
             }
             else
             {
                 out = new PrintWriter( replacementWriter );
             }
-            
+
             Snapshot local;
             if ( object.fieldset() == null )
             {
@@ -424,15 +438,21 @@ public class PersistentStorageManager
             {
                 local = object.fieldset();
             }
-            writeObjectToXML( object.value(), out,loader,Snapshot.getLocal(), local );
+            writeObjectToXML( id,
+                cache,
+                object.value(),
+                out,
+                loader,
+                Snapshot.getLocal(),
+                local );
             if ( usedIds != null && !usedIds.contains( id ) )
             {
                 usedIdsTimestamp = System.currentTimeMillis();
                 usedIds.add( id );
             }
             object.timestamp = System.currentTimeMillis();
-        Snapshot.clearNewest();
-        Snapshot.clearLocal();
+            Snapshot.clearNewest();
+            Snapshot.clearLocal();
         }
         finally
         {
@@ -442,6 +462,8 @@ public class PersistentStorageManager
 
 
     public void writeObjectToXML(
+        String key,
+        Map<String, StoredObject> cache,
         final Object object,
         final Writer out,
         final ClassLoader loader,
@@ -450,7 +472,7 @@ public class PersistentStorageManager
     {
         Snapshot.setNewest( newest );
         Snapshot.setLocal( local );
-        final XStreamBundle bundle = getXStreamFor( loader );
+        final XStreamBundle bundle = getXStreamFor( loader, key, cache );
         AccessController.doPrivileged( new PrivilegedAction<Object>()
         {
             public Object run()
@@ -690,7 +712,7 @@ public class PersistentStorageManager
 
 
     // ----------------------------------------------------------
-    private XStreamBundle getXStreamFor( final ClassLoader loader )
+    private XStreamBundle getXStreamFor( final ClassLoader loader, String key, Map<String,StoredObject> cache )
     {
         XStreamBundle result = xstream.get( loader );
         if ( result == null )
@@ -704,7 +726,7 @@ public class PersistentStorageManager
             } );
             xstream.put( loader, result );
         }
-        result.init();
+        result.init(key, cache);
         return result;
     }
 
@@ -721,33 +743,33 @@ public class PersistentStorageManager
         private MapConverter mConverter;
 
         private ArrayConverter aConverter;
-//        private AliasConverter aliasConverter;
-//        private CachedClassConverter cachedClassConverter;
+        private AliasConverter aliasConverter;
+        private CachedClassConverter cachedClassConverter;
 
         public XStreamBundle( ClassLoader loader )
         {
-//            cachedClassConverter= new CachedClassConverter();
+            Map<String,Object> aliasContext = new HashMap<String,Object>();
+            cachedClassConverter= new CachedClassConverter(aliasContext);
             try
             {
                 if ( System.getSecurityManager() != null )
                     System.getSecurityManager().checkCreateClassLoader();
                 if(loader == null)
                     loader = this.getClass().getClassLoader();
-                xstream = new FlexibleXStream(loader/*,cachedClassConverter*/);
+                xstream = new FlexibleXStream(loader,cachedClassConverter);
             }
             catch(AccessControlException e)
             {
-                xstream = new FlexibleXStream(this.getClass().getClassLoader()/*,cachedClassConverter*/);
+                xstream = new FlexibleXStream(this.getClass().getClassLoader(),cachedClassConverter);
             }
             fConverter = new FlexibleFieldSetConverter( xstream.getMapper(),
-                xstream.getReflectionProvider() );
-//            cachedClassConverter.setFlexibleFieldSetConverter(fConverter);
+                xstream.getReflectionProvider(),aliasContext );
+            cachedClassConverter.setFlexibleFieldSetConverter(fConverter);
             //Prevent Persistent Map from being converted.
             PersistentMapConverter pConverter = new PersistentMapConverter();
             xstream.registerConverter( pConverter, XStream.PRIORITY_VERY_HIGH );
-//            aliasConverter = new AliasConverter(fConverter);
-//            xstream.registerConverter( aliasConverter,XStream.PRIORITY_VERY_HIGH );
-//            xstream.registerConverter( cachedClassConverter, XStream.PRIORITY_VERY_HIGH);
+            aliasConverter = new AliasConverter(fConverter);
+            xstream.registerConverter( aliasConverter,XStream.PRIORITY_VERY_HIGH );
             // flex field converter
             xstream.registerConverter( fConverter, XStream.PRIORITY_VERY_LOW );
 
@@ -767,8 +789,9 @@ public class PersistentStorageManager
             aConverter = new ArrayConverter( xstream.getMapper() );
             xstream.registerConverter( aConverter, XStream.PRIORITY_VERY_HIGH );
         }
-        public void init(){
-//            cachedClassConverter.init();
+        public void init(String key, Map<String,StoredObject> cache){
+            cachedClassConverter.init();
+            fConverter.setContext(key,cache);
         }
     }
 

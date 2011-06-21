@@ -2,6 +2,13 @@ package student.web.internal.tests;
 
 import static org.junit.Assert.*;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -13,6 +20,8 @@ import org.junit.Before;
 import org.junit.Test;
 
 import student.web.ApplicationPersistentMap;
+import student.web.SharedPersistentMap;
+import student.web.internal.tests.support.CircularClass;
 
 public class ApplicationPersistenceMapTest
 {
@@ -225,6 +234,83 @@ public class ApplicationPersistenceMapTest
 		assertEquals(localAppStore.keySet().size(),0);
 		assertEquals(stub2Map.keySet().size(),0);
 	}
+	public void restoreTestData( String fileName, String oldFileName )
+    throws IOException
+{
+    // FileUtils.copyFileToDirectory(new File("data/test/"+fileName), new
+    // File("data/shared"));
+    // FileUtils.copyFile(new File("data/test/" + oldFileName), new File(
+    // "data/shared/" + fileName));
+    try
+    {
+        File f1 = new File( "data/test/" + oldFileName );
+        File f2 = new File( "data/app/testApp/" + fileName );
+        InputStream in = new FileInputStream( f1 );
 
+        // For Append the file.
+        // OutputStream out = new FileOutputStream(f2,true);
+
+        // For Overwrite the file.
+        OutputStream out = new FileOutputStream( f2 );
+
+        byte[] buf = new byte[1024];
+        int len;
+        while ( ( len = in.read( buf ) ) > 0 )
+        {
+            out.write( buf, 0, len );
+        }
+        in.close();
+        out.close();
+    }
+    catch ( FileNotFoundException ex )
+    {
+        System.out.println( ex.getMessage()
+            + " in the specified directory." );
+        System.exit( 0 );
+    }
+    catch ( IOException e )
+    {
+        System.out.println( e.getMessage() );
+    }
+}
+    @Test
+    public void circularReferencePut()
+    {
+        ApplicationPersistentMap<CircularClass> pMap = new ApplicationPersistentMap<CircularClass>( "testApp",CircularClass.class );
+        CircularClass class1 = new CircularClass();
+        CircularClass class2 = new CircularClass();
+        pMap.put( "class1", class1 );
+        pMap.put( "class2", class2 );
+        class1.ref = class2;
+        class2.ref = class1;
+        pMap.put( "class1", class1 );
+        pMap.put( "class2", class2 );
+        assertEquals( class1.ref, class2 );
+        assertEquals( class2.ref, class1 );
+        pMap.clear();
+    }
+
+
+    @Test
+    public void circularReferenceGet()
+    {
+        try
+        {
+            restoreTestData( "class1-00.dataxml","class1-00-app.dataxml" );
+            restoreTestData( "class2-00.dataxml", "class2-00-app.dataxml" );
+        }
+        catch ( IOException e )
+        {
+            e.printStackTrace();
+            assertTrue( false );
+        }
+        ApplicationPersistentMap<CircularClass> pMap = new ApplicationPersistentMap<CircularClass>( "testApp",CircularClass.class );
+        CircularClass class1 = pMap.get( "class1" );
+        CircularClass class2 = pMap.get( "class2" );
+        assertEquals(class2,class1.ref);
+        assertEquals(class1,class2.ref);
+        pMap.clear();
+
+    }
 
 }

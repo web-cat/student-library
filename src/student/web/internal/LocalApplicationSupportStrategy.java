@@ -32,6 +32,7 @@ import java.util.Map;
 import com.thoughtworks.xstream.converters.reflection.ReflectionProvider;
 import com.thoughtworks.xstream.core.JVM;
 
+import student.web.ApplicationPersistentMap;
 import student.web.SharedPersistentMap;
 import student.web.internal.PersistentStorageManager.StoredObject;
 import student.web.internal.converters.Alias;
@@ -232,7 +233,7 @@ public class LocalApplicationSupportStrategy
         cacheStore.put( cacheId, cache );
         return cache;
     }
-    private String getAliasId(Object value)
+    private Alias getAliasId(Object value)
     {
 //        Map<String, Alias> aliasMap = getInternalAliasSessionMap();
         Map<String,Map<String,StoredObject>> allCaches = this.getCacheStore();
@@ -244,7 +245,7 @@ public class LocalApplicationSupportStrategy
             for(String cachedObject : cache.keySet())
                 if(cache.get( cachedObject ).value() == value)
                 {
-                    return cachedObject;
+                    return new Alias(cachedObject,cacheId);
                 }
             
         }
@@ -256,8 +257,18 @@ public class LocalApplicationSupportStrategy
         {
             //Ew.... my trick didnt work, if I dont grab a custom loader, i cant find the classes when i reload it.
             Snapshot preserveLocal = Snapshot.getLocal();
-            SharedPersistentMap<Object> pMap = new SharedPersistentMap<Object>(Object.class, this.getClass().getClassLoader());
-            Object resolved =  pMap.get( ((Alias)value).getKey() );
+            Alias alias = (Alias)value;
+            Object resolved = null;
+            if(alias.getContextMap().startsWith(ApplicationPersistentMap.APP_STORE))
+            {
+                ApplicationPersistentMap<Object> pMap = new ApplicationPersistentMap<Object>(ApplicationPersistentMap.findIdentifier(alias.getContextMap()),Object.class, this.getClass().getClassLoader());
+                resolved = pMap.get( alias.getKey() );
+            }
+            else if(alias.getContextMap().startsWith(SharedPersistentMap.CONTEXT_OBJECT))
+            {
+                SharedPersistentMap<Object> pMap = new SharedPersistentMap<Object>(Object.class, this.getClass().getClassLoader());
+                resolved =  pMap.get( alias.getKey() );
+            }
             Snapshot.setLocal( preserveLocal );
             return resolved;
         }
@@ -267,12 +278,12 @@ public class LocalApplicationSupportStrategy
 
     public Object getAlias( Object value )
     {
-        String id = getAliasId(value);
-        if(id == null)
+        Alias alias = getAliasId(value);
+        if(alias == null)
         {
             return value;
         }
-        return new Alias(id);
+        return alias;
     }
     public ReflectionProvider getReflectionProvider()
     {

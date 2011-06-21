@@ -29,10 +29,14 @@ import com.thoughtworks.xstream.io.HierarchicalStreamWriter;
 import com.thoughtworks.xstream.mapper.Mapper;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.UUID;
 import student.web.AbstractPersistentMap;
+import student.web.internal.LocalityService;
+import student.web.internal.PersistentStorageManager.StoredObject;
 import student.web.internal.Snapshot;
 import student.web.internal.TemplateManager;
 import student.web.internal.TemplateManager.Template;
@@ -43,7 +47,7 @@ import student.web.internal.TemplateManager.Template.Field;
 /**
  * A custom XStream converter class that stores each object as a map from field
  * names to field values.
- *
+ * 
  * @author Stephen Edwards
  * @author Last changed by $Author$
  * @version $Revision$, $Date$
@@ -51,6 +55,8 @@ import student.web.internal.TemplateManager.Template.Field;
 public class FlexibleFieldSetConverter extends ReflectionConverter
 {
     private TreeMapConverter mapConverter;
+
+    private Map<String, Object> context;
 
 
     // Snapshot snapshots = new Snapshot();
@@ -74,10 +80,14 @@ public class FlexibleFieldSetConverter extends ReflectionConverter
 
 
     // ----------------------------------------------------------
-    public FlexibleFieldSetConverter( Mapper mapper, ReflectionProvider rp )
+    public FlexibleFieldSetConverter(
+        Mapper mapper,
+        ReflectionProvider rp,
+        Map<String, Object> context )
     {
         super( mapper, rp );
         mapConverter = new TreeMapConverter( mapper );
+        this.context = context;
         // clearSnapshots();
     }
 
@@ -126,7 +136,7 @@ public class FlexibleFieldSetConverter extends ReflectionConverter
      * entries that duplicate those in the "original". In other words, what
      * entries in "changes" map to different values than the same entries in
      * "original"?
-     *
+     * 
      * @param original
      *            The base field set to compare against
      * @param changes
@@ -151,11 +161,13 @@ public class FlexibleFieldSetConverter extends ReflectionConverter
         return differences;
     }
 
+
     private static boolean isPrimitiveValue( Object value )
     {
         return value instanceof String || value instanceof Number
             || value instanceof Boolean || value instanceof Character;
     }
+
 
     // ----------------------------------------------------------
     public void marshal(
@@ -175,7 +187,12 @@ public class FlexibleFieldSetConverter extends ReflectionConverter
         // class
         if ( fields.containsKey( "this$0" ) )
         {
-            throw new IllegalArgumentException( "Sorry but the Persistence store does not support inner classes.  Please move your class to a seperate file." );
+            throw new IllegalArgumentException( "The class "
+                + source.getClass().getName()
+                + " cannot be persisted because the definition of this class is contained within the "
+                + fields.get( "this$0" ).getClass().getName() + " class.  Move "
+                + source.getClass().getName()
+                + " to its own JAVA file." );
         }
         checkFields( source.getClass().getName(), fields );
         UUID id = Snapshot.lookupId( source, true );
@@ -186,15 +203,19 @@ public class FlexibleFieldSetConverter extends ReflectionConverter
             Snapshot.getNewest(),
             source,
             fields );
-        for(String key : updatedFieldSets.keySet())
+        List<String> nulledKeys = new ArrayList<String>();
+        for ( String key : updatedFieldSets.keySet() )
         {
-            if(updatedFieldSets.get( key ) instanceof NullableClass)
+            if ( updatedFieldSets.get( key ) instanceof NullableClass )
             {
                 NullableClass nClass = (NullableClass)updatedFieldSets.get( key );
-                nClass.writeHiddenClass(mapConverter,writer,context);
-                updatedFieldSets.remove( key );
+                nClass.writeHiddenClass( mapConverter, writer, context );
+                // updatedFieldSets.remove( key );
+                nulledKeys.add( key );
             }
         }
+        for ( String key : nulledKeys )
+            updatedFieldSets.remove( key );
         restoreObjectFromFieldMap( source, updatedFieldSets );
         Snapshot.getLocal().resolveObject( id, source, updatedFieldSets );
         mapConverter.marshal( updatedFieldSets, writer, context );
@@ -260,14 +281,71 @@ public class FlexibleFieldSetConverter extends ReflectionConverter
         }
 
     }
+    private Object getInstance(UnmarshallingContext context)
+    {
+        Object result = null;
+        Class<?> clazz = context.getRequiredType();
+        
+        try
+        {
+            Constructor<?> defaultConst = clazz
+                .getConstructor();
+            Object newResult = defaultConst.newInstance();
+//            restoreObjectFromFieldMap( newResult, fields );
+            result = newResult;
 
+        }
+        catch( Exception e)
+        {
+            result = reflectionProvider.newInstance( context.getRequiredType() );
+        }
+        return result;
+//        catch ( SecurityException e1 )
+//        {
+//            System.err.println( "You made your default constructor for "
+//                + result.getClass().getName()
+//                + " private.  If you would like it to be used"
+//                + " by the persistence library please make it public" );
+//        }
+//        catch ( NoSuchMethodException e2 )
+//        {
+//            System.err.println( "The shared object \""
+//                + result.getClass().getName()
+//                + "\" you have loaded did not "
+//                + "contain all of the fields present in your original object.  "
+//                + "We were also unable to find a method with the signature \"public "
+//                + "void initializeFields()\" or the "
+//                + "default constructor \"public "
+//                + result.getClass().getName()
+//                + "()\".  If you have made assumptions "
+//                + "about the state of certain fields in your "
+//                + result.getClass().getName()
+//                + " Object please provide one of these methods to initialize the fields "
+//                + "not present in the datastore." );
+//        }
+//        catch ( Exception e3 )
+//        {
+//            System.err.println( "An exception occured when initializing your object with the default constructor." );
+//        }
+    
+    }
 
     // ----------------------------------------------------------
     public Object unmarshal(
         HierarchicalStreamReader reader,
         UnmarshallingContext context )
     {
-        Object result = null;
+//        Object current = context.currentObject();
+        Object result = getInstance(context);
+//        Object result = null;
+        if ( top == true && key != null && cache != null)
+        {
+            // This is simply to prevent infinite recursion when you get an
+            // object out of the store that references this object. This stored
+            // object will be overwritten when everything is finished.
+            cache.put( key, new StoredObject(key,"ALIAS",result,Snapshot.getLocal(),Long.MAX_VALUE) );
+            top = false;
+        }
         Map<String, Object> fields = null;
         UUID id = null;
         if ( reader.getAttribute( XMLConstants.FIELDSET_ATTRIBUTE ) != null )
@@ -293,59 +371,69 @@ public class FlexibleFieldSetConverter extends ReflectionConverter
 
         if ( fields != null )
         {
-            result = reflectionProvider.newInstance( context.getRequiredType() );
-            if ( !restoreObjectFromFieldMap( result, fields ) /*
+            try
+            {
+                Method initFieldsMethod = result.getClass()
+                    .getMethod( "initializeFields", (Class<?>)null );
+                initFieldsMethod.invoke( result, (Object[])null );
+            }
+            catch(Exception e)
+            {
+                //its ok if this doesnt exist
+            }
+//            result = reflectionProvider.newInstance( context.getRequiredType() );
+            restoreObjectFromFieldMap( result, fields ); /*
                                                                * && pjProvider
                                                                * != null
-                                                               */)
-            {
-                try
-                {
-                    Method initFieldsMethod = result.getClass()
-                        .getMethod( "initializeFields", (Class<?>)null );
-                    initFieldsMethod.invoke( result, (Object[])null );
-                }
-                catch ( Exception e )
-                {
-                    try
-                    {
-                        Constructor<?> defaultConst = result.getClass()
-                            .getConstructor();
-                        Object newResult = defaultConst.newInstance();
-                        restoreObjectFromFieldMap( newResult, fields );
-                        result = newResult;
-
-                    }
-                    catch ( SecurityException e1 )
-                    {
-                        System.err.println( "You made your default constructor for "
-                            + result.getClass().getName()
-                            + " private.  If you would like it to be used"
-                            + " by the persistence library please make it public" );
-                    }
-                    catch ( NoSuchMethodException e2 )
-                    {
-                        System.err.println( "The shared object \""
-                            + result.getClass().getName()
-                            + "\" you have loaded did not "
-                            + "contain all of the fields present in your original object.  "
-                            + "We were also unable to find a method with the signature \"public "
-                            + "void initializeFields()\" or the "
-                            + "default constructor \"public "
-                            + result.getClass().getName()
-                            + "()\".  If you have made assumptions "
-                            + "about the state of certain fields in your "
-                            + result.getClass().getName()
-                            + " Object please provide one of these methods to initialize the fields "
-                            + "not present in the datastore." );
-                    }
-                    catch ( Exception e3 )
-                    {
-                        System.err.println( "An exception occured when initializing your object with the default constructor." );
-                    }
-
-                }
-            }
+                                                               */
+//            {
+//                try
+//                {
+//                    Method initFieldsMethod = result.getClass()
+//                        .getMethod( "initializeFields", (Class<?>)null );
+//                    initFieldsMethod.invoke( result, (Object[])null );
+//                }
+//                catch ( Exception e )
+//                {
+//                    try
+//                    {
+//                        Constructor<?> defaultConst = result.getClass()
+//                            .getConstructor();
+//                        Object newResult = defaultConst.newInstance();
+//                        restoreObjectFromFieldMap( newResult, fields );
+//                        result = newResult;
+//
+//                    }
+//                    catch ( SecurityException e1 )
+//                    {
+//                        System.err.println( "You made your default constructor for "
+//                            + result.getClass().getName()
+//                            + " private.  If you would like it to be used"
+//                            + " by the persistence library please make it public" );
+//                    }
+//                    catch ( NoSuchMethodException e2 )
+//                    {
+//                        System.err.println( "The shared object \""
+//                            + result.getClass().getName()
+//                            + "\" you have loaded did not "
+//                            + "contain all of the fields present in your original object.  "
+//                            + "We were also unable to find a method with the signature \"public "
+//                            + "void initializeFields()\" or the "
+//                            + "default constructor \"public "
+//                            + result.getClass().getName()
+//                            + "()\".  If you have made assumptions "
+//                            + "about the state of certain fields in your "
+//                            + result.getClass().getName()
+//                            + " Object please provide one of these methods to initialize the fields "
+//                            + "not present in the datastore." );
+//                    }
+//                    catch ( Exception e3 )
+//                    {
+//                        System.err.println( "An exception occured when initializing your object with the default constructor." );
+//                    }
+//
+//                }
+//            }
 
             if ( result != null )
             {
@@ -360,7 +448,7 @@ public class FlexibleFieldSetConverter extends ReflectionConverter
     // ----------------------------------------------------------
     /**
      * Convert an object to a map of field name/value pairs.
-     *
+     * 
      * @param object
      *            The object to convert
      * @return The object's field values in map form
@@ -396,7 +484,7 @@ public class FlexibleFieldSetConverter extends ReflectionConverter
     // ----------------------------------------------------------
     /**
      * Convert an object to a map of field name/value pairs.
-     *
+     * 
      * @param object
      *            The object to convert
      * @param fields
@@ -420,7 +508,8 @@ public class FlexibleFieldSetConverter extends ReflectionConverter
                     Class definedIn,
                     Object value )
                 {
-                    if ( fields.containsKey( fieldName ) )
+                    Object toLoad = fields.get( fieldName );
+                    if ( toLoad != null )
                     {
                         reflectionProvider.writeField( result,
                             fieldName,
@@ -442,6 +531,17 @@ public class FlexibleFieldSetConverter extends ReflectionConverter
     public boolean canConvert( Class type )
     {
         return type != null;
+    }
+
+    private String key = null;
+    private Map<String,StoredObject> cache = null;
+    private boolean top = true;
+    public void setContext( String key, Map<String, StoredObject> cache )
+    {
+        this.top = true;
+        this.key = key;
+        this.cache = cache;
+        
     }
 
 }
