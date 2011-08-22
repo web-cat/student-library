@@ -21,8 +21,6 @@
 
 package student.testingsupport;
 
-import static junit.framework.Assert.assertTrue;
-import static junit.framework.Assert.fail;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -124,7 +122,154 @@ public class ReflectionSupport
     }
 
 
-    //~ Methods ...............................................................
+    //~ Public classes used inside this class .................................
+
+    // ----------------------------------------------------------
+    /**
+     * A custom error class that represents any error conditions that
+     * arise in the reflection-based methods provided by this class.
+     */
+    public static class ReflectionError
+        extends AssertionError
+    {
+        private static final long serialVersionUID = 4456797064805957471L;
+
+        ReflectionError(String message)
+        {
+            super(message);
+        }
+    }
+
+
+    // ----------------------------------------------------------
+    /**
+     * An enumeration that represents a set of constants for specifying
+     * constraints on the visibility of a declaration.
+     */
+    public static enum VisibilityConstraint
+    {
+        /** Declared with private visibility (only). */
+        DECLARED_PRIVATE(Modifier.PRIVATE),
+        /** Declared with package-level (default) visibility (only). */
+        DECLARED_PACKAGE(
+            Modifier.PRIVATE | Modifier.PROTECTED | Modifier.PUBLIC, true),
+        /** Declared with protected visibility (only). */
+        DECLARED_PROTECTED(Modifier.PROTECTED),
+        /** Declared with public visibility (only). */
+        DECLARED_PUBLIC(Modifier.PUBLIC),
+        /** Declared with protected or public visibility. */
+        AT_LEAST_PROTECTED(Modifier.PROTECTED | Modifier.PUBLIC),
+        /** Declared with package-level (default), protected, or public
+         * visibility.
+         */
+        AT_LEAST_PACKAGE(Modifier.PRIVATE, true),
+        /** Declared with any visibility. */
+        ANY_VISIBILITY(0)
+        {
+            public boolean accepts(int modifiers) { return true; }
+        };
+
+
+        // ----------------------------------------------------------
+        private VisibilityConstraint(int mask)
+        {
+            this(mask, false);
+        }
+
+
+        // ----------------------------------------------------------
+        private VisibilityConstraint(int mask, boolean reverseMask)
+        {
+            this.mask = mask;
+            this.reverseMask = reverseMask;
+        }
+
+
+        // ----------------------------------------------------------
+        /**
+         * Determine if a given set of modifiers, expressed as an integer
+         * mask, meets this visibility constraint.
+         * @param modifiers The modifiers to check.
+         * @return True if the modifiers are consistent with this constraint.
+         */
+        public boolean accepts(int modifiers)
+        {
+            boolean result = reverseMask;
+            if ((mask & modifiers) != 0)
+            {
+                result = !result;
+            }
+            return result;
+        }
+
+
+        // ----------------------------------------------------------
+        /**
+         * Determine if a given member meets this visibility constraint.
+         * @param member The member to check.
+         * @return True if the member's visibility is consistent with this
+         * constraint.
+         */
+        public boolean accepts(java.lang.reflect.Member member)
+        {
+            return accepts(member.getModifiers());
+        }
+
+
+        //~ Fields ............................................................
+
+        private int mask = 0;
+        private boolean reverseMask = false;
+    };
+
+
+    //~ Object Creation Methods ...............................................
+
+    // ----------------------------------------------------------
+    /**
+     * Dynamically look up a class by name, with appropriate hints if the
+     * class cannot be found.
+     * @param className The type of object to create
+     * @return The corresponding Class object
+     */
+    public static Class<?> getClassForName(String className)
+    {
+        try
+        {
+            // First, look in this class' class loader
+            return Class.forName(className);
+        }
+        catch (ClassNotFoundException e)
+        {
+            try
+            {
+                // Otherwise, try the executing thread's context class
+                // loader, in case it is different
+                return Thread.currentThread().getContextClassLoader()
+                    .loadClass(className);
+            }
+            catch (ClassNotFoundException ee)
+            {
+                fail("cannot find class " + className);
+
+                // Just to make the compiler happy:
+                return null;
+            }
+        }
+    }
+
+
+    //~ Method Invocation Methods .............................................
+
+
+
+    //~ Field Manipulation Methods ............................................
+
+
+
+    //~ Public Utility Methods ................................................
+
+    //  simple printing methods ---------------------------------
 
     // ----------------------------------------------------------
     /**
@@ -291,6 +436,8 @@ public class ReflectionSupport
     }
 
 
+    // argument matching methods --------------------------------
+
     // ----------------------------------------------------------
     /**
      * Determine whether an actual argument type matches a formal argument
@@ -339,6 +486,46 @@ public class ReflectionSupport
                  && actual.equals(Character.class) );
     }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    //~ Methods ...............................................................
 
     // ----------------------------------------------------------
     /**
@@ -1143,37 +1330,49 @@ public class ReflectionSupport
     }
 
 
-    // ----------------------------------------------------------
-    /**
-     * Dynamically look up a class by name, with appropriate hints if the
-     * class cannot be found.
-     * @param className The type of object to create
-     * @return The corresponding Class object
-     */
-    public static Class<?> getClassForName(String className)
-    {
-        try
-        {
-            // First, look in this class' class loader
-            return Class.forName(className);
-        }
-        catch (ClassNotFoundException e)
-        {
-            try
-            {
-                // Otherwise, try the executing thread's context class
-                // loader, in case it is different
-                return Thread.currentThread().getContextClassLoader()
-                    .loadClass(className);
-            }
-            catch (ClassNotFoundException ee)
-            {
-                fail("cannot find class " + className);
+    //~ Private Utility Methods ...............................................
 
-                // Just to make the compiler happy:
-                return null;
-            }
+    //-----------------------------------------------------------------
+    /**
+     * Throws a ReflectionError with the given message if the given
+     * condition is not true.
+     * @param message The message will be used to create ReflectionError
+     * @param condition The condition to check
+     */
+    private static void assertTrue(String message, boolean condition)
+    {
+        if (!condition)
+        {
+            fail(message, 2);
         }
     }
 
+
+    //-----------------------------------------------------------------
+    /**
+     * Throws a ReflectionError with the given message.
+     * @param message The message will be used to create ReflectionError
+     */
+    private static void fail(String message)
+    {
+        fail(message, 2);
+    }
+
+
+    //-----------------------------------------------------------------
+    /**
+     * Throws a ReflectionError with the given message.
+     * @param message The message will be used to create ReflectionError
+     * @param stackFramesToStrip The number of levels to strip from the
+     * top of the stack frame (e.g., 1 will strip the call to fail() itself).
+     */
+    private static void fail(String message, int stackFramesToStrip)
+    {
+        ReflectionError error = new ReflectionError(message);
+        StackTraceElement[] trace = error.getStackTrace();
+        // remove the call to fail() from the stack trace
+        error.setStackTrace(java.util.Arrays.copyOfRange(
+            trace, stackFramesToStrip, trace.length));
+        throw error;
+    }
 }
