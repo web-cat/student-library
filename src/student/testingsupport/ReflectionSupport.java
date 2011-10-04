@@ -234,28 +234,23 @@ public class ReflectionSupport
      */
     public static Class<?> getClassForName(String className)
     {
-        try
-        {
-            // First, look in this class' class loader
-            return Class.forName(className);
-        }
-        catch (ClassNotFoundException e)
+        for (ClassLoader loader : getCandidateLoaders())
         {
             try
             {
-                // Otherwise, try the executing thread's context class
-                // loader, in case it is different
-                return Thread.currentThread().getContextClassLoader()
-                    .loadClass(className);
+                return loader.loadClass(className);
             }
-            catch (ClassNotFoundException ee)
+            catch (ClassNotFoundException e)
             {
-                fail("cannot find class " + className);
-
-                // Just to make the compiler happy:
-                return null;
+                // Ignore it and try the next loader
             }
         }
+
+        // Class wasn't found in any candidate loader
+        fail("cannot find class " + className);
+
+        // Unreachable, so just to make the compiler happy:
+        return null;
     }
 
 
@@ -1375,4 +1370,201 @@ public class ReflectionSupport
             trace, stackFramesToStrip, trace.length));
         throw error;
     }
+
+
+    //-----------------------------------------------------------------
+    /**
+     * Return an array of potential classloaders to use to look up classes.
+     * This array contains three loaders, including the loader
+     * used to load ReflectionSupport itself, the current thread's
+     * context classloader, and the classloader used to load the nearest
+     * non-library class in the method calling sequence.  These loaders
+     * are arranged in order from most-specific to least-specific,
+     * in terms of delegation (i.e., if any ancestor/descendant delegation
+     * relationships exist among the loaders, the descendant appears before
+     * the ancestor in the returned array).
+     */
+    private static ClassLoader[] getCandidateLoaders()
+    {
+        ClassLoader[] result = new ClassLoader[] {
+            RESOLVER.getNonlibraryCallerClass().getClassLoader(),
+            Thread.currentThread().getContextClassLoader(),
+            ReflectionSupport.class.getClassLoader()
+        };
+
+        // Sort them in most-specific-to-least-specific order
+        // using a simple bubble sort (augh!!)
+        boolean moved = false;
+        if (hasAsChild(result[1], result[2]))
+        {
+            ClassLoader temp = result[2];
+            result[2] = result[1];
+            result[1] = temp;
+            moved = true;
+        }
+        if (hasAsChild(result[0], result[1]))
+        {
+            ClassLoader temp = result[1];
+            result[1] = result[0];
+            result[0] = temp;
+            moved = true;
+        }
+        if (moved)
+        {
+            if (hasAsChild(result[1], result[2]))
+            {
+                ClassLoader temp = result[2];
+                result[2] = result[1];
+                result[1] = temp;
+            }
+        }
+        else
+        {
+            if (hasAsChild(result[0], result[2]))
+            {
+                ClassLoader temp = result[2];
+                result[2] = result[0];
+                result[0] = temp;
+            }
+        }
+        return result;
+    }
+
+
+    //-----------------------------------------------------------------
+    /**
+     * Returns true if 'loader2' is a delegation child of 'loader1' or if
+     * 'loader1' == 'loader2'. Of course, this works only for classloaders that
+     * set their parent pointers correctly. 'null' is interpreted as the
+     * primordial loader (i.e., everybody's parent).
+     */
+    private static boolean hasAsChild(ClassLoader loader1, ClassLoader loader2)
+    {
+        if (loader1 == loader2)
+        {
+            return true;
+        }
+        if (loader2 == null)
+        {
+            return false;
+        }
+        if (loader1 == null)
+        {
+            return true;
+        }
+
+        for ( ; loader2 != null; loader2 = loader2.getParent())
+        {
+            if (loader2 == loader1)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+
+    //-----------------------------------------------------------------
+    /**
+     * This interface represents a strategy for finding the nearest
+     * non-library class in the calling sequence.
+     */
+    private static interface CallerResolver
+    {
+        Class<?> getNonlibraryCallerClass();
+    }
+
+
+    //-----------------------------------------------------------------
+    /**
+     * A stock implementation of CallerResolver that uses features from
+     * the SecurityManager class to get access to the declaring classes of
+     * methods on the call stack.  Note that this class need NOT be installed
+     * as the current security manager at all (and shouldn't be).  It
+     * simply uses inherited features to implement the CallerResolver
+     * interface.
+     */
+    private static class SecurityManagerCallerResolver
+        extends SecurityManager
+        implements CallerResolver
+    {
+        public Class<?> getNonlibraryCallerClass()
+        {
+            Class<?>[] stack = getClassContext();
+            for (Class<?> c : getClassContext())
+            {
+                boolean isClientClass = true;
+                String name = c.getName();
+                for (String prefix : STACK_FILTERS)
+                {
+                    if (name.startsWith(prefix))
+                    {
+                        isClientClass = false;
+                    }
+                    break;
+                }
+                if (isClientClass)
+                {
+                    return c;
+                }
+            }
+            if (stack.length > 0)
+            {
+                // If no non-library classes were found, return the bottom
+                // of stack
+                return stack[stack.length - 1];
+            }
+            else
+            {
+                // If there's no stack (!), just return this class
+                return ReflectionSupport.class;
+            }
+        }
+    }
+
+
+    //~ Private Fields ........................................................
+
+    private static /*final*/ CallerResolver RESOLVER;
+
+    static
+    {
+        try
+        {
+            // this can fail if the current SecurityManager does not allow
+            // RuntimePermission ("createSecurityManager"):
+
+            RESOLVER = new SecurityManagerCallerResolver();
+        }
+        catch (SecurityException e)
+        {
+            System.out.println("Warning: " + ReflectionSupport.class
+                + "could not create CallerResolver:");
+            e.printStackTrace();
+            RESOLVER = new CallerResolver()
+            {
+                public java.lang.Class<?> getNonlibraryCallerClass()
+                {
+                    return ReflectionSupport.class;
+                };
+            };
+        }
+    }
+
+
+    private static final String[] STACK_FILTERS = {
+        "student.",
+        "cs1705.",
+        // JUnit 4 support:
+        "org.junit.",
+        // JUnit 3 support:
+        "junit.",
+        "java.",
+        "sun.",
+        "org.apache.tools.ant.",
+        // Web-CAT infrastructure
+        "net.sf.webcat."
+    };
+
 }
