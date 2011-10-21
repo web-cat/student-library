@@ -329,15 +329,14 @@ public abstract class AbstractPersistentMap<T>
         }
         else
         {
-
             if ( loader == null )
             {
                 loader = this.getClass().getClassLoader();
             }
             latest = PSM.getPersistentObject( objectId, context, loader );
-            context.put( objectId, latest );
             if ( latest != null )
             {
+                context.put( objectId, latest );
                 result = returnAsType( typeAware, latest.value() );
                 if ( result != latest.value() )
                 {
