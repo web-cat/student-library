@@ -22,6 +22,7 @@
 package student.testingsupport;
 
 import java.lang.reflect.Constructor;
+import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
@@ -254,201 +255,83 @@ public class ReflectionSupport
     }
 
 
-    //~ Method Invocation Methods .............................................
-
-
-
-    //~ Field Manipulation Methods ............................................
-
-
-
-    //~ Public Utility Methods ................................................
-
-    //  simple printing methods ---------------------------------
-
     // ----------------------------------------------------------
     /**
-     * Returns the name of the given class without any package prefix.
-     * If the argument is an array type, square brackets are added to
-     * the name as appropriate.  This method isuseful in generating
-     * diagnostic messages or feedback.
-     * @param aClass The class to generate a name for
-     * @return The class' name, without the package part, e.g., "String"
-     *     instead of "java.lang.String"
+     * Look up a constructor by parameter profile, finding the
+     * constructor that will accept the given list of parameters (not
+     * requiring an exact match on parameter types).  It turns any
+     * errors into test case failures with appropriate hint messages.
+     * Assumes the intended constructor should be public, and fails with an
+     * appropriate hint if it is not.
+     * Note that this method <b>does not handle variable argument lists</b>
+     * in the target constructor for which it is searching.
+     * @param c The type of object to create
+     * @param params The constructor's parameter profile
+     * @return The corresponding Constructor object
      */
-    public static String simpleClassName(Class<?> aClass)
+    public static Constructor<?> getMatchingConstructor(
+        Class<?> c, Class<?> ... params)
     {
-        if (aClass == null) return "null";
-        String result = aClass.getName();
-
-
-        // If it is an array, add appropriate number of brackets
-        try
+        Constructor<?> result = null;
+        Constructor<?> ctorWithSameParamCount = null;
+        if (params == null) { params = new Class[0]; }
+        for (Constructor<?> m : c.getConstructors())
         {
-            Class<?> cl = aClass;
-            while (cl.isArray())
+            Class<?>[] paramTypes = m.getParameterTypes();
+            if (params.length == paramTypes.length)
             {
-                result += "[]";
-                cl = cl.getComponentType();
+                ctorWithSameParamCount = m;
+                result = m; // maybe ... we'll clear it if wrong
+                for (int i = 0; i < params.length; i++)
+                {
+                    if (params[i] != null)
+                    {
+                        // If the actual is non-null, check to see if
+                        // it can be assigned to the formal correctly.
+                        if (!actualMatchesFormal(params[i], paramTypes[i]))
+                        {
+                            result = null;
+                            break;
+                        }
+                    }
+                    else if (paramTypes[i].isPrimitive())
+                    {
+                        // If actual is null, then the formal can't
+                        // be a primitive
+                        result = null;
+                        break;
+                    }
+                }
+                if (result != null)
+                {
+                    // If we found a match that can accept all the
+                    // parameters  ...
+                    break;
+                }
             }
         }
-        catch (Throwable e)
+        if (result == null)
         {
-            // Swallow it and stick with the bare class name
-        }
-
-        int pos = result.lastIndexOf('.');
-        if (pos >= 0)
-        {
-            result = result.substring(pos + 1);
-        }
-        return result;
-    }
-
-
-    // ----------------------------------------------------------
-    /**
-     * Returns the name of the given class without any package prefix.
-     * If the argument is an array type, square brackets are added to
-     * the name as appropriate.  This method isuseful in generating
-     * diagnostic messages or feedback.
-     * @param aClass The class to generate a name for
-     * @return The class' name, without the package part, e.g., "String"
-     *     instead of "java.lang.String"
-     */
-    public static String simpleClassNameUsingPrimitives(Class<?> aClass)
-    {
-        if (aClass == Boolean.class)
-        {
-            aClass = Boolean.TYPE;
-        }
-        else if (aClass == Byte.class)
-        {
-            aClass = Byte.TYPE;
-        }
-        else if (aClass == Character.class)
-        {
-            aClass = Character.TYPE;
-        }
-        else if (aClass == Short.class)
-        {
-            aClass = Short.TYPE;
-        }
-        else if (aClass == Integer.class)
-        {
-            aClass = Integer.TYPE;
-        }
-        else if (aClass == Long.class)
-        {
-            aClass = Long.TYPE;
-        }
-        else if (aClass == Float.class)
-        {
-            aClass = Float.TYPE;
-        }
-        else if (aClass == Double.class)
-        {
-            aClass = Double.TYPE;
-        }
-        return simpleClassName(aClass);
-    }
-
-
-    // ----------------------------------------------------------
-    /**
-     * Constructs a printable version of a method's name, given
-     * the method name and its parameter type(s), if any.
-     * Useful in generating diagnostic messages or feedback.
-     * @param name   The method name
-     * @param params The method's parameter type(s), in order
-     * @return A printable version of the method name, like
-     *     "myMethod()" or "yourMethod(String, int)"
-     */
-    public static String simpleMethodName(String name, Class<?> ... params)
-    {
-        return name + simpleArgumentList(params);
-    }
-
-
-    // ----------------------------------------------------------
-    /**
-     * Constructs a printable version of a method's argument list, including
-     * the parentheses, given the method's parameter type(s), if any.
-     * @param params The method's parameter type(s), in order
-     * @return A printable version of the argument list built using
-     *     {@link #simpleClassName(Class)}, like "(String, int)"
-     */
-    public static String simpleArgumentList(Class<?> ... params)
-    {
-        String result = "(";
-        boolean needsComma = false;
-        for (Class<?> c : params)
-        {
-            if (needsComma)
+            String message = null;
+            if (ctorWithSameParamCount != null)
             {
-                result += ", ";
-            }
-            if (c == null)
-            {
-                result += "null";
+                message = "constructor cannot be called with argument"
+                    + ((params.length == 1) ? "" : "s")
+                    + " of type "
+                    + simpleArgumentList(params)
+                    + ": incorrect parameter type(s)";
             }
             else
             {
-                result += simpleClassName(c);
+                message = "" + c + " is missing public constructor "
+                    + simpleMethodName(simpleClassName(c), params);
             }
-            needsComma = true;
+            fail(message);
         }
-        result += ")";
-        return result;
-    }
-
-
-    // ----------------------------------------------------------
-    /**
-     * Constructs a printable version of a method's name.  Unlike
-     * {@link Method#toString()}, this one uses {@link #simpleClassName(Class)}
-     * so package info is eliminated from the types in the resulting
-     * string.  It also omits exception information, unlike Method.toString().
-     * @param method The method to print
-     * @return A printable version of the method name, like
-     *     "public void MyClass.myMethod()" or
-     *     "public String YourClass.yourMethod(String, int)"
-     */
-    public static String simpleMethodName(Method method)
-    {
-        StringBuffer sb = new StringBuffer();
-        int mod = method.getModifiers();
-        if (mod != 0)
+        else if (!Modifier.isPublic(result.getModifiers()))
         {
-            sb.append(Modifier.toString(mod) + " ");
-        }
-        sb.append(simpleClassName(method.getReturnType()) + " ");
-        sb.append(method.getName());
-        sb.append(simpleArgumentList(method.getParameterTypes()));
-        sb.append(" in class ");
-        sb.append(simpleClassName(method.getDeclaringClass()));
-        return sb.toString();
-    }
-
-
-    // argument matching methods --------------------------------
-
-    // ----------------------------------------------------------
-    /**
-     * Determine whether an actual argument type matches a formal argument
-     * type.  This uses {@link Class#isAssignableFrom(Class)}, but gives
-     * the correct results for primitive types vs. wrapper types.
-     * @param actual The type of the actual parameter
-     * @param formal The type of the formal parameter
-     * @return True if the actual value can be passed into a parameter
-     *    declared using the formal type
-     */
-    public static boolean actualMatchesFormal(Class<?> actual, Class<?> formal)
-    {
-        boolean result = formal.isAssignableFrom(actual);
-        if (!result)
-        {
-            result = canAutoBoxFromActualToFormal(actual, formal);
+            fail("constructor " + simpleMethodName(simpleClassName(c), params)
+                + " should be public");
         }
         return result;
     }
@@ -456,71 +339,238 @@ public class ReflectionSupport
 
     // ----------------------------------------------------------
     /**
-     * Determine whether it is appropriate to attempt to "auto-box" an
-     * actual argument of type <code>actual</code> into a formal parameter
-     * type <code>formal</code>.
-     * @param actual The type of the actual value.
-     * @param formal The type of the formal parameter.
-     * @return True if it is appropriate to auto-box the actual into the
-     * type of the formal.
+     * Just like {@link Constructor#newInstance(Object...)}, but converts
+     * any thrown exceptions into RuntimeExceptions.
+     * @param constructor The constructor to invoke
+     * @param params The parameters to pass to the constructor
+     * @param <T> The generic parameter T is deduced from the provided
+     *            constructor
+     * @return The newly created object
      */
-    public static boolean canAutoBoxFromActualToFormal(
-        Class<?> actual, Class<?> formal)
+    public static <T> T create(Constructor<T> constructor, Object ... params)
     {
-        return
-            ( (    formal.equals(byte.class)
-                || formal.equals(short.class)
-                || formal.equals(int.class)
-                || formal.equals(long.class)
-                || formal.equals(float.class)
-                || formal.equals(double.class) )
-              && Number.class.isAssignableFrom(actual) )
-            || ( formal.equals(boolean.class)
-                 && actual.equals(Boolean.class) )
-            || ( formal.equals(char.class)
-                 && actual.equals(Character.class) );
+        T result = null;
+        try
+        {
+            result = constructor.newInstance(params);
+        }
+        catch (InvocationTargetException e)
+        {
+            Throwable cause = e;
+            while (cause.getCause() != null)
+            {
+                cause = cause.getCause();
+            }
+            throw new RuntimeException(cause);
+        }
+        catch (InstantiationException e)
+        {
+            Throwable cause = e;
+            while (cause.getCause() != null)
+            {
+                cause = cause.getCause();
+            }
+            throw new RuntimeException(cause);
+        }
+        catch (IllegalAccessException e)
+        {
+            // This should never happen, since getMethod() has already
+            // done the appropriate checks.
+            throw new RuntimeException(e);
+        }
+        return result;
     }
 
 
+    // ----------------------------------------------------------
+    /**
+     * Dynamically look up and invoke a class constructor for the target
+     * class, with appropriate hints if any failures happen along the way.
+     * @param returnType The type of object to create.
+     * @param params The parameters to pass to the constructor
+     * @param <T> The generic parameter T is deduced from the returnType
+     * @return The newly created object
+     */
+    @SuppressWarnings("unchecked")
+    public static <T> T create(
+        Class<T> returnType,
+        Object ... params)
+    {
+        Object result = null;
+        Class<?>[] paramProfile = null;
+        if (params != null)
+        {
+            paramProfile = new Class<?>[params.length];
+            for (int i = 0; i < params.length; i++)
+            {
+                if ( params[i] == null)
+                {
+                    // A null indicates we'll try to pass null as an
+                    // actual in the getMatchingMethod() search
+                    paramProfile[i] = null;
+                }
+                else
+                {
+                    paramProfile[i] = params[i].getClass();
+                }
+            }
+        }
+        Constructor<?> c = getMatchingConstructor(returnType, paramProfile);
+
+        result = create(c, params);
+
+        if (result != null)
+        {
+            assertTrue("constructor "
+                + simpleMethodName(simpleClassName(returnType), paramProfile)
+                + " did not produce result of type "
+                + simpleClassName(returnType),
+                returnType.isAssignableFrom(result.getClass()));
+        }
+        // The cast below is technically unsafe, according to the compiler,
+        // but will never be violated, due to the assertion above.
+        return (T)result;
+    }
 
 
+    // ----------------------------------------------------------
+    /**
+     * Dynamically look up and invoke a class constructor for the target
+     * class, with appropriate hints if any failures happen along the way.
+     * @param className The type of object to create
+     * @param params The parameters to pass to the constructor
+     * @return The newly created object
+     */
+    public static Object create(String className, Object ... params)
+    {
+        return create(getClassForName(className), params);
+    }
 
 
+    // ----------------------------------------------------------
+    /**
+     * Just like {@link #create(Constructor, Object...)}, but unwraps
+     * any InvocationTargetExceptions and throws the true cause.  This
+     * version is provided when you want to write test cases where you
+     * are intending to check for Exceptions as expected results.
+     * @param constructor The constructor to invoke
+     * @param params The parameters to pass to the constructor
+     * @return The newly created object
+     * @throws Exception if the underlying method throws one
+     */
+    public static Object createEx(Constructor<?> constructor, Object ... params)
+        throws Exception
+    {
+        Object result = null;
+        try
+        {
+            result = constructor.newInstance(params);
+        }
+        catch (InvocationTargetException e)
+        {
+            Throwable cause = e;
+            Exception ex = null;
+            if (cause instanceof Exception)
+            {
+                ex = (Exception)cause;
+            }
+            while (cause.getCause() != null)
+            {
+                cause = cause.getCause();
+                if (cause instanceof Exception)
+                {
+                    ex = (Exception)cause;
+                }
+            }
+            if (ex != null)
+            {
+                throw ex;
+            }
+            else
+            {
+                // the cause is a raw Throwable of some kind, rather than
+                // an Exception, so it needs to be wrapped anyway
+                throw new RuntimeException(cause);
+            }
+        }
+        return result;
+    }
 
 
+    // ----------------------------------------------------------
+    /**
+     * Just like {@link #create(Class, Object...)}, but unwraps
+     * any InvocationTargetExceptions and throws the true cause.  This
+     * version is provided when you want to write test cases where you
+     * are intending to check for Exceptions as expected results.
+     * @param returnType The type of object to create.
+     * @param params The parameters to pass to the constructor
+     * @param <T> The generic parameter T is deduced from the returnType
+     * @return The newly created object
+     * @throws Exception if the underlying method throws one
+     */
+    @SuppressWarnings("unchecked")
+    public static <T> T createEx(
+        Class<T> returnType,
+        Object ... params)
+        throws Exception
+    {
+        Object result = null;
+        Class<?>[] paramProfile = null;
+        if (params != null)
+        {
+            paramProfile = new Class<?>[params.length];
+            for (int i = 0; i < params.length; i++)
+            {
+                if ( params[i] == null)
+                {
+                    // A null indicates we'll try to pass null as an
+                    // actual in the getMatchingMethod() search
+                    paramProfile[i] = null;
+                }
+                else
+                {
+                    paramProfile[i] = params[i].getClass();
+                }
+            }
+        }
+        Constructor<?> c = getMatchingConstructor(returnType, paramProfile);
+
+        result = createEx(c, params);
+
+        if (result != null)
+        {
+            assertTrue("constructor "
+                + simpleMethodName(simpleClassName(returnType), paramProfile)
+                + " did not produce result of type "
+                + simpleClassName(returnType),
+                returnType.isAssignableFrom(result.getClass()));
+        }
+        // The cast below is technically unsafe, according to the compiler,
+        // but will never be violated, due to the assertion above.
+        return (T)result;
+    }
 
 
+    // ----------------------------------------------------------
+    /**
+     * Just like {@link #create(String, Object...)}, but unwraps
+     * any InvocationTargetExceptions and throws the true cause.  This
+     * version is provided when you want to write test cases where you
+     * are intending to check for Exceptions as expected results.
+     * @param className The type of object to create
+     * @param params The parameters to pass to the constructor
+     * @return The newly created object
+     * @throws Exception if the underlying method throws one
+     */
+    public static Object createEx(String className, Object ... params)
+        throws Exception
+    {
+        return createEx(getClassForName(className), params);
+    }
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    //~ Methods ...............................................................
+    //~ Method Invocation Methods .............................................
 
     // ----------------------------------------------------------
     /**
@@ -1010,243 +1060,446 @@ public class ReflectionSupport
     }
 
 
+    //~ Field Manipulation Methods ............................................
+
     // ----------------------------------------------------------
     /**
-     * Look up a constructor by parameter profile, finding the
-     * constructor that will accept the given list of parameters (not requiring
-     * an exact match on parameter types).  It turns any
-     * errors into test case failures with appropriate hint messages.
-     * Assumes the intended constructor should be public, and fails with an
-     * appropriate hint if it is not.
-     * Note that this method <b>does not handle variable argument lists</b>
-     * in the target constructor for which it is searching.
-     * @param c The type of object to create
-     * @param params The constructor's parameter profile
-     * @return The corresponding Constructor object
+     * Look up a field by name, receiver class, and type, finding the
+     * field that will accept the given type (not requiring
+     * an exact match on type).  Any errors are thrown as instances of
+     * {@link ReflectionError}.
+     * It looks up fields that are declared in the specified class,
+     * as well as inherited classes.  It sets up accessibility if the field
+     * is not public.
+     * @param receiverClass The class of the receiver
+     * @param type The type of this field
+     * @param fieldName The name of the field
+     * @return The corresponding Field
      */
-    public static Constructor<?> getMatchingConstructor(
-        Class<?> c, Class<?> ... params)
+    public static Field getField(
+        Class<?> receiverClass, Class<?> type, String fieldName)
     {
-        Constructor<?> result = null;
-        Constructor<?> ctorWithSameParamCount = null;
-        if (params == null) { params = new Class[0]; }
-        for (Constructor<?> m : c.getConstructors())
+        Field field = null;
+        Class<?> declaringClass = receiverClass;
+        // TODO: This approach will not find public fields declared in
+        //       implemented interfaces.
+        while (field == null && declaringClass != null)
         {
-            Class<?>[] paramTypes = m.getParameterTypes();
-            if (params.length == paramTypes.length)
+            try
             {
-                ctorWithSameParamCount = m;
-                result = m; // maybe ... we'll clear it if wrong
-                for (int i = 0; i < params.length; i++)
-                {
-                    if (params[i] != null)
-                    {
-                        // If the actual is non-null, check to see if
-                        // it can be assigned to the formal correctly.
-                        if (!actualMatchesFormal(params[i], paramTypes[i]))
-                        {
-                            result = null;
-                            break;
-                        }
-                    }
-                    else if (paramTypes[i].isPrimitive())
-                    {
-                        // If actual is null, then the formal can't
-                        // be a primitive
-                        result = null;
-                        break;
-                    }
-                }
-                if (result != null)
-                {
-                    // If we found a match that can accept all the
-                    // parameters  ...
-                    break;
-                }
+                field = declaringClass.getDeclaredField(fieldName);
+            }
+            catch (NoSuchFieldException e)
+            {
+               // check parent class
+               declaringClass = declaringClass.getSuperclass();
             }
         }
-        if (result == null)
+
+        if (field == null)
         {
-            String message = null;
-            if (ctorWithSameParamCount != null)
+            fail("Cannot find field " + fieldName
+                + " in " + simpleClassName(receiverClass));
+        }
+        if (!actualMatchesFormal(type, field.getType()))
+        {
+            String msg = "Field " + fieldName + " in class ";
+            if (declaringClass == receiverClass)
             {
-                message = "constructor cannot be called with argument"
-                    + ((params.length == 1) ? "" : "s")
-                    + " of type "
-                    + simpleArgumentList(params)
-                    + ": incorrect parameter type(s)";
+                msg += simpleClassName(declaringClass);
             }
             else
             {
-                message = "" + c + " is missing public constructor "
-                    + simpleMethodName(simpleClassName(c), params);
+                msg += simpleClassName(receiverClass) + " (inherited from "
+                    + simpleClassName(declaringClass) + ")";
             }
-            fail(message);
+            fail(msg + " is declared of type "
+                + simpleClassName(field.getType())
+                + ", not "
+                + simpleClassName(type)
+                + ".");
         }
-        else if (!Modifier.isPublic(result.getModifiers()))
+
+        //check and set access permission
+        if (!field.isAccessible())
         {
-            fail("constructor " + simpleMethodName(simpleClassName(c), params)
-                + " should be public");
+            field.setAccessible(true);
         }
-        return result;
+        return field;
     }
 
 
-    // ----------------------------------------------------------
+    //------------------------------------------------------------------
     /**
-     * Just like {@link Constructor#newInstance(Object...)}, but converts
-     * any thrown exceptions into RuntimeExceptions.
-     * @param constructor The constructor to invoke
-     * @param params The parameters to pass to the constructor
-     * @param <T> The generic parameter T is deduced from the provided
-     *            constructor
-     * @return The newly created object
-     */
-    public static <T> T create(Constructor<T> constructor, Object ... params)
-    {
-        T result = null;
-        try
-        {
-            result = constructor.newInstance(params);
-        }
-        catch (InvocationTargetException e)
-        {
-            Throwable cause = e;
-            while (cause.getCause() != null)
-            {
-                cause = cause.getCause();
-            }
-            throw new RuntimeException(cause);
-        }
-        catch (InstantiationException e)
-        {
-            Throwable cause = e;
-            while (cause.getCause() != null)
-            {
-                cause = cause.getCause();
-            }
-            throw new RuntimeException(cause);
-        }
-        catch (IllegalAccessException e)
-        {
-            // This should never happen, since getMethod() has already
-            // done the appropriate checks.
-            throw new RuntimeException(e);
-        }
-        return result;
-    }
-
-
-    // ----------------------------------------------------------
-    /**
-     * Dynamically look up and invoke a class constructor for the target
-     * class, with appropriate hints if any failures happen along the way.
-     * @param returnType The type of object to create.
-     * @param params The parameters to pass to the constructor
+     * Get the value of a field. The field is looked up a field by name,
+     * receiver object and type, finding the field that will accept the
+     * given type (not requiring an exact match on type).  It turns any
+     * errors into ReflectionErrors with appropriate hint messages.
+     * @param receiver The object containing the field
+     * @param type The type of this field
+     * @param fieldName The name of the field
      * @param <T> The generic parameter T is deduced from the returnType
-     * @return The newly created object
+     * @return The value corresponding Field
      */
-    @SuppressWarnings("unchecked")
-    public static <T> T create(
-        Class<T> returnType,
-        Object ... params)
+    public static <T> T get(Object receiver, Class<T> type, String fieldName )
     {
-        Object result = null;
-        Class<?>[] paramProfile = null;
-        if (params != null)
+        assert fieldName != null    : "fieldName cannot be null";
+        assert !fieldName.isEmpty() : "fieldName cannot be empty";
+        assert receiver != null     : "Receiver object cannot be empty";
+
+        Field field = getField(receiver.getClass(), type, fieldName);
+
+        Object fieldValue = null;
+        if (field != null)
         {
-            paramProfile = new Class<?>[params.length];
-            for (int i = 0; i < params.length; i++)
+            try
             {
-                if ( params[i] == null)
-                {
-                    // A null indicates we'll try to pass null as an
-                    // actual in the getMatchingMethod() search
-                    paramProfile[i] = null;
-                }
-                else
-                {
-                    paramProfile[i] = params[i].getClass();
-                }
+                fieldValue = field.get(receiver);
+            }
+            catch (IllegalArgumentException e)
+            {
+                fail(field.getName() + " in "
+                    + simpleClassName(receiver.getClass())
+                    + " cannot be retrieved.");
+            }
+            catch (IllegalAccessException e)
+            {
+                // Shouldn't happen, since setAccessible() was called,
+                // but the compiler requires a handler.
+                fail(e.getMessage());
+            }
+
+        }
+        @SuppressWarnings("unchecked")
+        T value = (T)fieldValue;
+        return value;
+    }
+
+
+    //------------------------------------------------------------------
+    /**
+     * Get the value of a field. The field is looked up a field by name,
+     * receiver object and type, finding the field that will accept the
+     * given type (not requiring an exact match on type).  It turns any
+     * errors into ReflectionErrors with appropriate hint messages.
+     * Note that the field must be a static field.
+     * @param receiverClass The class of the receiver
+     * @param type The type of this field
+     * @param fieldName The name of the field
+     * @param <T> The generic parameter T is deduced from the returnType
+     * @return The value corresponding Field
+     */
+    public static <T> T get(
+        Class<?> receiverClass, Class<T> type, String fieldName)
+    {
+        assert fieldName != null     : "fieldName cannot be null";
+        assert !fieldName.isEmpty()  : "fieldName cannot be empty";
+        assert receiverClass != null : "Receiver object cannot be empty";
+
+        Field field = getField(receiverClass, type, fieldName);
+
+        Object fieldValue = null;
+
+        if (field != null)
+        {
+            try
+            {
+                fieldValue = field.get(null);
+            }
+            catch (IllegalArgumentException e)
+            {
+                fail(field.getName() + " in "
+                    + simpleClassName(receiverClass)
+                    + " cannot be retrieved.");
+            }
+            catch (IllegalAccessException e)
+            {
+                // Shouldn't happen, since setAccessible() was called,
+                // but the compiler requires a handler.
+                fail(e.getMessage());
             }
         }
-        Constructor<?> c = getMatchingConstructor(returnType, paramProfile);
+        @SuppressWarnings("unchecked")
+        T value = (T)fieldValue;
+        return value;
+    }
 
-        result = create(c, params);
 
-        if (result != null)
+    //------------------------------------------------------------------
+    /**
+     * Sets value of a field.
+     * @param receiver The object of the receiver
+     * @param fieldName The name of the field
+     * @param value The value to set in the field
+     */
+    public static void set(Object receiver, String fieldName, Object value)
+    {
+        assert fieldName != null    : "fieldName cannot be null";
+        assert !fieldName.isEmpty() : "fieldName cannot be empty";
+        assert receiver != null     : "Receiver object cannot be empty";
+
+        Field field =
+            getField(receiver.getClass(), value.getClass(), fieldName);
+        if (field != null)
         {
-            assertTrue("constructor "
-                + simpleMethodName(simpleClassName(returnType), paramProfile)
-                + " did not produce result of type "
-                + simpleClassName(returnType),
-                returnType.isAssignableFrom(result.getClass()));
+            try
+            {
+                field.set(receiver, value);
+            }
+            catch (IllegalArgumentException e)
+            {
+                fail(field.getName() +" of type "
+                    + simpleClassName(field.getType())
+                    +" cannot be assigned a value of "
+                    + value
+                    + ((value == null)
+                        ? ""
+                        : "(of type "
+                            + simpleClassName(value.getClass())
+                            + ")")
+                    + ".");
+            }
+            catch (IllegalAccessException e)
+            {
+                // Shouldn't happen, since setAccessible() was called,
+                // but the compiler requires a handler.
+                fail(e.getMessage());
+            }
         }
-        // The cast below is technically unsafe, according to the compiler,
-        // but will never be violated, due to the assertion above.
-        return (T)result;
     }
 
 
-    // ----------------------------------------------------------
+    //------------------------------------------------------------------
     /**
-     * Dynamically look up and invoke a class constructor for the target
-     * class, with appropriate hints if any failures happen along the way.
-     * @param className The type of object to create
-     * @param params The parameters to pass to the constructor
-     * @return The newly created object
+     * Sets value of a field.
+     * @param receiverClass The class of the receiver
+     * @param fieldName The name of the field
+     * @param value The value will be set in the field
      */
-    public static Object create(String className, Object ... params)
+    public static void set(
+        Class<?> receiverClass, String fieldName,  Object value)
     {
-        return create(getClassForName(className), params);
+        assert fieldName != null     : "fieldName cannot be null";
+        assert !fieldName.isEmpty()  : "fieldName cannot be empty";
+        assert receiverClass != null : "Receiver object cannot be empty";
+
+        Field field = getField(receiverClass, value.getClass(), fieldName);
+        if (field != null)
+        {
+            try
+            {
+                field.set(null, value);
+            }
+            catch (IllegalArgumentException e)
+            {
+                fail(field.getName() +" of type "
+                    + simpleClassName(field.getType())
+                    +" cannot be assigned a value of "
+                    + value
+                    + ((value == null)
+                        ? ""
+                        : "(of type "
+                            + simpleClassName(value.getClass())
+                            + ")")
+                    + ".");
+            }
+            catch (IllegalAccessException e)
+            {
+                // Shouldn't happen, since setAccessible() was called,
+                // but the compiler requires a handler.
+                fail(e.getMessage());
+            }
+        }
     }
 
 
+    //~ Public Utility Methods ................................................
+
+    //  simple printing methods ---------------------------------
+
     // ----------------------------------------------------------
     /**
-     * Just like {@link #create(Constructor, Object...)}, but unwraps
-     * any InvocationTargetExceptions and throws the true cause.  This
-     * version is provided when you want to write test cases where you
-     * are intending to check for Exceptions as expected results.
-     * @param constructor The constructor to invoke
-     * @param params The parameters to pass to the constructor
-     * @return The newly created object
-     * @throws Exception if the underlying method throws one
+     * Returns the name of the given class without any package prefix.
+     * If the argument is an array type, square brackets are added to
+     * the name as appropriate.  This method isuseful in generating
+     * diagnostic messages or feedback.
+     * @param aClass The class to generate a name for
+     * @return The class' name, without the package part, e.g., "String"
+     *     instead of "java.lang.String"
      */
-    public static Object createEx(Constructor<?> constructor, Object ... params)
-        throws Exception
+    public static String simpleClassName(Class<?> aClass)
     {
-        Object result = null;
+        if (aClass == null) return "null";
+        String result = aClass.getName();
+
+
+        // If it is an array, add appropriate number of brackets
         try
         {
-            result = constructor.newInstance(params);
+            Class<?> cl = aClass;
+            while (cl.isArray())
+            {
+                result += "[]";
+                cl = cl.getComponentType();
+            }
         }
-        catch (InvocationTargetException e)
+        catch (Throwable e)
         {
-            Throwable cause = e;
-            Exception ex = null;
-            if (cause instanceof Exception)
+            // Swallow it and stick with the bare class name
+        }
+
+        int pos = result.lastIndexOf('.');
+        if (pos >= 0)
+        {
+            result = result.substring(pos + 1);
+        }
+        return result;
+    }
+
+
+    // ----------------------------------------------------------
+    /**
+     * Returns the name of the given class without any package prefix.
+     * If the argument is an array type, square brackets are added to
+     * the name as appropriate.  This method is useful in generating
+     * diagnostic messages or feedback.
+     * @param aClass The class to generate a name for
+     * @return The class' name, without the package part, e.g., "String"
+     *     instead of "java.lang.String"
+     */
+    public static String simpleClassNameUsingPrimitives(Class<?> aClass)
+    {
+        if (aClass == Boolean.class)
+        {
+            aClass = Boolean.TYPE;
+        }
+        else if (aClass == Byte.class)
+        {
+            aClass = Byte.TYPE;
+        }
+        else if (aClass == Character.class)
+        {
+            aClass = Character.TYPE;
+        }
+        else if (aClass == Short.class)
+        {
+            aClass = Short.TYPE;
+        }
+        else if (aClass == Integer.class)
+        {
+            aClass = Integer.TYPE;
+        }
+        else if (aClass == Long.class)
+        {
+            aClass = Long.TYPE;
+        }
+        else if (aClass == Float.class)
+        {
+            aClass = Float.TYPE;
+        }
+        else if (aClass == Double.class)
+        {
+            aClass = Double.TYPE;
+        }
+        return simpleClassName(aClass);
+    }
+
+
+    // ----------------------------------------------------------
+    /**
+     * Constructs a printable version of a method's name, given
+     * the method name and its parameter type(s), if any.
+     * Useful in generating diagnostic messages or feedback.
+     * @param name   The method name
+     * @param params The method's parameter type(s), in order
+     * @return A printable version of the method name, like
+     *     "myMethod()" or "yourMethod(String, int)"
+     */
+    public static String simpleMethodName(String name, Class<?> ... params)
+    {
+        return name + simpleArgumentList(params);
+    }
+
+
+    // ----------------------------------------------------------
+    /**
+     * Constructs a printable version of a method's argument list, including
+     * the parentheses, given the method's parameter type(s), if any.
+     * @param params The method's parameter type(s), in order
+     * @return A printable version of the argument list built using
+     *     {@link #simpleClassName(Class)}, like "(String, int)"
+     */
+    public static String simpleArgumentList(Class<?> ... params)
+    {
+        String result = "(";
+        boolean needsComma = false;
+        for (Class<?> c : params)
+        {
+            if (needsComma)
             {
-                ex = (Exception)cause;
+                result += ", ";
             }
-            while (cause.getCause() != null)
+            if (c == null)
             {
-                cause = cause.getCause();
-                if (cause instanceof Exception)
-                {
-                    ex = (Exception)cause;
-                }
-            }
-            if (ex != null)
-            {
-                throw ex;
+                result += "null";
             }
             else
             {
-                // the cause is a raw Throwable of some kind, rather than
-                // an Exception, so it needs to be wrapped anyway
-                throw new RuntimeException(cause);
+                result += simpleClassName(c);
             }
+            needsComma = true;
+        }
+        result += ")";
+        return result;
+    }
+
+
+    // ----------------------------------------------------------
+    /**
+     * Constructs a printable version of a method's name.  Unlike
+     * {@link Method#toString()}, this one uses {@link #simpleClassName(Class)}
+     * so package info is eliminated from the types in the resulting
+     * string.  It also omits exception information, unlike Method.toString().
+     * @param method The method to print
+     * @return A printable version of the method name, like
+     *     "public void MyClass.myMethod()" or
+     *     "public String YourClass.yourMethod(String, int)"
+     */
+    public static String simpleMethodName(Method method)
+    {
+        StringBuffer sb = new StringBuffer();
+        int mod = method.getModifiers();
+        if (mod != 0)
+        {
+            sb.append(Modifier.toString(mod) + " ");
+        }
+        sb.append(simpleClassName(method.getReturnType()) + " ");
+        sb.append(method.getName());
+        sb.append(simpleArgumentList(method.getParameterTypes()));
+        sb.append(" in class ");
+        sb.append(simpleClassName(method.getDeclaringClass()));
+        return sb.toString();
+    }
+
+
+    // argument matching methods --------------------------------
+
+    // ----------------------------------------------------------
+    /**
+     * Determine whether an actual argument type matches a formal argument
+     * type.  This uses {@link Class#isAssignableFrom(Class)}, but gives
+     * the correct results for primitive types vs. wrapper types.
+     * @param actual The type of the actual parameter
+     * @param formal The type of the formal parameter
+     * @return True if the actual value can be passed into a parameter
+     *    declared using the formal type
+     */
+    public static boolean actualMatchesFormal(Class<?> actual, Class<?> formal)
+    {
+        boolean result = formal.isAssignableFrom(actual);
+        if (!result)
+        {
+            result = canAutoBoxFromActualToFormal(actual, formal);
         }
         return result;
     }
@@ -1254,74 +1507,29 @@ public class ReflectionSupport
 
     // ----------------------------------------------------------
     /**
-     * Just like {@link #create(Class, Object...)}, but unwraps
-     * any InvocationTargetExceptions and throws the true cause.  This
-     * version is provided when you want to write test cases where you
-     * are intending to check for Exceptions as expected results.
-     * @param returnType The type of object to create.
-     * @param params The parameters to pass to the constructor
-     * @param <T> The generic parameter T is deduced from the returnType
-     * @return The newly created object
-     * @throws Exception if the underlying method throws one
+     * Determine whether it is appropriate to attempt to "auto-box" an
+     * actual argument of type <code>actual</code> into a formal parameter
+     * type <code>formal</code>.
+     * @param actual The type of the actual value.
+     * @param formal The type of the formal parameter.
+     * @return True if it is appropriate to auto-box the actual into the
+     * type of the formal.
      */
-    @SuppressWarnings("unchecked")
-    public static <T> T createEx(
-        Class<T> returnType,
-        Object ... params)
-        throws Exception
+    public static boolean canAutoBoxFromActualToFormal(
+        Class<?> actual, Class<?> formal)
     {
-        Object result = null;
-        Class<?>[] paramProfile = null;
-        if (params != null)
-        {
-            paramProfile = new Class<?>[params.length];
-            for (int i = 0; i < params.length; i++)
-            {
-                if ( params[i] == null)
-                {
-                    // A null indicates we'll try to pass null as an
-                    // actual in the getMatchingMethod() search
-                    paramProfile[i] = null;
-                }
-                else
-                {
-                    paramProfile[i] = params[i].getClass();
-                }
-            }
-        }
-        Constructor<?> c = getMatchingConstructor(returnType, paramProfile);
-
-        result = createEx(c, params);
-
-        if (result != null)
-        {
-            assertTrue("constructor "
-                + simpleMethodName(simpleClassName(returnType), paramProfile)
-                + " did not produce result of type "
-                + simpleClassName(returnType),
-                returnType.isAssignableFrom(result.getClass()));
-        }
-        // The cast below is technically unsafe, according to the compiler,
-        // but will never be violated, due to the assertion above.
-        return (T)result;
-    }
-
-
-    // ----------------------------------------------------------
-    /**
-     * Just like {@link #create(String, Object...)}, but unwraps
-     * any InvocationTargetExceptions and throws the true cause.  This
-     * version is provided when you want to write test cases where you
-     * are intending to check for Exceptions as expected results.
-     * @param className The type of object to create
-     * @param params The parameters to pass to the constructor
-     * @return The newly created object
-     * @throws Exception if the underlying method throws one
-     */
-    public static Object createEx(String className, Object ... params)
-        throws Exception
-    {
-        return createEx(getClassForName(className), params);
+        return
+            ( (    formal.equals(byte.class)
+                || formal.equals(short.class)
+                || formal.equals(int.class)
+                || formal.equals(long.class)
+                || formal.equals(float.class)
+                || formal.equals(double.class) )
+              && Number.class.isAssignableFrom(actual) )
+            || ( formal.equals(boolean.class)
+                 && actual.equals(Boolean.class) )
+            || ( formal.equals(char.class)
+                 && actual.equals(Character.class) );
     }
 
 
