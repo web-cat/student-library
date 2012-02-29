@@ -25,6 +25,8 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.security.AccessController;
+import java.security.PrivilegedAction;
 import java.util.ArrayList;
 import java.util.List;
 import org.junit.internal.runners.statements.FailOnTimeout;
@@ -97,7 +99,29 @@ public class AdaptiveTimeout
 	private static final String LOGFILE_NAME = PROPERTY_PREFIX + ".logfile";
 	private static final String USER_NAME = PROPERTY_PREFIX + ".user";
     private static final String INCLUDE_HEADER = PROPERTY_PREFIX + ".header";
-
+    private static final boolean IS_DEBUGGING;
+    static // initialize IS_DEBUGGING
+    {
+        boolean isDebug = false;
+        try
+        {
+            isDebug = AccessController.doPrivileged(
+                new PrivilegedAction<Boolean>()
+                {
+                    public Boolean run()
+                    {
+                        return java.lang.management.ManagementFactory
+                            .getRuntimeMXBean(). getInputArguments()
+                            .toString().contains("-agentlib:jdwp");
+                    }
+                });
+        }
+        catch (Exception e)
+        {
+            // ignore it, and accept default
+        }
+        IS_DEBUGGING = isDebug;
+    }
 
 	//~ Constructors ..........................................................
 
@@ -178,6 +202,12 @@ public class AdaptiveTimeout
 	public Statement apply(
 	    Statement base, FrameworkMethod method, Object target)
 	{
+	    if (IS_DEBUGGING)
+	    {
+	        // Don't use timeouts inside the debugger
+	        return base;
+	    }
+
 	    // Make sure to log the previous test method as non-terminating
 	    // if it failed due to timeout, since under those conditions,
 	    // the @After logTestMethod() won't be executed.
