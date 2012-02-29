@@ -21,8 +21,8 @@
 
 package student;
 
-import com.Ostermiller.util.CSVParser;
-import com.Ostermiller.util.CSVPrinter;
+import com.Ostermiller.util.ExcelCSVParser;
+import com.Ostermiller.util.ExcelCSVPrinter;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileWriter;
@@ -31,7 +31,10 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 
 //-------------------------------------------------------------------------
@@ -52,9 +55,9 @@ public class CSVDataTable
 {
     //~ Instance/static variables .............................................
 
-    private ArrayList<Row> tableRows;
+    private List<Row> tableRows;
     private Map<String, Row> keyMappings;
-    private ArrayList<String> columnNames;
+    private List<String> columnNames;
     private String primaryKey;
     private char delimiter;
     private String url;
@@ -483,7 +486,7 @@ public class CSVDataTable
     // ----------------------------------------------------------
     public void addRow(Row row)
     {
-        row.put(ROW_INDEX_MARKER, new Integer(tableRows.size()).toString());
+        row.put(ROW_INDEX_MARKER, Integer.toString(tableRows.size()));
         tableRows.add(row);
         for (int i = 0; i < columnNames.size(); i++)
         {
@@ -512,14 +515,14 @@ public class CSVDataTable
 
 
     // ----------------------------------------------------------
-    public ArrayList<String> getColumnNames()
+    public List<String> getColumnNames()
     {
         return columnNames;
     }
 
 
     // ----------------------------------------------------------
-    public void setColumnNames(ArrayList<String> columns)
+    public void setColumnNames(List<String> columns)
     {
         // assert columns.size() == columnNames.size()
         //     : "Array passed should map to all of the existing columns.";
@@ -545,7 +548,14 @@ public class CSVDataTable
             }
         }
         constructBindings();
-        columnNames = columns;
+        columnNames = new ArrayList<String>(columns);
+    }
+
+
+    // ----------------------------------------------------------
+    public void setColumnNames(String... columns)
+    {
+        setColumnNames(Arrays.asList(columns));
     }
 
 
@@ -580,9 +590,16 @@ public class CSVDataTable
 
 
     // ----------------------------------------------------------
-    public ArrayList<Row> getAllRows()
+    public List<Row> getAllRows()
     {
         return tableRows;
+    }
+
+
+    // ----------------------------------------------------------
+    public Iterator<Row> iterator()
+    {
+        return getAllRows().iterator();
     }
 
 
@@ -602,8 +619,9 @@ public class CSVDataTable
     @SuppressWarnings("unchecked")
     public void copyRowsFrom(DataTable dataSet)
     {
-        tableRows = (ArrayList<Row>)dataSet.getAllRows().clone();
-        columnNames = (ArrayList<String>)dataSet.getColumnNames().clone();
+        tableRows = (List<Row>)((ArrayList<Row>)dataSet.getAllRows()).clone();
+        columnNames = (List<String>)((ArrayList<String>)dataSet
+            .getColumnNames()).clone();
         constructBindings();
     }
 
@@ -714,7 +732,7 @@ public class CSVDataTable
         try
         {
             FileWriter out = new FileWriter(IOHelper.getFile(filename));
-            CSVPrinter printer = new CSVPrinter(out);
+            ExcelCSVPrinter printer = new ExcelCSVPrinter(out);
             printer.changeDelimiter(delimiter);
             for (Row row : tableRows)
             {
@@ -781,7 +799,7 @@ public class CSVDataTable
         try
         {
             String[][] table =
-                CSVParser.parse(new InputStreamReader(in), newDelimiter);
+                ExcelCSVParser.parse(new InputStreamReader(in), newDelimiter);
             constructColumnNames(table, firstRowNames);
             constructTable(table, firstRowNames);
         }
@@ -801,7 +819,7 @@ public class CSVDataTable
         for (int i = firstRowNames ? 1 : 0; i < parsedTable.length; i++)
         {
             HashedRow newRow = new HashedRow();
-            newRow.put(ROW_INDEX_MARKER, (new Integer(rowCount)).toString());
+            newRow.put(ROW_INDEX_MARKER, Integer.toString(rowCount));
             tableRows.add(newRow);
             for (int j = 0; j < parsedTable[i].length; j++)
             {
@@ -858,8 +876,7 @@ public class CSVDataTable
     {
         for (int i = row;i < tableRows.size(); i++)
         {
-            tableRows.get(i).put(ROW_INDEX_MARKER,
-                (new Integer(i)).toString());
+            tableRows.get(i).put(ROW_INDEX_MARKER, Integer.toString(i));
         }
     }
 

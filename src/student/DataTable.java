@@ -21,7 +21,7 @@
 
 package student;
 
-import java.util.ArrayList;
+import java.util.List;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -62,6 +62,7 @@ import java.util.Map;
  * @version $Revision$, $Date$
  */
 public interface DataTable
+    extends Iterable<DataTable.Row>
 {
     // ----------------------------------------------------------
     /**
@@ -552,7 +553,7 @@ public interface DataTable
      * @return an array list with a reporting of all of the column names
      * in the table.
      */
-    public ArrayList<String> getColumnNames();
+    public List<String> getColumnNames();
 
 
     // ----------------------------------------------------------
@@ -562,7 +563,17 @@ public interface DataTable
      *
      * @param columnNames names of columns to be set in the table.
      */
-    public void setColumnNames(ArrayList<String> columnNames);
+    public void setColumnNames(List<String> columnNames);
+
+
+    // ----------------------------------------------------------
+    /**
+     * This method sets an arbitrary name for each of the columns
+     * in the table.
+     *
+     * @param columnNames names of columns to be set in the table.
+     */
+    public void setColumnNames(String... columnNames);
 
 
     // ----------------------------------------------------------
@@ -584,7 +595,7 @@ public interface DataTable
      *
      * @return an array list representing the data table.
      */
-    public ArrayList<Row> getAllRows();
+    public List<Row> getAllRows();
 
 
     // ----------------------------------------------------------
