@@ -26,6 +26,8 @@ import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
+import java.security.AccessController;
+import java.security.PrivilegedAction;
 
 //-------------------------------------------------------------------------
 /**
@@ -1101,7 +1103,7 @@ public class ReflectionSupport
             fail("Cannot find field " + fieldName
                 + " in " + simpleClassName(receiverClass));
         }
-        if (!actualMatchesFormal(type, field.getType()))
+        if (!actualMatchesFormal(field.getType(), type))
         {
             String msg = "Field " + fieldName + " in class ";
             if (declaringClass == receiverClass)
@@ -1123,7 +1125,15 @@ public class ReflectionSupport
         //check and set access permission
         if (!field.isAccessible())
         {
-            field.setAccessible(true);
+            final Field theField = field;
+            AccessController.doPrivileged( new PrivilegedAction<Void>()
+                {
+                    public Void run()
+                    {
+                        theField.setAccessible(true);
+                        return null;
+                    }
+                });
         }
         return field;
     }
@@ -1743,12 +1753,19 @@ public class ReflectionSupport
             // this can fail if the current SecurityManager does not allow
             // RuntimePermission ("createSecurityManager"):
 
-            RESOLVER = new SecurityManagerCallerResolver();
+            AccessController.doPrivileged( new PrivilegedAction<Void>()
+                {
+                    public Void run()
+                    {
+                        RESOLVER = new SecurityManagerCallerResolver();
+                        return null;
+                    }
+                });
         }
         catch (SecurityException e)
         {
             System.out.println("Warning: " + ReflectionSupport.class
-                + "could not create CallerResolver:");
+                + " could not create CallerResolver:");
             e.printStackTrace();
             RESOLVER = new CallerResolver()
             {
