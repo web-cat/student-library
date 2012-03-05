@@ -37,11 +37,11 @@ package student;
  *  </pre>
  *  <p>Either approach will generate this version information:</p>
  *  <pre>
- *  student.Version: package student, v4.09 $Date$
+ *  student.Version: package student, v4.10 $Date$
  *  </pre>
  *
  *  @author Stephen Edwards
- *  @version 4.09
+ *  @version 4.10
  *  @author Last changed by $Author$
  *  @version $Revision$, $Date$
  */
@@ -50,7 +50,7 @@ public class Version
     //~ Instance/static variables .............................................
 
     // These fields are used for overridable world startup
-    private static final String version = "v4.09 $Date$";
+    private static final String version = "v4.10 $Date$";
 
 
     //~ Constructors ..........................................................
