@@ -1,7 +1,7 @@
 /*==========================================================================*\
  |  $Id$
  |*-------------------------------------------------------------------------*|
- |  Copyright (C) 2007-2011 Virginia Tech
+ |  Copyright (C) 2007-2012 Virginia Tech
  |
  |  This file is part of the Student-Library.
  |
@@ -28,6 +28,7 @@ import junit.framework.AssertionFailedError;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Rule;
 import student.testingsupport.junit4.AdaptiveTimeout;
 import student.testingsupport.junit4.MixRunner;
@@ -1156,6 +1157,32 @@ public class TestCase
     public static void writeStats()
     {
         ADAPTIVE_TIMEOUT.appendStatsToFile();
+    }
+
+
+    // ----------------------------------------------------------
+    /**
+     * This method is for internal use only and should not be called
+     * by other code.  It is used to install System.exit() prevention
+     * control.
+     */
+    @BeforeClass
+    public static void installExitHandler()
+    {
+        student.testingsupport.ExitPreventingSecurityManager.install();
+    }
+
+
+    // ----------------------------------------------------------
+    /**
+     * This method is for internal use only and should not be called
+     * by other code.  It is used to remove System.exit() prevention
+     * control after the test class has been completed.
+     */
+    @AfterClass
+    public static void uninstallExitHandler()
+    {
+        student.testingsupport.ExitPreventingSecurityManager.uninstall();
     }
 
 
