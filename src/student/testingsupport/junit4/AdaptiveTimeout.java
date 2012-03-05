@@ -99,6 +99,12 @@ public class AdaptiveTimeout
 	private static final String LOGFILE_NAME = PROPERTY_PREFIX + ".logfile";
 	private static final String USER_NAME = PROPERTY_PREFIX + ".user";
     private static final String INCLUDE_HEADER = PROPERTY_PREFIX + ".header";
+    private static final String CEILING = PROPERTY_PREFIX + ".ceiling";
+    private static final String MAXIMUM = PROPERTY_PREFIX + ".maximum";
+    private static final String MINIMUM = PROPERTY_PREFIX + ".minimum";
+    private static final String THRESHOLD = PROPERTY_PREFIX + ".threshold";
+    private static final String RAMP_UP = PROPERTY_PREFIX + ".rampup";
+    private static final String RAMP_DOWN = PROPERTY_PREFIX + ".rampdown";
     private static final boolean IS_DEBUGGING;
     static // initialize IS_DEBUGGING
     {
@@ -123,7 +129,8 @@ public class AdaptiveTimeout
         IS_DEBUGGING = isDebug;
     }
 
-	//~ Constructors ..........................................................
+
+    //~ Constructors ..........................................................
 
 	// ----------------------------------------------------------
 	/**
@@ -139,7 +146,12 @@ public class AdaptiveTimeout
 	 */
 	public AdaptiveTimeout()
 	{
-		this(10000, 20000, 250, 0.6, 1.4, 0.5);
+		this(getIntProperty(CEILING, 10000),
+		    getIntProperty(MAXIMUM, 20000),
+		    getIntProperty(MINIMUM, 250),
+		    getDoubleProperty(THRESHOLD, 0.6),
+		    getDoubleProperty(RAMP_UP, 1.4),
+		    getDoubleProperty(RAMP_DOWN, 0.5));
 	}
 
 
@@ -368,5 +380,59 @@ public class AdaptiveTimeout
         numTestMethodsInTestClass = 0;
         numNonterminatingTestMethods = 0;
         start = end;
+    }
+
+
+    // ----------------------------------------------------------
+    private static int getIntProperty(
+        final String name, final int defaultValue)
+    {
+        return AccessController.doPrivileged(
+            new PrivilegedAction<Integer>()
+            {
+                public Integer run()
+                {
+                    String val = System.getProperty(name);
+                    if (val == null || val.isEmpty())
+                    {
+                        return defaultValue;
+                    }
+                    try
+                    {
+                        return Integer.parseInt(val);
+                    }
+                    catch (NumberFormatException e)
+                    {
+                        return defaultValue;
+                    }
+                }
+            });
+    }
+
+
+    // ----------------------------------------------------------
+    private static double getDoubleProperty(
+        final String name, final double defaultValue)
+    {
+        return AccessController.doPrivileged(
+            new PrivilegedAction<Double>()
+            {
+                public Double run()
+                {
+                    String val = System.getProperty(name);
+                    if (val == null || val.isEmpty())
+                    {
+                        return defaultValue;
+                    }
+                    try
+                    {
+                        return Double.parseDouble(val);
+                    }
+                    catch (NumberFormatException e)
+                    {
+                        return defaultValue;
+                    }
+                }
+            });
     }
 }
