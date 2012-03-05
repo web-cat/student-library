@@ -251,16 +251,18 @@ public class MixRunner
 
 
     // ----------------------------------------------------------
-//    @Override
-//    protected Statement methodInvoker(FrameworkMethod method, Object test)
-//    {
-//        // Replace JUnit4's InvokeMethod with our custom version here:
-//        return new InvokeMethod(method, test);
-//    }
-
-
-    // ----------------------------------------------------------
-    // Should've been protected in parent, but wasn't!
+    /**
+     * This method was declared private in the parent class, when it should
+     * have been protected (sigh)--it takes a {@link Statement}, and decorates
+     * it with all the {@link MethodRule}s in the test class.
+     * @param method The test method itself.
+     * @param target The instance of the test class, on which the method will
+     *               be called.
+     * @param statement The decorated, executable representation of the method
+     *               call that has all supplementary behaviors added on.
+     * @return A new statement that represents the incoming statement with
+     * any method rules added to it.
+     */
     protected Statement withRules(
         FrameworkMethod method, Object target, Statement statement)
     {
