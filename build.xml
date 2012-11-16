@@ -44,6 +44,9 @@
       <zipfileset src="${build.lib}/utils.jar">
         <include name="**/*.class"/>
       </zipfileset>
+      <zipfileset src="${build.lib}/${tester.jar}">
+        <include name="**/*.class"/>
+      </zipfileset>
       <zipfileset src="${build.lib}/${commons.collections.jar}">
         <include name="**/*.class"/>
       </zipfileset>
