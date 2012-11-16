@@ -31,7 +31,7 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Rule;
 import student.testingsupport.junit4.AdaptiveTimeout;
-import student.testingsupport.junit4.MixRunner;
+import student.testingsupport.junit4.JUnit4TesterRunner;
 import student.testingsupport.MutableStringBufferInputStream;
 import student.testingsupport.PrintStreamWithHistory;
 import student.testingsupport.PrintWriterWithHistory;
@@ -56,7 +56,7 @@ import student.testingsupport.SystemIOUtilities;
  *  @author Last changed by $Author$
  *  @version $Revision$, $Date$
  */
-@org.junit.runner.RunWith(MixRunner.class)
+@org.junit.runner.RunWith(JUnit4TesterRunner.class)
 public class TestCase
     extends junit.framework.TestCase
 {
@@ -407,6 +407,10 @@ public class TestCase
         String falseReason = predicateReturnsFalseReason;
         predicateReturnsFalseReason = null;
         predicateReturnsTrueReason = null;
+        if (falseReason == null)
+        {
+            falseReason = "expected: <true> but was: <false>";
+        }
         if (falseReason != null)
         {
             if (message == null)
@@ -462,6 +466,10 @@ public class TestCase
         String trueReason = predicateReturnsTrueReason;
         predicateReturnsFalseReason = null;
         predicateReturnsTrueReason = null;
+        if (trueReason == null)
+        {
+            trueReason = "expected: <false> but was: <true>";
+        }
         if (trueReason != null)
         {
             if (message == null)
@@ -503,133 +511,140 @@ public class TestCase
 
     // ----------------------------------------------------------
     /**
-     * There is no assertion to compare ints with doubles, but autoboxing
-     * will allow you to compare them as objects, which is never desired,
-     * so this overloaded method flags the problem as a test case failure
-     * rather than letting it go undiagnosed.
+     * There is no assertion to compare primitive values using assertSame(),
+     * but autoboxing will allow you to compare them as objects, which is
+     * never desired.  This overloaded method flags the problem as a test
+     * case failure rather than letting it go undiagnosed.
+     * @param message  The message to use if the assertion fails
      * @param expected The expected value
      * @param actual The actual value
      */
-    public static void assertEquals(int expected, double actual)
+    public static void assertSame(
+        String message, Number expected, Number actual)
     {
-        fail("Your test case calls assertEquals() with an int (" + expected
-            + ") and a double (" + actual + "), but comparing them directly "
-            + "may give incorrect results.  Instead, use a type cast to call "
-            + "either assertEquals(int, int) or assertEquals(double, double, "
-            + "double).  Don't forget that comparing doubles takes a third "
-            + "argument indicating how close they have to be to be considered "
-            + "equal.");
+        String expectedType =
+            expected.getClass().getSimpleName().toLowerCase();
+        String actualType =
+            actual.getClass().getSimpleName().toLowerCase();
+        String expectedArticle =
+            expectedType.startsWith("i") ? "an" : "a";
+        String actualArticle =
+            actualType.startsWith("i") ? "an" : "a";
+
+        String msg = "Your test case calls assertSame() with "
+            + expectedArticle + " " + expectedType
+            + " and "
+            + actualArticle + " " + actualType
+            + ", but assertSame() compares two objects for identity--that is, "
+            + "it checks whether two references refer to the same, identical "
+            + "object.  This question does not make sense for primitive data "
+            + "values, so use assertEquals() instead.";
+        fail(msg);
     }
 
 
     // ----------------------------------------------------------
     /**
-     * There is no assertion to compare ints with doubles, but autoboxing
-     * will allow you to compare them as objects, which is never desired,
-     * so this overloaded method flags the problem as a test case failure
-     * rather than letting it go undiagnosed.
-     * @param message  The message to use if the assertion fails
-     * @param expected The expected value
-     * @param actual   The actual value
-     */
-    public static void assertEquals(String message, int expected, double actual)
-    {
-        fail("Your test case calls assertEquals() with an int (" + expected
-            + ") and a double (" + actual + "), but comparing them directly "
-            + "may give incorrect results.  Instead, use a type cast to call "
-            + "either assertEquals(String, int, int) or assertEquals(String, "
-            + "double, double, "
-            + "double).  Don't forget that comparing doubles takes a third "
-            + "argument indicating how close they have to be to be considered "
-            + "equal.");
-    }
-
-
-    // ----------------------------------------------------------
-    /**
-     * There is no assertion to compare ints with doubles, but autoboxing
-     * will allow you to compare them as objects, which is never desired,
-     * so this overloaded method flags the problem as a test case failure
-     * rather than letting it go undiagnosed.
+     * There is no assertion to compare primitive values using assertSame(),
+     * but autoboxing will allow you to compare them as objects, which is
+     * never desired.  This overloaded method flags the problem as a test
+     * case failure rather than letting it go undiagnosed.
      * @param expected The expected value
      * @param actual The actual value
      */
-    public static void assertEquals(double expected, int actual)
+    public static void assertSame(Number expected, Number actual)
     {
-        fail("Your test case calls assertEquals() with a double (" + expected
-            + ") and an int (" + actual + "), but comparing them directly "
-            + "may give incorrect results.  Instead, use a type cast to call "
-            + "either assertEquals(int, int) or assertEquals(double, double, "
-            + "double).  Don't forget that comparing doubles takes a third "
-            + "argument indicating how close they have to be to be considered "
-            + "equal.");
+        assertSame(null, expected, actual);
     }
 
 
     // ----------------------------------------------------------
     /**
-     * There is no assertion to compare ints with doubles, but autoboxing
-     * will allow you to compare them as objects, which is never desired,
-     * so this overloaded method flags the problem as a test case failure
-     * rather than letting it go undiagnosed.
+     * There is no assertion to compare ints with floats or doubles, or
+     * to compare two floats or two doubles without specifying a tolerance,
+     * but autoboxing will allow you to compare them as objects, which is
+     * never desired.  This overloaded method flags the problem as a test
+     * case failure rather than letting it go undiagnosed.
      * @param message  The message to use if the assertion fails
      * @param expected The expected value
-     * @param actual   The actual value
-     */
-    public static void assertEquals(String message, double expected, int actual)
-    {
-        fail("Your test case calls assertEquals() with a double (" + expected
-            + ") and an int (" + actual + "), but comparing them directly "
-            + "may give incorrect results.  Instead, use a type cast to call "
-            + "either assertEquals(String, int, int) or assertEquals(String, "
-            + "double, double, "
-            + "double).  Don't forget that comparing doubles takes a third "
-            + "argument indicating how close they have to be to be considered "
-            + "equal.");
-    }
-
-
-    // ----------------------------------------------------------
-    /**
-     * The assertion to compare two doubles requires three arguments, but
-     * autoboxing will instead the wrong assertion if you only provide two
-     * arguments.  This overloaded method flags the problem as a test case
-     * failure rather than letting it go undiagnosed.
-     * @param expected The expected value
-     * @param actual   The actual value
-     */
-    public static void assertEquals(double expected, double actual)
-    {
-        fail("Your test case calls assertEquals() with two doubles (" + expected
-            + " and " + actual + "), but comparing them directly "
-            + "may give incorrect results.  Instead, use assertEquals("
-            + "double, double, "
-            + "double).  Don't forget that comparing doubles takes a third "
-            + "argument indicating how close they have to be to be considered "
-            + "equal.");
-    }
-
-
-    // ----------------------------------------------------------
-    /**
-     * The assertion to compare two doubles requires three arguments, but
-     * autoboxing will instead the wrong assertion if you only provide two
-     * arguments.  This overloaded method flags the problem as a test case
-     * failure rather than letting it go undiagnosed.
-     * @param message  The message to use if the assertion fails
-     * @param expected The expected value
-     * @param actual   The actual value
+     * @param actual The actual value
      */
     public static void assertEquals(
-        String message, double expected, double actual)
+        String message, Number expected, Number actual)
     {
-        fail("Your test case calls assertEquals() with two doubles (" + expected
-            + " and " + actual + "), but comparing them directly "
-            + "may give incorrect results.  Instead, use assertEquals(String, "
-            + "double, double, "
-            + "double).  Don't forget that comparing doubles takes a third "
-            + "argument indicating how close they have to be to be considered "
-            + "equal.");
+        String expectedType =
+            expected.getClass().getSimpleName().toLowerCase();
+        String actualType =
+            actual.getClass().getSimpleName().toLowerCase();
+        String expectedArticle =
+            expectedType.startsWith("i") ? "an" : "a";
+        String actualArticle =
+            actualType.startsWith("i") ? "an" : "a";
+
+        String msg = "Your test case calls assertEquals() with "
+            + expectedArticle + " " + expectedType
+            + " and "
+            + actualArticle + " " + actualType
+            + ", but comparing them directly may give incorrect results.";
+        if (!expected.getClass().equals(actual.getClass()))
+        {
+            msg += " Instead, use a type cast to convert one of the "
+                + "arguments so you are comparing values of the same type.";
+        }
+        if (expected instanceof Float || expected instanceof Double
+            || actual instanceof Float || actual instanceof Double)
+        {
+            msg += " Don't forget that comparing two floating point "
+                + "values requires a third argument indicating how close they "
+                + "have to be to be considered equal.";
+        }
+        fail(msg);
+    }
+
+
+    // ----------------------------------------------------------
+    /**
+     * There is no assertion to compare ints with floats or doubles, or
+     * to compare two floats or two doubles without specifying a tolerance,
+     * but autoboxing will allow you to compare them as objects, which is
+     * never desired.  This overloaded method flags the problem as a test
+     * case failure rather than letting it go undiagnosed.
+     * @param expected The expected value
+     * @param actual The actual value
+     */
+    public static void assertEquals(Number expected, Number actual)
+    {
+        assertEquals(null, expected, actual);
+    }
+
+
+    // ----------------------------------------------------------
+    /**
+     * Asserts that two Strings are equal.
+     * @param message  The message to use if the assertion fails
+     * @param expected The expected value
+     * @param actual The actual value
+     */
+    public static void assertEquals(
+        String message, String expected, String actual)
+    {
+        if (message == null)
+        {
+            message = "";
+        }
+        junit.framework.Assert.assertEquals(message, expected, actual);
+    }
+
+
+    // ----------------------------------------------------------
+    /**
+     * Asserts that two Strings are equal.
+     * @param expected The expected value
+     * @param actual The actual value
+     */
+    public static void assertEquals(String expected, String actual)
+    {
+        assertEquals("", expected, actual);
     }
 
 
