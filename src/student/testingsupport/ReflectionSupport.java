@@ -28,6 +28,9 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
 
 //-------------------------------------------------------------------------
 /**
@@ -116,7 +119,7 @@ public class ReflectionSupport
 
     // ----------------------------------------------------------
     /**
-     * This class only provides static methods, to the constructor is
+     * This class only provides static methods, so the constructor is
      * private.
      */
     private ReflectionSupport()
@@ -152,37 +155,41 @@ public class ReflectionSupport
     public static enum VisibilityConstraint
     {
         /** Declared with private visibility (only). */
-        DECLARED_PRIVATE(Modifier.PRIVATE),
+        DECLARED_PRIVATE("declared private", Modifier.PRIVATE),
         /** Declared with package-level (default) visibility (only). */
-        DECLARED_PACKAGE(
+        DECLARED_PACKAGE("declared package-level",
             Modifier.PRIVATE | Modifier.PROTECTED | Modifier.PUBLIC, true),
         /** Declared with protected visibility (only). */
-        DECLARED_PROTECTED(Modifier.PROTECTED),
+        DECLARED_PROTECTED("declared protected", Modifier.PROTECTED),
         /** Declared with public visibility (only). */
-        DECLARED_PUBLIC(Modifier.PUBLIC),
+        DECLARED_PUBLIC("declared public", Modifier.PUBLIC),
         /** Declared with protected or public visibility. */
-        AT_LEAST_PROTECTED(Modifier.PROTECTED | Modifier.PUBLIC),
+        AT_LEAST_PROTECTED("declared public or protected",
+            Modifier.PROTECTED | Modifier.PUBLIC),
         /** Declared with package-level (default), protected, or public
          * visibility.
          */
-        AT_LEAST_PACKAGE(Modifier.PRIVATE, true),
+        AT_LEAST_PACKAGE("declared public, protected, or package-level",
+            Modifier.PRIVATE, true),
         /** Declared with any visibility. */
-        ANY_VISIBILITY(0)
+        ANY_VISIBILITY("declared with any visibility", 0)
         {
             public boolean accepts(int modifiers) { return true; }
         };
 
 
         // ----------------------------------------------------------
-        private VisibilityConstraint(int mask)
+        private VisibilityConstraint(String message, int mask)
         {
-            this(mask, false);
+            this(message, mask, false);
         }
 
 
         // ----------------------------------------------------------
-        private VisibilityConstraint(int mask, boolean reverseMask)
+        private VisibilityConstraint(
+            String message, int mask, boolean reverseMask)
         {
+            this.message = message;
             this.mask = mask;
             this.reverseMask = reverseMask;
         }
@@ -219,11 +226,338 @@ public class ReflectionSupport
         }
 
 
+        // ----------------------------------------------------------
+        /**
+         * Get the string message describing this constraint, for use in
+         * diagnostic output.
+         * @return A readable description of this constraint.
+         */
+        public String getMessage()
+        {
+            return message;
+        }
+
+
+        // ----------------------------------------------------------
+        /**
+         * {@inheritDoc}
+         */
+        public String toString()
+        {
+            return getMessage();
+        }
+
+
         //~ Fields ............................................................
 
         private int mask = 0;
         private boolean reverseMask = false;
+        private final String message;
     };
+
+
+    // ----------------------------------------------------------
+    /**
+     * An enumeration that represents the different categories of
+     * parameter matching possible between a method and possible
+     * parameters.  Section
+     */
+    public static enum ParameterAcceptanceCategory
+    {
+        /** The method will not accept the parameters. */
+        DOES_NOT_ACCEPT,
+        /**
+         * The method will accept the parameters with identity or widening
+         * conversions, but does not require auto-boxing or unboxing.
+         */
+        ACCEPTS_WITHOUT_BOXING,
+        /**
+         * The method will accept the parameters with identity or widening
+         * conversions, but also requires auto-boxing or unboxing for one
+         * or more of the parameters.
+         */
+        ACCEPTS_WITH_BOXING
+    }
+
+
+    // ----------------------------------------------------------
+    /**
+     * An enumeration that represents the different kinds of conversions
+     * supported for method invocation conversions (see JLS Section 5.3).
+     */
+    public static enum ParameterConversionCategory
+    {
+        /** The formal and actual types are the same. */
+        IDENTITY_CONVERSION,
+        /** Widening conversion from one primitive type to another. */
+        PRIMITIVE_WIDENING,
+        /** Widening conversion from one reference type to another. */
+        REFERENCE_WIDENING,
+        /** Boxing conversion from a primitive type to its wrapper. */
+        BOXING,
+        /** Unboxing conversion from a wrapper type to its primitive. */
+        UNBOXING,
+        /** Boxing followed by a reference widening conversion. */
+        BOXING_WITH_REFERENCE_WIDENING,
+        /** Unboxing followed by a primitive widening conversion. */
+        UNBOXING_WITH_PRIMITIVE_WIDENING,
+        /** No method invocation conversion possible. */
+        CANNOT_CONVERT
+    }
+
+
+    // ----------------------------------------------------------
+    /**
+     * This class only represents the parameter list signature for a
+     * method as a list of Class values.
+     */
+    public static class ParameterSignature
+        extends ArrayList<Class<?>>
+    {
+        private static final long serialVersionUID = -2346356585877970638L;
+
+        //~ Constructors ......................................................
+
+        // ----------------------------------------------------------
+        /**
+         * Create an empty parameter list signature.
+         */
+        public ParameterSignature()
+        {
+            super();
+        }
+
+
+        // ----------------------------------------------------------
+        /**
+         * Create a parameter list signature corresponding to the declared
+         * parameter list of a Method.
+         * @param method The method whose signature will be represented.
+         */
+        public ParameterSignature(Method method)
+        {
+            this(method.getParameterTypes());
+        }
+
+
+        // ----------------------------------------------------------
+        /**
+         * Create a parameter list signature corresponding to the declared
+         * parameter list of a Constructor.
+         * @param constructor The constructor whose signature will be
+         *                    represented.
+         */
+        public ParameterSignature(Constructor<?> constructor)
+        {
+            this(constructor.getParameterTypes());
+        }
+
+
+        // ----------------------------------------------------------
+        /**
+         * Create a parameter list signature from an array (or variable
+         * argument list) of Class values.
+         * @param parameterTypes The sequence of Class objects representing
+         * the types of the parameters in this signature.
+         */
+        public ParameterSignature(Class<?>... parameterTypes)
+        {
+            super(parameterTypes == null ? 0 : parameterTypes.length);
+            if (parameterTypes != null)
+            {
+                for (Class<?> c : parameterTypes)
+                {
+                    add(c);
+                }
+            }
+        }
+
+
+        // ----------------------------------------------------------
+        /**
+         * Create a parameter list signature from an array (or variable
+         * argument list) of actuals.
+         * @param parameters A sequence of actual parameters from which
+         * the types are deduced.  Any nulls in the list are treated to
+         * be of type Object.
+         */
+        public ParameterSignature(Object... parameters)
+        {
+            super(parameters == null ? 0 : parameters.length);
+            if (parameters != null)
+            {
+                for (Object parameter : parameters)
+                {
+                    if (parameter == null)
+                    {
+                        add(null);
+                    }
+                    else
+                    {
+                        // Convert from wrapper classes back to corresponding
+                        // primitive types, since all primitives are wrapped
+                        // in a varargs method (one of the other constructors
+                        // should be used in wrapper parameter types are
+                        // required).
+                        Class<?> raw = parameter.getClass();
+                        Class<?> c = WRAPPER_TO_PRIMITIVE.get(raw);
+                        if (c == null)
+                        {
+                            c = raw;
+                        }
+                        add(c);
+                    }
+                }
+            }
+        }
+
+
+        //~ Methods ...........................................................
+
+        // ----------------------------------------------------------
+        /**
+         * Determine if the given set of actual argument types would be
+         * accepted by a method with this parameter signature.
+         * @param typesOfActuals The types of the actual arguments to check
+         *                       against.
+         * @return True If the specified actual types would be accepted by
+         * a method with this parameter signature.
+         */
+        public boolean accepts(ParameterSignature typesOfActuals)
+        {
+            return acceptanceCategory(typesOfActuals) !=
+                ParameterAcceptanceCategory.DOES_NOT_ACCEPT;
+        }
+
+
+        // ----------------------------------------------------------
+        /**
+         * Determine if the given set of actual argument types would be
+         * accepted by a method with this parameter signature.
+         * @param typesOfActuals The types of the actual arguments to check
+         *                       against.
+         * @return True If the specified actual types would be accepted by
+         * a method with this parameter signature.
+         */
+        public ParameterAcceptanceCategory acceptanceCategory(
+            ParameterSignature typesOfActuals)
+        {
+            ParameterAcceptanceCategory result =
+                ParameterAcceptanceCategory.DOES_NOT_ACCEPT;
+            if (size() == typesOfActuals.size())
+            {
+                result = ParameterAcceptanceCategory.ACCEPTS_WITHOUT_BOXING;
+
+                loop:
+                for (int i = 0; i < size(); i++)
+                {
+                    switch (canCoerceFromActualToFormal(
+                        typesOfActuals.get(i), get(i)))
+                    {
+                        case CANNOT_CONVERT:
+                            result = ParameterAcceptanceCategory
+                                .DOES_NOT_ACCEPT;
+                            break loop;
+                        case BOXING:
+                        case UNBOXING:
+                        case BOXING_WITH_REFERENCE_WIDENING:
+                        case UNBOXING_WITH_PRIMITIVE_WIDENING:
+                            result = ParameterAcceptanceCategory
+                                .ACCEPTS_WITH_BOXING;
+                            break;
+                    }
+                }
+            }
+            return result;
+        }
+
+
+        // ----------------------------------------------------------
+        /**
+         * Determine if the given set of actual parameter values would be
+         * accepted by a method with this parameter signature.
+         * @param actuals The types of the actual arguments to check
+         *                against.
+         * @return True If the specified actuals would be accepted by
+         * a method with this parameter signature.
+         */
+        public boolean accepts(Object... actuals)
+        {
+            return accepts(new ParameterSignature(actuals));
+        }
+
+
+        // ----------------------------------------------------------
+        /**
+         * Determine if this signature is a subsignature of the other one,
+         * as defined by Section 8.4.2 of the JLS.  Since generic parameters
+         * are represented as their erasures in this representation,
+         * the subsignature check boils down to an equality check.
+         * @param other The parameter signature to check against.
+         * @return True If this signature is a subsignature of the other.
+         */
+        public boolean isSubSignatureOf(ParameterSignature other)
+        {
+            return equals(other);
+        }
+
+
+        // ----------------------------------------------------------
+        /**
+         * Determine if this parameter signature is more specific than the
+         * given parameter signature.
+         * @param other The other parameter signature to check against.
+         * @return True If this parameter signature is more specific than
+         * the other.
+         */
+        public boolean isMoreSpecificThan(ParameterSignature other)
+        {
+            return other.accepts(this) && !isSubSignatureOf(other);
+        }
+
+
+        // ----------------------------------------------------------
+        /**
+         * Retrieve a plain array containing the parameter types in
+         * this signature.
+         * @return An array of Class values representing the parameter
+         * types in this parameter signature object.
+         */
+        public Class<?>[] asArray()
+        {
+            return toArray(new Class<?>[size()]);
+        }
+
+
+        // ----------------------------------------------------------
+        /**
+         * {@inheritDoc}
+         */
+        public String toString()
+        {
+            String result = "(";
+            boolean needsComma = false;
+            for (Class<?> c : this)
+            {
+                if (needsComma)
+                {
+                    result += ", ";
+                }
+                if (c == null)
+                {
+                    result += "null";
+                }
+                else
+                {
+                    result += simpleClassName(c);
+                }
+                needsComma = true;
+            }
+            result += ")";
+            return result;
+
+        }
+    }
 
 
     //~ Object Creation Methods ...............................................
@@ -274,66 +608,195 @@ public class ReflectionSupport
     public static Constructor<?> getMatchingConstructor(
         Class<?> c, Class<?> ... params)
     {
+        return getMatchingConstructor(c, new ParameterSignature(params));
+    }
+
+
+    // ----------------------------------------------------------
+    /**
+     * Look up a constructor by parameter profile, finding the
+     * constructor that will accept the given list of parameters (not
+     * requiring an exact match on parameter types).  It turns any
+     * errors into test case failures with appropriate hint messages.
+     * Assumes the intended constructor should be public, and fails with an
+     * appropriate hint if it is not.
+     * Note that this method <b>does not handle variable argument lists</b>
+     * in the target constructor for which it is searching.
+     * @param c The type of object to create
+     * @param params The constructor's parameter profile
+     * @return The corresponding Constructor object
+     */
+    public static Constructor<?> getMatchingConstructor(
+        Class<?> c, ParameterSignature params)
+    {
+        return getMatchingConstructor(
+            c, VisibilityConstraint.DECLARED_PUBLIC, params);
+    }
+
+
+    // ----------------------------------------------------------
+    /**
+     * Look up a constructor by parameter profile, finding the
+     * constructor that will accept the given list of parameters (not
+     * requiring an exact match on parameter types).  It turns any
+     * errors into test case failures with appropriate hint messages.
+     * Assumes the intended constructor should be public, and fails with an
+     * appropriate hint if it is not.
+     * Note that this method <b>does not handle variable argument lists</b>
+     * in the target constructor for which it is searching.
+     * @param c The type of object to create
+     * @param visibility The required visibility of the method
+     * @param params The constructor's parameter profile
+     * @return The corresponding Constructor object
+     */
+    public static Constructor<?> getMatchingConstructor(
+        Class<?> c, VisibilityConstraint visibility, Class<?> ... params)
+    {
+        return getMatchingConstructor(
+            c, visibility, new ParameterSignature(params));
+    }
+
+
+    // ----------------------------------------------------------
+    /**
+     * Look up a constructor by parameter profile, finding the
+     * constructor that will accept the given list of parameters (not
+     * requiring an exact match on parameter types).  It turns any
+     * errors into test case failures with appropriate hint messages.
+     * Assumes the intended constructor should be public, and fails with an
+     * appropriate hint if it is not.
+     * Note that this method <b>does not handle variable argument lists</b>
+     * in the target constructor for which it is searching.
+     * @param c The type of object to create
+     * @param visibility The required visibility of the method
+     * @param params The constructor's parameter profile
+     * @return The corresponding Constructor object
+     */
+    public static Constructor<?> getMatchingConstructor(
+        Class<?> c, VisibilityConstraint visibility, ParameterSignature params)
+    {
+        // Non-boxing (preferred) answer
         Constructor<?> result = null;
+        ParameterSignature resultSig = null;
+
+        // Auto-boxing/unboxing answer
+        Constructor<?> ctorWithBoxing = null;
+        ParameterSignature ctorWithBoxingSig = null;
+
+        // Wrong visibility, no boxing, nearest match?
+        Constructor<?> notVisible = null;
+        ParameterSignature notVisibleSig = null;
+
+        // Wrong visibility, with auto-boxing/unboxing, nearest match?
+        Constructor<?> notVisibleWithBoxing = null;
+        ParameterSignature notVisibleWithBoxingSig = null;
+
+        // Same parameter count, if nothing else, also no match
         Constructor<?> ctorWithSameParamCount = null;
-        if (params == null) { params = new Class[0]; }
-        for (Constructor<?> m : c.getConstructors())
+
+        for (Constructor<?> ctor : c.getDeclaredConstructors())
         {
-            Class<?>[] paramTypes = m.getParameterTypes();
-            if (params.length == paramTypes.length)
+            ParameterSignature sig = new ParameterSignature(ctor);
+            if (params.size() == sig.size() && ctorWithSameParamCount == null)
             {
-                ctorWithSameParamCount = m;
-                result = m; // maybe ... we'll clear it if wrong
-                for (int i = 0; i < params.length; i++)
-                {
-                    if (params[i] != null)
+                ctorWithSameParamCount = ctor;
+            }
+
+            ParameterAcceptanceCategory category =
+                sig.acceptanceCategory(params);
+            switch (category)
+            {
+                case ACCEPTS_WITHOUT_BOXING:
+                    if (visibility.accepts(ctor.getModifiers()))
                     {
-                        // If the actual is non-null, check to see if
-                        // it can be assigned to the formal correctly.
-                        if (!actualMatchesFormal(params[i], paramTypes[i]))
+                        if (result == null
+                            || sig.isMoreSpecificThan(resultSig))
                         {
-                            result = null;
-                            break;
+                            result = ctor;
+                            resultSig = sig;
                         }
                     }
-                    else if (paramTypes[i].isPrimitive())
+                    else
                     {
-                        // If actual is null, then the formal can't
-                        // be a primitive
-                        result = null;
-                        break;
+                        if (notVisible == null
+                            || sig.isMoreSpecificThan(notVisibleSig))
+                        {
+                            notVisible = ctor;
+                            notVisibleSig = sig;
+                        }
                     }
-                }
-                if (result != null)
-                {
-                    // If we found a match that can accept all the
-                    // parameters  ...
                     break;
-                }
+                case ACCEPTS_WITH_BOXING:
+                    if (visibility.accepts(ctor.getModifiers()))
+                    {
+                        if (ctorWithBoxing == null
+                            || sig.isMoreSpecificThan(ctorWithBoxingSig))
+                        {
+                            ctorWithBoxing = ctor;
+                            ctorWithBoxingSig = sig;
+                        }
+                    }
+                    else
+                    {
+                        if (notVisibleWithBoxing == null
+                            || sig.isMoreSpecificThan(notVisibleWithBoxingSig))
+                        {
+                            notVisibleWithBoxing = ctor;
+                            notVisibleWithBoxingSig = sig;
+                        }
+                    }
+                    break;
             }
         }
         if (result == null)
         {
+            // Use non-boxing signature, if one exists, according to
+            // JLS 15.12.2.
+            result = ctorWithBoxing;
+            resultSig = ctorWithBoxingSig;
+        }
+        if (result == null)
+        {
             String message = null;
-            if (ctorWithSameParamCount != null)
+            if (notVisible != null)
+            {
+                message = "cannot call constructor "
+                    + simpleClassName(c) + notVisibleSig
+                    + " because it is not " + visibility;
+            }
+            else if (notVisibleWithBoxing != null)
+            {
+                message = "cannot call constructor "
+                    + simpleClassName(c) + notVisibleWithBoxingSig
+                    + " because it is not " + visibility;
+            }
+            else if (ctorWithSameParamCount != null)
             {
                 message = "constructor cannot be called with argument"
-                    + ((params.length == 1) ? "" : "s")
+                    + ((params.size() == 1) ? "" : "s")
                     + " of type "
-                    + simpleArgumentList(params)
+                    + params
                     + ": incorrect parameter type(s)";
             }
             else
             {
-                message = "" + c + " is missing public constructor "
-                    + simpleMethodName(simpleClassName(c), params);
+                message = "" + c + " is missing constructor "
+                    + simpleClassName(c) + params
+                    + " that is " + visibility;
             }
             fail(message);
         }
-        else if (!Modifier.isPublic(result.getModifiers()))
+        if (!result.isAccessible())
         {
-            fail("constructor " + simpleMethodName(simpleClassName(c), params)
-                + " should be public");
+            final Constructor<?> constructor = result;
+            AccessController.doPrivileged( new PrivilegedAction<Void>()
+                {
+                    public Void run()
+                    {
+                        constructor.setAccessible(true);
+                        return null;
+                    }
+                });
         }
         return result;
     }
@@ -393,30 +856,12 @@ public class ReflectionSupport
      * @param <T> The generic parameter T is deduced from the returnType
      * @return The newly created object
      */
-    @SuppressWarnings("unchecked")
     public static <T> T create(
         Class<T> returnType,
         Object ... params)
     {
         Object result = null;
-        Class<?>[] paramProfile = null;
-        if (params != null)
-        {
-            paramProfile = new Class<?>[params.length];
-            for (int i = 0; i < params.length; i++)
-            {
-                if ( params[i] == null)
-                {
-                    // A null indicates we'll try to pass null as an
-                    // actual in the getMatchingMethod() search
-                    paramProfile[i] = null;
-                }
-                else
-                {
-                    paramProfile[i] = params[i].getClass();
-                }
-            }
-        }
+        ParameterSignature paramProfile = new ParameterSignature(params);
         Constructor<?> c = getMatchingConstructor(returnType, paramProfile);
 
         result = create(c, params);
@@ -431,7 +876,9 @@ public class ReflectionSupport
         }
         // The cast below is technically unsafe, according to the compiler,
         // but will never be violated, due to the assertion above.
-        return (T)result;
+        @SuppressWarnings("unchecked")
+        T answer = (T)result;
+        return answer;
     }
 
 
@@ -511,31 +958,13 @@ public class ReflectionSupport
      * @return The newly created object
      * @throws Exception if the underlying method throws one
      */
-    @SuppressWarnings("unchecked")
     public static <T> T createEx(
         Class<T> returnType,
         Object ... params)
         throws Exception
     {
         Object result = null;
-        Class<?>[] paramProfile = null;
-        if (params != null)
-        {
-            paramProfile = new Class<?>[params.length];
-            for (int i = 0; i < params.length; i++)
-            {
-                if ( params[i] == null)
-                {
-                    // A null indicates we'll try to pass null as an
-                    // actual in the getMatchingMethod() search
-                    paramProfile[i] = null;
-                }
-                else
-                {
-                    paramProfile[i] = params[i].getClass();
-                }
-            }
-        }
+        ParameterSignature paramProfile = new ParameterSignature(params);
         Constructor<?> c = getMatchingConstructor(returnType, paramProfile);
 
         result = createEx(c, params);
@@ -550,7 +979,9 @@ public class ReflectionSupport
         }
         // The cast below is technically unsafe, according to the compiler,
         // but will never be violated, due to the assertion above.
-        return (T)result;
+        @SuppressWarnings("unchecked")
+        T answer = (T)result;
+        return answer;
     }
 
 
@@ -589,6 +1020,30 @@ public class ReflectionSupport
     public static Method getMethod(
         Class<?> c, String name, Class<?> ... params)
     {
+        return getMethod(
+            c, VisibilityConstraint.DECLARED_PUBLIC, name, params);
+    }
+
+
+    // ----------------------------------------------------------
+    /**
+     * Look up a method by name and parameter profile, turning any
+     * errors into test case failures with appropriate hint messages.
+     * Only looks up methods that are declared in the specified class,
+     * not inherited methods.  Assumes the intended method should be
+     * public, and fails with an appropriate hint if it is not.
+     * @param c The type of the receiver
+     * @param visibility The required visibility of the method
+     * @param name The method name
+     * @param params The method's parameter profile
+     * @return The corresponding Method object
+     */
+    public static Method getMethod(
+        Class<?> c,
+        VisibilityConstraint visibility,
+        String name,
+        Class<?> ... params)
+    {
         Method m = null;
         try
         {
@@ -606,9 +1061,21 @@ public class ReflectionSupport
                 + " in " + c + " cannot be accessed (should be public)";
             fail(message);
         }
-        if (m != null && !Modifier.isPublic(m.getModifiers()))
+        if (m != null && !visibility.accepts(m.getModifiers()))
         {
-            fail(simpleMethodName(m) + " should be public");
+            fail(simpleMethodName(m) + " should be " + visibility);
+        }
+        if (!m.isAccessible())
+        {
+            final Method method = m;
+            AccessController.doPrivileged( new PrivilegedAction<Void>()
+                {
+                    public Void run()
+                    {
+                        method.setAccessible(true);
+                        return null;
+                    }
+                });
         }
         return m;
     }
@@ -633,87 +1100,238 @@ public class ReflectionSupport
     public static Method getMatchingMethod(
         Class<?> c, String name, Class<?> ... params)
     {
+        return getMatchingMethod(c, name, new ParameterSignature(params));
+    }
+
+
+    // ----------------------------------------------------------
+    /**
+     * Look up a method by name and parameter profile, finding the
+     * method that will accept the given list of parameters (not requiring
+     * an exact match on parameter types).  It turns any
+     * errors into test case failures with appropriate hint messages.
+     * Only looks up methods that are declared in the specified class,
+     * not inherited methods.  Assumes the intended method should be
+     * public, and fails with an appropriate hint if it is not.
+     * Note that this method <b>does not handle variable argument lists</b>
+     * in the target method for which it is searching.
+     * @param c The type of the receiver
+     * @param name The method name
+     * @param params The method's parameter profile
+     * @return The corresponding Method object
+     */
+    public static Method getMatchingMethod(
+        Class<?> c, String name, ParameterSignature params)
+    {
+        return getMatchingMethod(
+            c, VisibilityConstraint.DECLARED_PUBLIC, name, params);
+    }
+
+
+    // ----------------------------------------------------------
+    /**
+     * Look up a method by name and parameter profile, finding the
+     * method that will accept the given list of parameters (not requiring
+     * an exact match on parameter types).  It turns any
+     * errors into test case failures with appropriate hint messages.
+     * Only looks up methods that are declared in the specified class,
+     * not inherited methods.  Assumes the intended method should be
+     * public, and fails with an appropriate hint if it is not.
+     * Note that this method <b>does not handle variable argument lists</b>
+     * in the target method for which it is searching.
+     * @param c The type of the receiver
+     * @param visibility The required visibility of the method
+     * @param name The method name
+     * @param params The method's parameter profile
+     * @return The corresponding Method object
+     */
+    public static Method getMatchingMethod(
+        Class<?> c,
+        VisibilityConstraint visibility,
+        String name,
+        Class<?> ... params)
+    {
+        return getMatchingMethod(
+            c, visibility, name, new ParameterSignature(params));
+    }
+
+
+    // ----------------------------------------------------------
+    /**
+     * Look up a method by name and parameter profile, finding the
+     * method that will accept the given list of parameters (not requiring
+     * an exact match on parameter types).  It turns any
+     * errors into test case failures with appropriate hint messages.
+     * Only looks up methods that are declared in the specified class,
+     * not inherited methods.  Assumes the intended method should be
+     * public, and fails with an appropriate hint if it is not.
+     * Note that this method <b>does not handle variable argument lists</b>
+     * in the target method for which it is searching.
+     * @param c The type of the receiver
+     * @param visibility The required visibility of the method
+     * @param name The method name
+     * @param params The method's parameter profile
+     * @return The corresponding Method object
+     */
+    public static Method getMatchingMethod(
+        Class<?> c,
+        VisibilityConstraint visibility,
+        String name,
+        ParameterSignature params)
+    {
+        // Non-boxing (preferred) answer
         Method result = null;
-        Method methodWithSameName = null;
+        ParameterSignature resultSig = null;
+
+        // Auto-boxing/unboxing answer
+        Method withBoxing = null;
+        ParameterSignature withBoxingSig = null;
+
+        // Wrong visibility, no boxing, nearest match?
+        Method notVisible = null;
+        ParameterSignature notVisibleSig = null;
+
+        // Wrong visibility, with auto-boxing/unboxing, nearest match?
+        Method notVisibleWithBoxing = null;
+        ParameterSignature notVisibleWithBoxingSig = null;
+
+        // Same parameter count, also no match
         Method methodWithSameParamCount = null;
-        if (params == null) { params = new Class[0]; }
-        for (Method m : c.getMethods())
+        // Same name, also no match
+        Method methodWithSameName = null;
+
+        Class<?> currentClass = c;
+        while (currentClass != null)
         {
-            if (m.getName().equals(name))
+            for (Method m : currentClass.getDeclaredMethods())
             {
-                methodWithSameName = m;
-                Class<?>[] paramTypes = m.getParameterTypes();
-                if (params.length == paramTypes.length)
+                if (m.getName().equals(name))
                 {
-                    methodWithSameParamCount = m;
-                    result = m; // maybe ... we'll clear it if wrong
-                    for (int i = 0; i < params.length; i++)
+                    if (methodWithSameName == null)
                     {
-                        if (params[i] != null)
-                        {
-                            // If the actual is non-null, check to see if
-                            // it can be assigned to the formal correctly.
-                            if (!actualMatchesFormal(params[i], paramTypes[i]))
-                            {
-                                result = null;
-                                break;
-                            }
-                        }
-                        else if (paramTypes[i].isPrimitive())
-                        {
-                            // If actual is null, then the formal can't
-                            // be a primitive
-                            result = null;
-                            break;
-                        }
+                        methodWithSameName = m;
                     }
-                    if (result != null)
+                    ParameterSignature sig = new ParameterSignature(m);
+                    if (params.size() == sig.size()
+                        && methodWithSameParamCount == null)
                     {
-                        // If we found a match that can accept all the
-                        // parameters  ...
-                        break;
+                        methodWithSameParamCount = m;
+                    }
+
+                    ParameterAcceptanceCategory category =
+                        sig.acceptanceCategory(params);
+                    switch (category)
+                    {
+                        case ACCEPTS_WITHOUT_BOXING:
+                            if (visibility.accepts(m.getModifiers()))
+                            {
+                                if (result == null
+                                    || sig.isMoreSpecificThan(resultSig))
+                                {
+                                    result = m;
+                                    resultSig = sig;
+                                }
+                            }
+                            else
+                            {
+                                if (notVisible == null
+                                    || sig.isMoreSpecificThan(notVisibleSig))
+                                {
+                                    notVisible = m;
+                                    notVisibleSig = sig;
+                                }
+                            }
+                            break;
+                        case ACCEPTS_WITH_BOXING:
+                            if (visibility.accepts(m.getModifiers()))
+                            {
+                                if (withBoxing == null
+                                    || sig.isMoreSpecificThan(withBoxingSig))
+                                {
+                                    withBoxing = m;
+                                    withBoxingSig = sig;
+                                }
+                            }
+                            else
+                            {
+                                if (notVisibleWithBoxing == null
+                                    || sig.isMoreSpecificThan(
+                                        notVisibleWithBoxingSig))
+                                {
+                                    notVisibleWithBoxing = m;
+                                    notVisibleWithBoxingSig = sig;
+                                }
+                            }
+                            break;
                     }
                 }
             }
+            currentClass = currentClass.getSuperclass();
+        }
+
+        if (result == null)
+        {
+            result = withBoxing;
+            resultSig = withBoxingSig;
         }
         if (result == null)
         {
             String message = null;
-            if (methodWithSameParamCount != null)
+            if (notVisible != null)
+            {
+                message = simpleMethodName(notVisible)
+                    + " cannot be called because it is not " + visibility;
+            }
+            else if (notVisibleWithBoxing != null)
+            {
+                message = simpleMethodName(notVisibleWithBoxing)
+                    + " cannot be called because it is not " + visibility;
+            }
+            else if (methodWithSameParamCount != null)
             {
                 message = simpleMethodName(methodWithSameParamCount)
                     + " cannot be called with argument"
-                    + ((params.length == 1) ? "" : "s")
+                    + ((params.size() == 1) ? "" : "s")
                     + " of type "
-                    + simpleArgumentList(params)
+                    + params
                     + ": incorrect parameter type(s)";
             }
             else if (methodWithSameName != null)
             {
                 message = simpleMethodName(methodWithSameName);
-                if (params.length == 0)
+                if (params.size() == 0)
                 {
                     message += " cannot be called with no arguments";
                 }
                 else
                 {
                     message += " cannot be called with argument"
-                        + ((params.length == 1) ? "" : "s")
+                        + ((params.size() == 1) ? "" : "s")
                         + " of type "
-                        + simpleArgumentList(params);
+                        + params;
                 }
                 message += ": incorrect number of parameters";
             }
             else
             {
-                message = "" + c + " is missing public method "
-                    + simpleMethodName(name, params);
+                message = "class " + simpleClassName(c)
+                    + " is missing method "
+                    + simpleMethodName(name, params)
+                    + " that is " + visibility;
             }
             fail(message);
         }
-        else if (!Modifier.isPublic(result.getModifiers()))
+        if (!result.isAccessible())
         {
-            fail(simpleMethodName(result) + " should be public");
+            final Method method = result;
+            AccessController.doPrivileged( new PrivilegedAction<Void>()
+                {
+                    public Void run()
+                    {
+                        method.setAccessible(true);
+                        return null;
+                    }
+                });
         }
         return result;
     }
@@ -732,34 +1350,43 @@ public class ReflectionSupport
      * @param <T> The generic parameter T is deduced from the returnType
      * @return The results from invoking the given method
      */
-    @SuppressWarnings("unchecked")
     public static <T> T invoke(
         Object receiver,
         Class<T> returnType,
         String methodName,
         Object ... params)
     {
+        return invoke(receiver, VisibilityConstraint.DECLARED_PUBLIC,
+            returnType, methodName, params);
+    }
+
+
+    // ----------------------------------------------------------
+    /**
+     * Dynamically look up and invoke a method on a target object, with
+     * appropriate hints if any failures happen along the way.
+     * @param receiver The object to invoke the method on
+     * @param visibility The required visibility of the method
+     * @param returnType The expected type of the method's return value.
+     *     Use null (or <code>void.class</code>) if the method that is
+     *     looked up is a void method.
+     * @param methodName The name of the method to invoke
+     * @param params The parameters to pass to the method
+     * @param <T> The generic parameter T is deduced from the returnType
+     * @return The results from invoking the given method
+     */
+    public static <T> T invoke(
+        Object receiver,
+        VisibilityConstraint visibility,
+        Class<T> returnType,
+        String methodName,
+        Object ... params)
+    {
         Object result = null;
         Class<?> targetClass = receiver.getClass();
-        Class<?>[] paramProfile = null;
-        if (params != null)
-        {
-            paramProfile = new Class<?>[params.length];
-            for (int i = 0; i < params.length; i++)
-            {
-                if ( params[i] == null)
-                {
-                    // A null indicates we'll try to pass null as an
-                    // actual in the getMatchingMethod() search
-                    paramProfile[i] = null;
-                }
-                else
-                {
-                    paramProfile[i] = params[i].getClass();
-                }
-            }
-        }
-        Method m = getMatchingMethod(targetClass, methodName, paramProfile);
+        ParameterSignature paramProfile = new ParameterSignature(params);
+        Method m = getMatchingMethod(
+            targetClass, visibility, methodName, paramProfile);
 
         if (returnType == null || returnType == void.class)
         {
@@ -777,13 +1404,7 @@ public class ReflectionSupport
                 + simpleClassNameUsingPrimitives(returnType),
                 declaredReturnType != void.class &&
                 declaredReturnType != null &&
-                (actualMatchesFormal(declaredReturnType, returnType)
-                    // Had to add this second part in for legacy compatibility,
-                    // where tests written with Integer.class need to
-                    // work, even though they should have been written
-                    // with int.class
-                 || canAutoBoxFromActualToFormal(
-                     returnType, declaredReturnType)));
+                actualMatchesFormal(declaredReturnType, returnType));
         }
 
         result = invoke(receiver, m, params);
@@ -808,7 +1429,9 @@ public class ReflectionSupport
         }
         // The cast below is technically unsafe, according to the compiler,
         // but will never be violated, due to the assertion above.
-        return (T)result;
+        @SuppressWarnings("unchecked")
+        T answer = (T)result;
+        return answer;
     }
 
 
@@ -827,7 +1450,29 @@ public class ReflectionSupport
         String methodName,
         Object ... params)
     {
-        invoke(receiver, void.class, methodName, params);
+        invoke(receiver, VisibilityConstraint.DECLARED_PUBLIC, methodName,
+            params);
+    }
+
+
+    // ----------------------------------------------------------
+    /**
+     * Dynamically look up and invoke a method on a target object, with
+     * appropriate hints if any failures happen along the way.  This
+     * version is intended for calling "void" methods that have no
+     * return value.
+     * @param receiver The object to invoke the method on
+     * @param visibility The required visibility of the method
+     * @param methodName The name of the method to invoke
+     * @param params The parameters to pass to the method
+     */
+    public static void invoke(
+        Object receiver,
+        VisibilityConstraint visibility,
+        String methodName,
+        Object ... params)
+    {
+        invoke(receiver, visibility, void.class, methodName, params);
     }
 
 
@@ -895,7 +1540,6 @@ public class ReflectionSupport
      * @return The results from invoking the given method
      * @throws Exception if the underlying method throws one
      */
-    @SuppressWarnings("unchecked")
     public static <T> T invokeEx(
         Object receiver,
         Class<T> returnType,
@@ -903,26 +1547,39 @@ public class ReflectionSupport
         Object ... params)
         throws Exception
     {
+        return invokeEx(receiver, VisibilityConstraint.DECLARED_PUBLIC,
+            returnType, methodName, params);
+    }
+
+
+    // ----------------------------------------------------------
+    /**
+     * Just like {@link #invoke(Object, Class, String, Object...)}, but unwraps
+     * any InvocationTargetExceptions and throws the true cause.  This
+     * version is provided when you want to write test cases where you
+     * are intending to check for Exceptions as expected results.
+     * @param receiver The object to invoke the method on
+     * @param visibility The required visibility of the method
+     * @param returnType The expected type of the method's return value.
+     *     Use null (or <code>void.class</code>) if the method that is
+     *     looked up is a void method.
+     * @param methodName The name of the method to invoke
+     * @param params The parameters to pass to the method
+     * @param <T> The generic parameter T is deduced from the returnType
+     * @return The results from invoking the given method
+     * @throws Exception if the underlying method throws one
+     */
+    public static <T> T invokeEx(
+        Object receiver,
+        VisibilityConstraint visibility,
+        Class<T> returnType,
+        String methodName,
+        Object ... params)
+        throws Exception
+    {
         Object result = null;
         Class<?> targetClass = receiver.getClass();
-        Class<?>[] paramProfile = null;
-        if (params != null)
-        {
-            paramProfile = new Class<?>[params.length];
-            for (int i = 0; i < params.length; i++)
-            {
-                if ( params[i] == null)
-                {
-                    // A null indicates we'll try to pass null as an
-                    // actual in the getMatchingMethod() search
-                    paramProfile[i] = null;
-                }
-                else
-                {
-                    paramProfile[i] = params[i].getClass();
-                }
-            }
-        }
+        ParameterSignature paramProfile = new ParameterSignature(params);
         Method m = getMatchingMethod(targetClass, methodName, paramProfile);
 
         if (returnType == null || returnType == void.class)
@@ -941,13 +1598,7 @@ public class ReflectionSupport
                 + simpleClassNameUsingPrimitives(returnType),
                 declaredReturnType != void.class &&
                 declaredReturnType != null &&
-                (actualMatchesFormal(declaredReturnType, returnType)
-                    // Had to add this second part in for legacy compatibility,
-                    // where tests written with Integer.class need to
-                    // work, even though they should have been written
-                    // with int.class
-                 || canAutoBoxFromActualToFormal(
-                     returnType, declaredReturnType)));
+                actualMatchesFormal(declaredReturnType, returnType));
         }
 
         result = invokeEx(receiver, m, params);
@@ -972,7 +1623,9 @@ public class ReflectionSupport
         }
         // The cast below is technically unsafe, according to the compiler,
         // but will never be violated, due to the assertion above.
-        return (T)result;
+        @SuppressWarnings("unchecked")
+        T answer = (T)result;
+        return answer;
     }
 
 
@@ -993,7 +1646,31 @@ public class ReflectionSupport
         Object ... params)
         throws Exception
     {
-        invokeEx(receiver, void.class, methodName, params);
+        invokeEx(receiver, VisibilityConstraint.DECLARED_PUBLIC, methodName,
+            params);
+    }
+
+
+    // ----------------------------------------------------------
+    /**
+     * Just like {@link #invoke(Object, String, Object...)}, but unwraps
+     * any InvocationTargetExceptions and throws the true cause.  This
+     * version is provided when you want to write test cases where you
+     * are intending to check for Exceptions as expected results.
+     * @param receiver The object to invoke the method on
+     * @param visibility The required visibility of the method
+     * @param methodName The name of the method to invoke
+     * @param params The parameters to pass to the method
+     * @throws Exception if the underlying method throws one
+     */
+    public static void invokeEx(
+        Object receiver,
+        VisibilityConstraint visibility,
+        String methodName,
+        Object ... params)
+        throws Exception
+    {
+        invokeEx(receiver, visibility, void.class, methodName, params);
     }
 
 
@@ -1151,14 +1828,13 @@ public class ReflectionSupport
      * @param <T> The generic parameter T is deduced from the returnType
      * @return The value corresponding Field
      */
-    public static <T> T get(Object receiver, Class<T> type, String fieldName )
+    public static <T> T get(Object receiver, Class<T> type, String fieldName)
     {
         assert fieldName != null    : "fieldName cannot be null";
         assert !fieldName.isEmpty() : "fieldName cannot be empty";
         assert receiver != null     : "Receiver object cannot be empty";
 
         Field field = getField(receiver.getClass(), type, fieldName);
-
         Object fieldValue = null;
         if (field != null)
         {
@@ -1168,9 +1844,14 @@ public class ReflectionSupport
             }
             catch (IllegalArgumentException e)
             {
+                String msg = e.getMessage();
+                if (msg == null)
+                {
+                    msg = e.getClass().getSimpleName();
+                }
                 fail(field.getName() + " in "
                     + simpleClassName(receiver.getClass())
-                    + " cannot be retrieved.");
+                    + " cannot be retrieved: " + msg);
             }
             catch (IllegalAccessException e)
             {
@@ -1207,9 +1888,7 @@ public class ReflectionSupport
         assert receiverClass != null : "Receiver object cannot be empty";
 
         Field field = getField(receiverClass, type, fieldName);
-
         Object fieldValue = null;
-
         if (field != null)
         {
             try
@@ -1218,9 +1897,14 @@ public class ReflectionSupport
             }
             catch (IllegalArgumentException e)
             {
+                String msg = e.getMessage();
+                if (msg == null)
+                {
+                    msg = e.getClass().getSimpleName();
+                }
                 fail(field.getName() + " in "
                     + simpleClassName(receiverClass)
-                    + " cannot be retrieved.");
+                    + " cannot be retrieved: " + msg);
             }
             catch (IllegalAccessException e)
             {
@@ -1339,31 +2023,7 @@ public class ReflectionSupport
      */
     public static String simpleClassName(Class<?> aClass)
     {
-        if (aClass == null) return "null";
-        String result = aClass.getName();
-
-
-        // If it is an array, add appropriate number of brackets
-        try
-        {
-            Class<?> cl = aClass;
-            while (cl.isArray())
-            {
-                result += "[]";
-                cl = cl.getComponentType();
-            }
-        }
-        catch (Throwable e)
-        {
-            // Swallow it and stick with the bare class name
-        }
-
-        int pos = result.lastIndexOf('.');
-        if (pos >= 0)
-        {
-            result = result.substring(pos + 1);
-        }
-        return result;
+        return (aClass == null) ? "null" : aClass.getSimpleName();
     }
 
 
@@ -1379,39 +2039,12 @@ public class ReflectionSupport
      */
     public static String simpleClassNameUsingPrimitives(Class<?> aClass)
     {
-        if (aClass == Boolean.class)
+        Class<?> result = WRAPPER_TO_PRIMITIVE.get(aClass);
+        if (result == null)
         {
-            aClass = Boolean.TYPE;
+            result = aClass;
         }
-        else if (aClass == Byte.class)
-        {
-            aClass = Byte.TYPE;
-        }
-        else if (aClass == Character.class)
-        {
-            aClass = Character.TYPE;
-        }
-        else if (aClass == Short.class)
-        {
-            aClass = Short.TYPE;
-        }
-        else if (aClass == Integer.class)
-        {
-            aClass = Integer.TYPE;
-        }
-        else if (aClass == Long.class)
-        {
-            aClass = Long.TYPE;
-        }
-        else if (aClass == Float.class)
-        {
-            aClass = Float.TYPE;
-        }
-        else if (aClass == Double.class)
-        {
-            aClass = Double.TYPE;
-        }
-        return simpleClassName(aClass);
+        return simpleClassName(result);
     }
 
 
@@ -1428,6 +2061,23 @@ public class ReflectionSupport
     public static String simpleMethodName(String name, Class<?> ... params)
     {
         return name + simpleArgumentList(params);
+    }
+
+
+    // ----------------------------------------------------------
+    /**
+     * Constructs a printable version of a method's name, given
+     * the method name and its parameter type(s), if any.
+     * Useful in generating diagnostic messages or feedback.
+     * @param name   The method name
+     * @param params The method's parameter type(s), in order
+     * @return A printable version of the method name, like
+     *     "myMethod()" or "yourMethod(String, int)"
+     */
+    public static String simpleMethodName(
+        String name, ParameterSignature params)
+    {
+        return name + params;
     }
 
 
@@ -1497,49 +2147,117 @@ public class ReflectionSupport
     // ----------------------------------------------------------
     /**
      * Determine whether an actual argument type matches a formal argument
-     * type.  This uses {@link Class#isAssignableFrom(Class)}, but gives
-     * the correct results for primitive types vs. wrapper types.
+     * type, based on the rules of JLS Section 5.3.
      * @param actual The type of the actual parameter
      * @param formal The type of the formal parameter
      * @return True if the actual value can be passed into a parameter
-     *    declared using the formal type
+     *    declared using the formal type.
      */
     public static boolean actualMatchesFormal(Class<?> actual, Class<?> formal)
     {
-        boolean result = formal.isAssignableFrom(actual);
-        if (!result)
-        {
-            result = canAutoBoxFromActualToFormal(actual, formal);
-        }
-        return result;
+        return canCoerceFromActualToFormal(actual, formal)
+            != ParameterConversionCategory.CANNOT_CONVERT;
     }
 
 
     // ----------------------------------------------------------
     /**
-     * Determine whether it is appropriate to attempt to "auto-box" an
-     * actual argument of type <code>actual</code> into a formal parameter
-     * type <code>formal</code>.
+     * Determine the type of method invocation conversion, if any, Java would
+     * apply to convert from an actual argument of type <code>actual</code>
+     * into a formal parameter type <code>formal</code>, possibly including
+     * "auto-boxing" or "auto-unboxing", widening primitive conversions, or
+     * widening reference conversions, according to the rules of JLS Section
+     * 5.3.
      * @param actual The type of the actual value.
      * @param formal The type of the formal parameter.
-     * @return True if it is appropriate to auto-box the actual into the
-     * type of the formal.
+     * @return The type of conversion that would be performed, or
+     * CANNOT_CONVERT if the actual is not compatible with the formal.
      */
-    public static boolean canAutoBoxFromActualToFormal(
+    public static ParameterConversionCategory canCoerceFromActualToFormal(
         Class<?> actual, Class<?> formal)
     {
-        return
-            ( (    formal.equals(byte.class)
-                || formal.equals(short.class)
-                || formal.equals(int.class)
-                || formal.equals(long.class)
-                || formal.equals(float.class)
-                || formal.equals(double.class) )
-              && Number.class.isAssignableFrom(actual) )
-            || ( formal.equals(boolean.class)
-                 && actual.equals(Boolean.class) )
-            || ( formal.equals(char.class)
-                 && actual.equals(Character.class) );
+        if (actual == null)
+        {
+            // Represents a null value, which is compatible with any
+            // reference type
+            return formal.isPrimitive()
+                ? ParameterConversionCategory.CANNOT_CONVERT
+                : ParameterConversionCategory.IDENTITY_CONVERSION;
+        }
+        if (formal.equals(actual))
+        {
+            return ParameterConversionCategory.IDENTITY_CONVERSION;
+        }
+        if (!actual.isPrimitive() && formal.isAssignableFrom(actual))
+        {
+            return ParameterConversionCategory.REFERENCE_WIDENING;
+        }
+
+        // Check for boxing
+        if (actual.isPrimitive())
+        {
+            if (formal.isPrimitive())
+            {
+                Integer actualRank = WIDENING_RANK.get(actual);
+                Integer formalRank = WIDENING_RANK.get(formal);
+                if (actual.equals(char.class))
+                {
+                    actualRank = 1;
+                }
+                if (actualRank != null
+                    && formalRank != null
+                    // Uses <, since the only possibility where they would be
+                    // equal is char -> short, which isn't allowable
+                    && actualRank < formalRank)
+                {
+                    return ParameterConversionCategory.PRIMITIVE_WIDENING;
+                }
+
+                // otherwise, both are primitive and differ, but can't widen
+            }
+            else
+            {
+                // Otherwise, actual is primitive but formal is not
+                Class<?> wrapper = PRIMITIVE_TO_WRAPPER.get(actual);
+                if (formal.equals(wrapper))
+                {
+                    return ParameterConversionCategory.BOXING;
+                }
+                if (formal.isAssignableFrom(wrapper))
+                {
+                    return ParameterConversionCategory
+                        .BOXING_WITH_REFERENCE_WIDENING;
+                }
+            }
+            return ParameterConversionCategory.CANNOT_CONVERT;
+        }
+
+        // Check for unboxing
+        Class<?> primitive = WRAPPER_TO_PRIMITIVE.get(actual);
+        if (primitive != null && formal.isPrimitive())
+        {
+            if (formal.equals(primitive))
+            {
+                return ParameterConversionCategory.UNBOXING;
+            }
+            Integer actualRank = WIDENING_RANK.get(primitive);
+            Integer formalRank = WIDENING_RANK.get(formal);
+            if (primitive.equals(char.class))
+            {
+                actualRank = 1;
+            }
+            if (actualRank != null
+                && formalRank != null
+                // Uses <, since the only possibility where they would be
+                // equal is char -> short, which isn't allowable
+                && actualRank < formalRank)
+            {
+                return ParameterConversionCategory
+                    .UNBOXING_WITH_PRIMITIVE_WIDENING;
+            }
+        }
+
+        return ParameterConversionCategory.CANNOT_CONVERT;
     }
 
 
@@ -1722,7 +2440,11 @@ public class ReflectionSupport
                     }
                     break;
                 }
-                if (isClientClass)
+                if (isClientClass
+                    && c.getClassLoader()
+                        != ReflectionSupport.class.getClassLoader()
+                    && c.getClassLoader()
+                        != Thread.currentThread().getContextClassLoader())
                 {
                     return c;
                 }
@@ -1792,4 +2514,37 @@ public class ReflectionSupport
         "net.sf.webcat."
     };
 
+    private static final Map<Class<?>, Integer> WIDENING_RANK =
+        new HashMap<Class<?>, Integer>();
+    private static final Map<Class<?>, Class<?>> PRIMITIVE_TO_WRAPPER =
+        new HashMap<Class<?>, Class<?>>();
+    private static final Map<Class<?>, Class<?>> WRAPPER_TO_PRIMITIVE =
+        new HashMap<Class<?>, Class<?>>();
+    static {
+        // See Section 5.1.2 of Java language specification
+        WIDENING_RANK.put(byte.class, 0);
+        WIDENING_RANK.put(short.class, 1);
+        WIDENING_RANK.put(int.class, 2);
+        WIDENING_RANK.put(long.class, 3);
+        WIDENING_RANK.put(float.class, 4);
+        WIDENING_RANK.put(double.class, 5);
+
+        PRIMITIVE_TO_WRAPPER.put(byte.class, Byte.class);
+        PRIMITIVE_TO_WRAPPER.put(short.class, Short.class);
+        PRIMITIVE_TO_WRAPPER.put(int.class, Integer.class);
+        PRIMITIVE_TO_WRAPPER.put(long.class, Long.class);
+        PRIMITIVE_TO_WRAPPER.put(float.class, Float.class);
+        PRIMITIVE_TO_WRAPPER.put(double.class, Double.class);
+        PRIMITIVE_TO_WRAPPER.put(char.class, Character.class);
+        PRIMITIVE_TO_WRAPPER.put(boolean.class, Boolean.class);
+
+        WRAPPER_TO_PRIMITIVE.put(Byte.class, byte.class);
+        WRAPPER_TO_PRIMITIVE.put(Short.class, short.class);
+        WRAPPER_TO_PRIMITIVE.put(Integer.class, int.class);
+        WRAPPER_TO_PRIMITIVE.put(Long.class, long.class);
+        WRAPPER_TO_PRIMITIVE.put(Float.class, float.class);
+        WRAPPER_TO_PRIMITIVE.put(Double.class, double.class);
+        WRAPPER_TO_PRIMITIVE.put(Character.class, char.class);
+        WRAPPER_TO_PRIMITIVE.put(Boolean.class, boolean.class);
+    }
 }
