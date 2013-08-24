@@ -22,6 +22,7 @@
 package student.testingsupport.junit4;
 
 import java.lang.reflect.AccessibleObject;
+import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
@@ -30,6 +31,13 @@ import java.security.PrivilegedAction;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Ignore;
@@ -51,7 +59,6 @@ import org.junit.runners.model.Statement;
 import student.testingsupport.junit4.AdaptiveTimeout;
 import student.testingsupport.junit4.RunTestMethodWrapper;
 import tester.Printer;
-import tester.TestMethod;
 import tester.Tester;
 import tester.junit.TesterMethodResult;
 import tester.junit.TesterMethodResults;
@@ -87,6 +94,7 @@ public class JUnit4TesterRunner
 	private Object          cachedTest         = null;
 	private JUnit4Tester    cachedTester       = null;
 	private FrameworkMethod testerMethodHook   = null;
+	private AdaptiveTimeout adaptiveTimeout    = null;
 
 	private static final String PROPERTY_PREFIX =
         JUnit4TesterRunner.class.getName();
@@ -95,6 +103,22 @@ public class JUnit4TesterRunner
     private static final String TESTER_FULL = PROPERTY_PREFIX + ".full";
     private static final String TESTER_PRINT_ALL =
         PROPERTY_PREFIX + ".printall";
+
+    private static final FrameworkMethod OBJECT_HASH_CODE = objectHashCode();
+    // Initialization for the value above
+    private static FrameworkMethod objectHashCode()
+    {
+        try
+        {
+            return new FrameworkMethod(
+                Object.class.getDeclaredMethod("hashCode"));
+        }
+        catch (Exception e)
+        {
+            e.printStackTrace();
+            return null;
+        }
+    }
 
 
 	//~ Constructors ..........................................................
@@ -197,6 +221,32 @@ public class JUnit4TesterRunner
 					afters.add(0, fm);
 				}
 			}
+			if (!student.TestCase.class.isAssignableFrom(
+			    getTestClass().getJavaClass()))
+			{
+			    try
+			    {
+			        afters.add(new FrameworkMethod(null)
+			        {
+			            @Override
+			            public Object invokeExplosively(
+			                Object target,
+			                Object... params)
+			                throws Throwable
+			            {
+			                if (adaptiveTimeout != null)
+			                {
+			                    adaptiveTimeout.logTestMethod(true);
+			                }
+			                return null;
+			            }
+			        });
+			    }
+			    catch (Exception e)
+			    {
+			        throw new RuntimeException(e);
+			    }
+	        }
 			junit3aftersAdded = true;
 		}
 
@@ -207,9 +257,22 @@ public class JUnit4TesterRunner
 
 
     // ----------------------------------------------------------
+	/**
+	 * An internal hook that is executed automatically as a @BeforeClass
+	 * action.  It provides pre-test features for the NU Tester, if it
+	 * is detected for the current test, and also installs the
+	 * {@link student.testingsupport.ExitPreventingSecurityManager} for all
+	 * test classes.
+	 * @throws Exception If {@link #getTest()} fails.
+	 */
 	public void testerBeforeHook()
 	    throws Exception
 	{
+        if (!student.TestCase.class.isAssignableFrom(
+            getTestClass().getJavaClass()))
+        {
+            student.testingsupport.ExitPreventingSecurityManager.install();
+        }
 	    if (testerDetected)
 	    {
 	        testerFull = System.getProperty(
@@ -223,7 +286,111 @@ public class JUnit4TesterRunner
 	}
 
 
+    // ----------------------------------------------------------
+	/**
+	 * {@inheritDoc}
+	 */
+	@Override
+	protected void validateConstructor(List<Throwable> errors)
+	{
+	    Class<?> testClass = getTestClass().getJavaClass();
+	    if (junit.framework.TestCase.class.isAssignableFrom(testClass))
+	    {
+	        boolean found = false;
+	        for (Constructor<?> ctor : testClass.getConstructors())
+	        {
+	            Class<?>[] params = ctor.getParameterTypes();
+	            if (params.length == 0
+	                || (params.length == 1
+	                    && String.class.equals(params[0])))
+	            {
+	                found = true;
+	            }
+	        }
+	        if (!found)
+	        {
+	            errors.add(new Exception("Test class does not have an "
+	                + "appropriate public constructor."));
+	        }
+	    }
+	    else
+	    {
+	        super.validateConstructor(errors);
+	    }
+	}
+
+
+    // ----------------------------------------------------------
+	@Override
+	protected void validateOnlyOneConstructor(List<Throwable> errors)
+	{
+        Class<?> testClass = getTestClass().getJavaClass();
+        if (!Modifier.isPublic(testClass.getModifiers())
+            && !Modifier.isProtected(testClass.getModifiers())
+            && !Modifier.isPrivate(testClass.getModifiers()))
+        {
+            int count = 0;
+            for (Constructor<?> c : testClass.getDeclaredConstructors())
+            {
+                if (Modifier.isPublic(c.getModifiers())
+                    ||
+                    (!Modifier.isPublic(c.getModifiers())
+                     && !Modifier.isProtected(c.getModifiers())
+                     && !Modifier.isPrivate(c.getModifiers())))
+                {
+                    count++;
+                }
+            }
+            if (count != 1)
+            {
+                errors.add(new Exception(
+                    "Test class should have exactly one public constructor"));
+            }
+        }
+        else
+        {
+            super.validateOnlyOneConstructor(errors);
+        }
+	}
+
+
+    // ----------------------------------------------------------
+	@Override
+	protected void validateZeroArgConstructor(List<Throwable> errors)
+	{
+        Class<?> testClass = getTestClass().getJavaClass();
+        if (!Modifier.isPublic(testClass.getModifiers())
+            && !Modifier.isProtected(testClass.getModifiers())
+            && !Modifier.isPrivate(testClass.getModifiers()))
+        {
+            for (Constructor<?> c : testClass.getDeclaredConstructors())
+            {
+                if (Modifier.isPublic(c.getModifiers())
+                    ||
+                    (!Modifier.isPublic(c.getModifiers())
+                     && !Modifier.isProtected(c.getModifiers())
+                     && !Modifier.isPrivate(c.getModifiers())))
+                {
+                    if (c.getParameterTypes().length > 0)
+                    {
+                        errors.add(new Exception("Test class should have "
+                            + "exactly one public zero-argument constructor"));
+                        break;
+                    }
+                }
+            }
+        }
+        else
+        {
+            super.validateZeroArgConstructor(errors);
+        }
+	}
+
+
 	// ----------------------------------------------------------
+	/**
+	 * {@inheritDoc}
+	 */
 	@Override
 	protected Statement withBeforeClasses(Statement statement)
 	{
@@ -243,18 +410,25 @@ public class JUnit4TesterRunner
 
 
     // ----------------------------------------------------------
+    /**
+     * An internal hook that is used to conditionally execute test
+     * methods either the "normal" JUnit way, or using the NU Tester
+     * infrastructure, if NU Tester use is detected in the test class.
+     * @param m The test method to invoke.
+     * @throws Throwable If any error arises invoking the test method.
+     */
 	public void testerMethodHook(Method m)
 	    throws Throwable
 	{
-        if (testerDetected)
-        {
-            getTester().runOneTestMethod(
-                getTest(), m, testerFull, testerPrintAll);
-        }
-        else
-        {
-            new FrameworkMethod(m).invokeExplosively(getTest());
-        }
+	    if (testerDetected)
+	    {
+	        getTester().runOneTestMethod(
+	            getTest(), m, testerFull, testerPrintAll);
+	    }
+	    else
+	    {
+	        new FrameworkMethod(m).invokeExplosively(getTest());
+	    }
 	}
 
 
@@ -279,9 +453,24 @@ public class JUnit4TesterRunner
 
 
     // ----------------------------------------------------------
+    /**
+     * An internal hook that is executed automatically as an @AfterClass
+     * action.  It provides post-test features for the NU Tester, if it
+     * is detected for the current test, and also un-installs the
+     * {@link student.testingsupport.ExitPreventingSecurityManager} for all
+     * test classes.
+     */
     public void testerAfterHook()
-        throws Exception
     {
+        if (adaptiveTimeout != null)
+        {
+            adaptiveTimeout.appendStatsToFile();
+        }
+        if (!student.TestCase.class.isAssignableFrom(
+            getTestClass().getJavaClass()))
+        {
+            student.testingsupport.ExitPreventingSecurityManager.uninstall();
+        }
         if (testerDetected)
         {
             getTester().finishRunningTests(testerFull, testerPrintAll);
@@ -322,13 +511,14 @@ public class JUnit4TesterRunner
 
 		if (!junit3methodsAdded)
 		{
+		    // First, check public methods
 			Method[] methods =
-			    getTestClass().getJavaClass().getDeclaredMethods();
+			    getTestClass().getJavaClass().getMethods();
 			for (final Method method : methods)
 			{
 				if (method.getName().startsWith("test")
 				    && method.getParameterTypes().length == 0
-				    && Modifier.isPublic(method.getModifiers()))
+				    && method.getAnnotation(org.junit.Test.class) == null)
 				{
 				    // This is a JUnit3-style test method
                     FrameworkMethod fm = new FrameworkMethod(method);
@@ -338,17 +528,47 @@ public class JUnit4TesterRunner
                         children.add(fm);
                     }
 				}
-				else if (method.getAnnotation(TestMethod.class) != null
+				else if (method.getAnnotation(tester.TestMethod.class) != null
 				    || (method.getName().startsWith("test")
 				        && method.getParameterTypes().length == 1
-				        && Tester.class.equals(method.getParameterTypes()[0])
-				        && !Modifier.isPrivate(method.getModifiers())))
+				        && Tester.class.equals(method.getParameterTypes()[0])))
 				{
 				    // Then it is an NU Tester-style method
 				    testerDetected = true;
-				    ensureIsAccessible(method);
 				    children.add(new FrameworkMethod(method));
 				}
+			}
+
+			// Now check for non-public tester-style methods
+            methods = getTestClass().getJavaClass().getDeclaredMethods();
+            // Note that the line above does not perform an inheritance-based
+            // search and will only find methods declared in the most
+            // specific subclass for this test class.
+            for (final Method method : methods)
+            {
+                if (method.getAnnotation(tester.TestMethod.class) != null
+                    || (method.getName().startsWith("test")
+                        && method.getParameterTypes().length == 1
+                        && Tester.class.equals(method.getParameterTypes()[0])
+                        && !Modifier.isPublic(method.getModifiers())
+                        && !Modifier.isPrivate(method.getModifiers())))
+                {
+                    // Then it is an NU Tester-style method
+                    testerDetected = true;
+                    ensureIsAccessible(method);
+                    children.add(new FrameworkMethod(method));
+                }
+            }
+
+            // If no tests, and it looks like a tester-style test, then
+            // treat object construction (including initializing fields)
+            // as a single test case itself.
+			if (children.size() == 0
+			    && !junit.framework.TestCase.class.isAssignableFrom(
+			        getTestClass().getJavaClass()))
+			{
+			    children.add(OBJECT_HASH_CODE);
+			    testerDetected = true;
 			}
 			junit3methodsAdded = true;
 		}
@@ -444,7 +664,12 @@ public class JUnit4TesterRunner
         // force adaptive timeout
         if (!foundAdaptiveTimeout)
         {
-            result = new AdaptiveTimeout().apply(result, method, target);
+            adaptiveTimeout = new AdaptiveTimeout();
+            result = adaptiveTimeout.apply(result, method, target);
+        }
+        else
+        {
+            adaptiveTimeout = null;
         }
         return result;
     }
@@ -454,6 +679,11 @@ public class JUnit4TesterRunner
     @Override
     protected Statement methodInvoker(FrameworkMethod method, Object test)
     {
+        if (method == OBJECT_HASH_CODE)
+        {
+            return new TesterPrintInstance(test);
+        }
+
         Class<?>[] params = method.getMethod().getParameterTypes();
         if (params.length == 1 && Tester.class.equals(params[0]))
         {
@@ -487,6 +717,14 @@ public class JUnit4TesterRunner
 
     // ----------------------------------------------------------
     // Can't replace inherited runLeaf() method!
+    /**
+     * Runs a single test (replaces a method in the base class that is
+     * declared private and can't be overridden).
+     * @param statement   The test to run.
+     * @param description A description of this test.
+     * @param notifier    The notifier to use
+     * @param method      The test method bundled in the statement.
+     */
     protected void runMyLeaf(Statement statement, Description description,
         RunNotifier notifier, FrameworkMethod method)
     {
@@ -558,6 +796,61 @@ public class JUnit4TesterRunner
 
 
     // ----------------------------------------------------------
+    private ExecutorService exec = Executors.newSingleThreadExecutor();
+    private Object getTest(Callable<Object> ctor)
+        throws Exception
+    {
+        try
+        {
+            Future<Object> task = exec.submit(ctor);
+            return task.get(1, TimeUnit.SECONDS);
+        }
+        catch (TimeoutException e)
+        {
+            throw new AssertionError("constructor " + ctor
+                + " took longer than one second to execute.");
+        }
+        catch (ExecutionException e)
+        {
+            if (e.getCause() != null
+                && e.getCause() instanceof Exception)
+            {
+                throw (Exception)e.getCause();
+            }
+            else
+            {
+                throw e;
+            }
+        }
+    }
+
+
+    // ----------------------------------------------------------
+    private Object getTest(final Constructor<?> ctor, final Object... args)
+        throws Exception
+    {
+        return getTest(new Callable<Object>() {
+                public Object call()
+                    throws Exception
+                {
+                    return ctor.newInstance(args);
+                }
+                @Override
+                public String toString()
+                {
+                    return ctor == null ? "null" : ctor.toString();
+                }
+            });
+    }
+
+
+    // ----------------------------------------------------------
+    /**
+     * Get the test class for this runner, taking NU Tester considerations
+     * into account.
+     * @return The test object.
+     * @throws Exception If any of the underlying JUnit methods fail.
+     */
     protected Object getTest()
         throws Exception
     {
@@ -565,19 +858,63 @@ public class JUnit4TesterRunner
         {
             if (cachedTest == null)
             {
-                cachedTest = getTestClass().getJavaClass()
-                    .getDeclaredConstructor().newInstance();
+                Class<?> testClass = getTestClass().getJavaClass();
+                if (junit.framework.TestCase.class.isAssignableFrom(testClass))
+                {
+                    try
+                    {
+                        cachedTest = getTest(
+                            testClass.getConstructor(String.class),
+                            testClass.getName());
+                    }
+                    catch (NoSuchMethodException e)
+                    {
+                        cachedTest = getTest(testClass.getConstructor());
+                    }
+                }
+                else
+                {
+                    Constructor<?> c = testClass.getDeclaredConstructor();
+                    ensureIsAccessible(c);
+                    cachedTest = getTest(c);
+                }
             }
             return cachedTest;
         }
         else
         {
-            return super.createTest();
+            Class<?> testClass = getTestClass().getJavaClass();
+            if (junit.framework.TestCase.class.isAssignableFrom(testClass))
+            {
+                try
+                {
+                    return getTest(testClass.getConstructor(String.class),
+                        testClass.getName());
+                }
+                catch (NoSuchMethodException e)
+                {
+                    return getTest(testClass.getConstructor());
+                }
+            }
+            else
+            {
+                return getTest(new Callable<Object>() {
+                    public Object call()
+                        throws Exception
+                    {
+                        return JUnit4TesterRunner.super.createTest();
+                    }
+                });
+            }
         }
     }
 
 
     // ----------------------------------------------------------
+    /**
+     * Factor method to create a new JUnit4Tester object.
+     * @return a new Tester object for NU Tester-style use.
+     */
     protected JUnit4Tester createTester()
     {
         return new JUnit4Tester();
@@ -585,6 +922,12 @@ public class JUnit4TesterRunner
 
 
     // ----------------------------------------------------------
+    /**
+     * Get the JUnit4Tester object used to run NU Tester-style tests
+     * (will call the factory method {@link #createTester()} to create
+     * one, if needed, then cache it).
+     * @return a new Tester object for NU Tester-style use.
+     */
     protected JUnit4Tester getTester()
     {
         if (cachedTester == null)
@@ -596,9 +939,21 @@ public class JUnit4TesterRunner
 
 
     // ----------------------------------------------------------
+    /**
+     * A customized version of {@link Tester} that will run NU Tester-style
+     * tests within JUnit 4's infrastructure.
+     */
     protected class JUnit4Tester extends Tester
     {
         // ----------------------------------------------------------
+        /**
+         * Pre-test setup for running tests, which basically prints the
+         * header information for this test object.
+         * @param f    The object containing the tests to run.
+         * @param full Unused.
+         * @param printall Pretty-print the class data from the test class
+         *                 object before any tests are run.
+         */
         public void prepareToRunAnyTests(
             Object f, boolean full, boolean printall)
         {
@@ -627,6 +982,14 @@ public class JUnit4TesterRunner
 
 
         // ----------------------------------------------------------
+        /**
+         * Run a single NU Tester-style test method.
+         * @param f          The object containing the tests to run.
+         * @param testMethod The single test to run.
+         * @param full       Unused.
+         * @param printall   Unused.
+         * @throws Throwable If a failure occurs.
+         */
         public void runOneTestMethod(
             Object f, Method testMethod, boolean full, boolean printall)
             throws Throwable
@@ -659,6 +1022,12 @@ public class JUnit4TesterRunner
 
 
         // ----------------------------------------------------------
+        /**
+         * Post-test processing after running tests, which basically prints the
+         * report of results.
+         * @param full     Unused.
+         * @param printall Unused.
+         */
         public void finishRunningTests(boolean full, boolean printall)
         {
             if (full)
