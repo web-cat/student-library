@@ -28,10 +28,11 @@ import java.lang.annotation.*;
  *  Annotation used to provide a priority level used to influence hint
  *  selection.  Hint priorities are integer values and may be specified
  *  on a class or method.  Without annotation, the default priority of
- *  any hint is zero.  Use this annotation to specify a numerically higher
- *  (or lower) priority.  Any hints with a numerically higher priority
+ *  any hint is Integer.MAX_VALUE.  Use this annotation to specify a
+ *  numerically lower priority.  Any hints with a numerically lower priority
  *  value will be selected for presentation to a student before any others
- *  with a numerically lower priority.
+ *  with a numerically higher priority (i.e., priority "1" comes out
+ *  before priority "2", which comes out before priority "3", etc).
  *
  *  @author  Stephen Edwards
  *  @author  Last changed by $Author$
