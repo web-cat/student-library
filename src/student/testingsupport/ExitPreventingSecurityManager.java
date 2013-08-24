@@ -110,7 +110,29 @@ public class ExitPreventingSecurityManager
         {
             parent.checkExit(status);
         }
-        throw new ExitCalledException(status);
+        Boolean allowed =
+            AccessController.doPrivileged(new PrivilegedAction<Boolean>()
+            {
+                public Boolean run()
+                {
+                    for (Class<?> c : getClassContext())
+                    {
+                        if (c.getName().startsWith("student.testingsupport."))
+                        {
+                            continue;
+                        }
+                        else
+                        {
+                            return c.getName().startsWith("javax.swing.");
+                        }
+                    }
+                    return false;
+                }
+            });
+        if (!allowed)
+        {
+            throw new ExitCalledException(status);
+        }
     }
 
 
