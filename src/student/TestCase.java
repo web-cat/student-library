@@ -572,6 +572,16 @@ public class TestCase
     public static void assertEquals(
         String message, Number expected, Number actual)
     {
+        if (expected == null
+            || actual == null
+            || (expected.getClass().equals(actual.getClass())
+                && !Double.class.equals(expected)
+                && !Double.class.equals(actual)
+                && !Float.class.equals(expected)
+                && !Float.class.equals(actual)))
+        {
+            junit.framework.TestCase.assertEquals(message, expected, actual);
+        }
         String expectedType =
             expected.getClass().getSimpleName().toLowerCase();
         String actualType =
