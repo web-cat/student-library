@@ -575,7 +575,10 @@ public class ReflectionSupport
         {
             try
             {
-                return loader.loadClass(className);
+                if (loader != null)
+                {
+                    return loader.loadClass(className);
+                }
             }
             catch (ClassNotFoundException e)
             {
@@ -1780,7 +1783,8 @@ public class ReflectionSupport
             fail("Cannot find field " + fieldName
                 + " in " + simpleClassName(receiverClass));
         }
-        if (!actualMatchesFormal(field.getType(), type))
+        if (!actualMatchesFormal(field.getType(), type)
+            && !actualMatchesFormal(type, field.getType()))
         {
             String msg = "Field " + fieldName + " in class ";
             if (declaringClass == receiverClass)
@@ -1861,6 +1865,17 @@ public class ReflectionSupport
             }
 
         }
+        if (fieldValue != null && !type.isInstance(fieldValue))
+        {
+            throw new ReflectionError(
+                "Field " + field.getName()
+                + " of type " + field.getType().getSimpleName()
+                + " in an object of class "
+                + receiver.getClass().getSimpleName()
+                + " contains a(n) " + fieldValue.getClass().getSimpleName()
+                + " value, but a(n) " + type.getSimpleName()
+                + " was expected.");
+        }
         @SuppressWarnings("unchecked")
         T value = (T)fieldValue;
         return value;
@@ -1912,6 +1927,17 @@ public class ReflectionSupport
                 // but the compiler requires a handler.
                 fail(e.getMessage());
             }
+        }
+        if (fieldValue != null && !type.isInstance(fieldValue))
+        {
+            throw new ReflectionError(
+                "Static field " + field.getName()
+                + " of type " + field.getType().getSimpleName()
+                + " in class "
+                + receiverClass.getSimpleName()
+                + " contains a(n) " + fieldValue.getClass().getSimpleName()
+                + " value, but a(n) " + type.getSimpleName()
+                + " was expected.");
         }
         @SuppressWarnings("unchecked")
         T value = (T)fieldValue;
