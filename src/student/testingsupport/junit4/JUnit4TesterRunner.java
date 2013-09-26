@@ -140,6 +140,25 @@ public class JUnit4TesterRunner
 	//~ Methods ...............................................................
 
     // ----------------------------------------------------------
+    private Method find(Class<?> cls, String name, Class<?>... param_types)
+    {
+        while (cls != null)
+        {
+            try
+            {
+                return cls.getDeclaredMethod(name, param_types);
+            }
+            catch (NoSuchMethodException e)
+            {
+                // go around the loop again
+            }
+            cls = cls.getSuperclass();
+        }
+        return null;
+    }
+
+
+    // ----------------------------------------------------------
 	/**
 	 * Returns a {@link Statement}: run all non-overridden {@code @Before}
 	 * methods on this class and superclasses, as well as any JUnit3 setUp
@@ -158,23 +177,16 @@ public class JUnit4TesterRunner
 		if (befores != annotatedBefores)
 		{
             befores = annotatedBefores;
-			Method[] methods =
-			    getTestClass().getJavaClass().getDeclaredMethods();
-			for (final Method m : methods)
+			Method setUp = find(getTestClass().getJavaClass(), "setUp");
+			// Need to ensure it isn't annotated as @Before already
+			if (setUp.getAnnotation(Before.class) == null
+			    && !Modifier.isPrivate(setUp.getModifiers()))
 			{
-			    // Need to check for correct signature
-			    // Need to ensure it isn't annotated as @Before already
-				if (m.getName().equals("setUp")
-                    && m.getAnnotation(Before.class) == null
-				    && m.getParameterTypes().length == 0
-				    && !Modifier.isPrivate(m.getModifiers()))
-				{
-				    ensureIsAccessible(m);
-					FrameworkMethod fm = new FrameworkMethod(m);
-					// add at the end, so it will be executed last, after
-					// all other @Before methods
-					befores.add(fm);
-				}
+				ensureIsAccessible(setUp);
+				FrameworkMethod fm = new FrameworkMethod(setUp);
+				// add at the end, so it will be executed last, after
+				// all other @Before methods
+				befores.add(fm);
 			}
 		}
 
@@ -204,22 +216,16 @@ public class JUnit4TesterRunner
 
 		if (!junit3aftersAdded)
 		{
-			Method[] methods = getTestClass().getJavaClass().getMethods();
-			for (final Method m : methods)
+			Method tearDown = find(getTestClass().getJavaClass(), "tearDown");
+            // Need to ensure it isn't annotated as @After already
+			if (tearDown.getAnnotation(After.class) == null
+                && !Modifier.isPrivate(tearDown.getModifiers()))
 			{
-                // Need to check for correct signature
-                // Need to ensure it isn't annotated as @After already
-				if (m.getName().equals("tearDown")
-                    && m.getAnnotation(After.class) == null
-                    && m.getParameterTypes().length == 0
-                    && !Modifier.isPrivate(m.getModifiers()))
-				{
-				    ensureIsAccessible(m);
-					FrameworkMethod fm = new FrameworkMethod(m);
-					// Add at position zero, so it will be executed first,
-					// before all other @After methods
-					afters.add(0, fm);
-				}
+				ensureIsAccessible(tearDown);
+				FrameworkMethod fm = new FrameworkMethod(tearDown);
+				// Add at position zero, so it will be executed first,
+				// before all other @After methods
+				afters.add(0, fm);
 			}
 			if (!student.TestCase.class.isAssignableFrom(
 			    getTestClass().getJavaClass()))
@@ -797,18 +803,30 @@ public class JUnit4TesterRunner
 
     // ----------------------------------------------------------
     private ExecutorService exec = Executors.newSingleThreadExecutor();
+    private int ctor_time_limit = 10;
+    private int ctor_timeout_count = 0;
     private Object getTest(Callable<Object> ctor)
         throws Exception
     {
         try
         {
             Future<Object> task = exec.submit(ctor);
-            return task.get(1, TimeUnit.SECONDS);
+            return task.get(ctor_time_limit, TimeUnit.SECONDS);
         }
         catch (TimeoutException e)
         {
+            int limit = ctor_time_limit;
+            ctor_timeout_count++;
+            if (ctor_timeout_count > 1 && ctor_time_limit > 1)
+            {
+                // Ramp limit down, if necessary
+                ctor_time_limit /= 2;
+            }
             throw new AssertionError("constructor " + ctor
-                + " took longer than one second to execute.");
+                + " took longer than " + limit
+                + " second"
+                + (limit == 1 ? "" : "s" )
+                + " to execute.");
         }
         catch (ExecutionException e)
         {
@@ -898,13 +916,13 @@ public class JUnit4TesterRunner
             }
             else
             {
-                return getTest(new Callable<Object>() {
-                    public Object call()
-                        throws Exception
-                    {
+//                return getTest(new Callable<Object>() {
+//                    public Object call()
+//                        throws Exception
+//                    {
                         return JUnit4TesterRunner.super.createTest();
-                    }
-                });
+//                    }
+//                });
             }
         }
     }

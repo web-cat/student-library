@@ -564,6 +564,53 @@ public class ReflectionSupport
 
     // ----------------------------------------------------------
     /**
+     * Dynamically look up a class by name, returning null if the class
+     * is not found.
+     * @param className The type of object to create
+     * @param loader    The class loader to search from
+     * @return The corresponding Class object
+     */
+    public static Class<?> getClassForNameIfPossible(
+        String className, ClassLoader loader)
+    {
+        try
+        {
+            if (loader != null)
+            {
+                return loader.loadClass(className);
+            }
+        }
+        catch (ClassNotFoundException e)
+        {
+            // Ignore it and fall through
+        }
+
+        // Default return goes here, for compiler reachability analysis
+        return null;
+    }
+
+
+    // ----------------------------------------------------------
+    /**
+     * Dynamically look up a class by name, with appropriate hints if the
+     * class cannot be found.
+     * @param className The type of object to create
+     * @param loader    The class loader to search from
+     * @return The corresponding Class object
+     */
+    public static Class<?> getClassForName(String className, ClassLoader loader)
+    {
+        Class<?> result = getClassForNameIfPossible(className, loader);
+        if (result == null)
+        {
+            fail("cannot find class " + className);
+        }
+        return result;
+    }
+
+
+    // ----------------------------------------------------------
+    /**
      * Dynamically look up a class by name, with appropriate hints if the
      * class cannot be found.
      * @param className The type of object to create
@@ -571,25 +618,59 @@ public class ReflectionSupport
      */
     public static Class<?> getClassForName(String className)
     {
+        Class<?> result = null;
         for (ClassLoader loader : getCandidateLoaders())
         {
-            try
+            result = getClassForNameIfPossible(className, loader);
+            if (result != null)
             {
-                if (loader != null)
-                {
-                    return loader.loadClass(className);
-                }
-            }
-            catch (ClassNotFoundException e)
-            {
-                // Ignore it and try the next loader
+                break;
             }
         }
 
         // Class wasn't found in any candidate loader
-        fail("cannot find class " + className);
+        if (result == null)
+        {
+            fail("cannot find class " + className);
+        }
 
-        // Unreachable, so just to make the compiler happy:
+        return result;
+    }
+
+
+    // ----------------------------------------------------------
+    /**
+     * Dynamically look up a class by name, with appropriate hints if the
+     * class cannot be found.
+     * @param className The type of object to create
+     * @return The corresponding Class object
+     */
+    public static Class<?> reloadClassForName(String className)
+    {
+        final String resourceName = className.replace('.', '/') + ".class";
+        for (final ClassLoader loader : getCandidateLoaders())
+        {
+            Class<?> result = getClassForName(className,
+                AccessController.doPrivileged(
+                    new PrivilegedAction<ClassLoader>()
+                    {
+                        public ClassLoader run()
+                        {
+                            if (loader.getResource(resourceName) != null)
+                            {
+                                return new NonDeferringClassLoader(loader);
+                            }
+                            return null;
+                        }
+                    }));
+            if (result != null)
+            {
+                return result;
+            }
+        }
+
+        fail("cannot find class " + className);
+        // Unreachable, just to make the compiler happy
         return null;
     }
 
@@ -1865,7 +1946,10 @@ public class ReflectionSupport
             }
 
         }
-        if (fieldValue != null && !type.isInstance(fieldValue))
+        if (fieldValue != null
+            && !(type.isInstance(fieldValue)
+                || (type.isPrimitive()
+                    && PRIMITIVE_TO_WRAPPER.get(type).isInstance(fieldValue))))
         {
             throw new ReflectionError(
                 "Field " + field.getName()
@@ -2284,6 +2368,116 @@ public class ReflectionSupport
         }
 
         return ParameterConversionCategory.CANNOT_CONVERT;
+    }
+
+
+    //-----------------------------------------------------------------
+    public static class NonDeferringClassLoader
+        extends java.net.URLClassLoader
+    {
+        public NonDeferringClassLoader()
+        {
+            this(null);
+        }
+
+        public NonDeferringClassLoader(ClassLoader parent)
+        {
+            super(new java.net.URL[0],
+                parent == null
+                ? Thread.currentThread().getContextClassLoader()
+                : parent);
+        }
+
+        public Class<?> loadClass(String name)
+            throws ClassNotFoundException
+        {
+            return loadClass(name, false);
+        }
+
+        @Override
+        protected synchronized Class<?> loadClass(
+            final String name, boolean resolve)
+            throws ClassNotFoundException
+        {
+            // see if we've already loaded it
+            Class<?> c = findLoadedClass(name);
+            if (c != null)
+            {
+                return c;
+            }
+
+            try
+            {
+            return AccessController.doPrivileged(
+                new PrivilegedAction<Class<?>>()
+                {
+                    public Class<?> run()
+                    {
+                        String resourceName =
+                            name.replace('.', '/') + ".class";
+                        java.io.InputStream in =
+                            getResourceAsStream(resourceName);
+                        if (in == null)
+                        {
+                            throw new RuntimeException(
+                                new ClassNotFoundException(name));
+                        }
+
+                        // 80% of class files are smaller then 6k
+                        java.io.ByteArrayOutputStream bout =
+                            new java.io.ByteArrayOutputStream(8 * 1024);
+
+                        // copy the input stream into a byte array
+                        byte[] bytes = new byte[0];
+                        try
+                        {
+                            byte[] buf = new byte[4 * 1024];
+                            for (int count = -1; (count = in.read(buf)) >= 0;)
+                            {
+                                bout.write(buf, 0, count);
+                            }
+                            bytes = bout.toByteArray();
+                        }
+                        catch (java.io.IOException e)
+                        {
+                            throw new RuntimeException(
+                                new ClassNotFoundException(name, e));
+                        }
+
+                        // define the package
+                        int packageEndIndex = name.lastIndexOf('.');
+                        if (packageEndIndex != -1)
+                        {
+                            String packageName =
+                                name.substring(0, packageEndIndex);
+                            if (getPackage(packageName) == null)
+                            {
+                                definePackage(packageName,
+                                    null, null, null, null, null, null, null);
+                            }
+                        }
+
+                        // define the class
+                        return defineClass(name, bytes, 0, bytes.length);
+                    }});
+            }
+            catch (SecurityException e)
+            {
+                // possible prohibited package: defer to the parent
+                return super.loadClass(name, resolve);
+            }
+            catch (RuntimeException e)
+            {
+                if (e.getCause() instanceof ClassNotFoundException)
+                {
+                    throw (ClassNotFoundException)e.getCause();
+                }
+                else
+                {
+                    throw e;
+                }
+            }
+        }
     }
 
 
