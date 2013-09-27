@@ -179,7 +179,8 @@ public class JUnit4TesterRunner
             befores = annotatedBefores;
 			Method setUp = find(getTestClass().getJavaClass(), "setUp");
 			// Need to ensure it isn't annotated as @Before already
-			if (setUp.getAnnotation(Before.class) == null
+			if (setUp != null
+			    && setUp.getAnnotation(Before.class) == null
 			    && !Modifier.isPrivate(setUp.getModifiers()))
 			{
 				ensureIsAccessible(setUp);
@@ -218,7 +219,8 @@ public class JUnit4TesterRunner
 		{
 			Method tearDown = find(getTestClass().getJavaClass(), "tearDown");
             // Need to ensure it isn't annotated as @After already
-			if (tearDown.getAnnotation(After.class) == null
+			if (tearDown != null
+			    && tearDown.getAnnotation(After.class) == null
                 && !Modifier.isPrivate(tearDown.getModifiers()))
 			{
 				ensureIsAccessible(tearDown);
