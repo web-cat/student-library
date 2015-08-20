@@ -21,6 +21,7 @@
 
 package student.testingsupport.junit4;
 
+import java.io.InputStream;
 import java.lang.reflect.AccessibleObject;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
@@ -30,7 +31,11 @@ import java.security.AccessController;
 import java.security.PrivilegedAction;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -38,6 +43,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import org.apache.commons.collections.comparators.ComparatorChain;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Ignore;
@@ -579,6 +585,8 @@ public class JUnit4TesterRunner
 			    testerDetected = true;
 			}
 			junit3methodsAdded = true;
+
+			Collections.sort(children, new MethodComparator());
 		}
 
 		return children;
@@ -1089,6 +1097,151 @@ public class JUnit4TesterRunner
                          return null;
                      }
                  });
+        }
+    }
+
+
+    // ----------------------------------------------------------
+    private static class MethodComparator
+        implements Comparator<FrameworkMethod>
+    {
+        private static final char[] METHOD_SEPARATORS = {1, 7};
+        private static final Map<Class<?>, Integer> classDepth =
+            new HashMap<Class<?>, Integer>();
+        private static final Map<String, Integer> methodPosition =
+            new HashMap<String, Integer>();
+
+
+        // ----------------------------------------------------------
+        public MethodComparator()
+        {
+            // No initialization needed
+        }
+
+
+        // ----------------------------------------------------------
+        public int compare(FrameworkMethod o1, FrameworkMethod o2)
+        {
+            Method method1 = o1.getMethod();
+            Method method2 = o2.getMethod();
+            int left = classDepth(method1.getDeclaringClass());
+            int right = classDepth(method2.getDeclaringClass());
+            if (left == right)
+            {
+                left = methodPosition(method1);
+                right = methodPosition(method2);
+                if (left == right)
+                {
+                    int result =
+                        method1.getName().compareTo(method2.getName());
+                    if (result == 0)
+                    {
+                        result = method1.getDeclaringClass().getName()
+                            .compareTo(method2.getDeclaringClass().getName());
+                    }
+                    return result;
+                }
+            }
+            return left - right;
+        }
+
+
+        // ----------------------------------------------------------
+        private int classDepth(Class<?> declaringClass)
+        {
+            Integer depth = classDepth.get(declaringClass);
+            if (depth == null)
+            {
+                Class<?> s = declaringClass.getSuperclass();
+                if (s == null || Object.class.equals(s))
+                {
+                    depth = 0;
+                }
+                else
+                {
+                    depth = classDepth(s) + 1;
+                }
+                classDepth.put(declaringClass, depth);
+            }
+            return depth;
+        }
+
+
+        // ----------------------------------------------------------
+        private int methodPosition(Method method)
+        {
+            String methodFQ = method.getDeclaringClass().getName() + "."
+                + method.getName();
+            Integer pos = methodPosition.get(methodFQ);
+            if (pos == null)
+            {
+                Class<?> c = method.getDeclaringClass();
+                InputStream in = c.getResourceAsStream(
+                    c.getName().replace('.', '/') + ".class");
+                StringBuffer buff = new StringBuffer();
+                try
+                {
+                    byte[] buf = new byte[4096];
+                    int count = in.read(buf);
+                    while (count > 0)
+                    {
+                        // Don't want any UTF-8 encoding errors trying
+                        // to read in the bytecode as a string, since
+                        // bytecode isn't UTF-8 compatible, so using
+                        // Windows encoding instead, since it is 8-bit safe.
+                        // However, this will "distort" UTF-8 names that
+                        // use characters outside of ASCII, so we'll have
+                        // to handle that later.
+                        String contents =
+                            new String(buf, 0, count, "Windows-1252");
+                        buff.append(contents);
+                        count = in.read(buf);
+                    }
+                }
+                catch (Exception e)
+                {
+                    e.printStackTrace();
+                }
+                finally
+                {
+                    try
+                    {
+                        in.close();
+                    }
+                    catch (Exception e)
+                    {
+                        e.printStackTrace();
+                    }
+                }
+                String contents = buff.toString();
+                for (Method m : c.getDeclaredMethods())
+                {
+                    String name = c.getName();
+                    // Try munging the name from proper UTF-8 encoding to
+                    // be re-interpreted/munged as Windows-1252.  This
+                    // will mess up the raw chars in the string, but will
+                    // force the string to match the munged contents
+                    // read in using the incorrect Windows-1252 encoding
+                    // during the file read process.
+                    try
+                    {
+                        byte[] bytes = name.getBytes("UTF-8");
+                        name = new String(bytes, "Windows-1252");
+                    }
+                    catch (Exception e)
+                    {
+                        e.printStackTrace();
+                    }
+                    methodPosition.put(c.getName() + "." + m.getName(),
+                        contents.indexOf(m.getName()));
+                }
+                pos = methodPosition.get(methodFQ);
+                if (pos == null)
+                {
+                    pos = 0;
+                }
+            }
+            return pos;
         }
     }
 }
