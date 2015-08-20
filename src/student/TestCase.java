@@ -90,6 +90,25 @@ public class TestCase
     private static Boolean trimStackTraces;
 
 
+    //~ Public classes used inside this class .................................
+
+    // ----------------------------------------------------------
+    /**
+     * A custom error class that represents a mistake in calling the wrong
+     * assert method for a given situation.
+     */
+    public static class AssertMethodCalledIncorrectly
+        extends AssertionError
+    {
+        private static final long serialVersionUID = 6737326499160903149L;
+
+        AssertMethodCalledIncorrectly(String message)
+        {
+            super(message);
+        }
+    }
+
+
     //~ Constructors ..........................................................
 
     // ----------------------------------------------------------
@@ -539,7 +558,7 @@ public class TestCase
             + "it checks whether two references refer to the same, identical "
             + "object.  This question does not make sense for primitive data "
             + "values, so use assertEquals() instead.";
-        fail(msg);
+        assertMethodCalledIncorrectly(msg);
     }
 
 
@@ -608,7 +627,7 @@ public class TestCase
                 + "values requires a third argument indicating how close they "
                 + "have to be to be considered equal.";
         }
-        fail(msg);
+        assertMethodCalledIncorrectly(msg);
     }
 
 
@@ -1208,6 +1227,20 @@ public class TestCase
     public static void uninstallExitHandler()
     {
         student.testingsupport.ExitPreventingSecurityManager.uninstall();
+    }
+
+
+    //-----------------------------------------------------------------
+    /**
+     * Throws a ReflectionError with the given message.
+     * @param message The message will be used to create ReflectionError
+     */
+    private static void assertMethodCalledIncorrectly(String message)
+    {
+        AssertMethodCalledIncorrectly error =
+            new AssertMethodCalledIncorrectly(message);
+        trimStack(error);
+        throw error;
     }
 
 
