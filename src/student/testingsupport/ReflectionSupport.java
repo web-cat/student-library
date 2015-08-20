@@ -465,6 +465,9 @@ public class ReflectionSupport
                             result = ParameterAcceptanceCategory
                                 .ACCEPTS_WITH_BOXING;
                             break;
+                        default:
+                            // Use value set before the loop
+                            break;
                     }
                 }
             }
@@ -829,6 +832,9 @@ public class ReflectionSupport
                             notVisibleWithBoxingSig = sig;
                         }
                     }
+                    break;
+                default:
+                    // Do nothing
                     break;
             }
         }
@@ -1347,6 +1353,9 @@ public class ReflectionSupport
                                 }
                             }
                             break;
+                        default:
+                            // Do nothing
+                            break;
                     }
                 }
             }
@@ -1484,11 +1493,15 @@ public class ReflectionSupport
         {
             Class<?> declaredReturnType = m.getReturnType();
             assertTrue("method " + simpleMethodName(m)
-                + " should be declared with a return type of "
-                + simpleClassNameUsingPrimitives(returnType),
+                + " is declared with a return type of "
+                + simpleClassNameUsingPrimitives(declaredReturnType)
+                + ", but was called expecting a return value of type "
+                + simpleClassNameUsingPrimitives(returnType)
+                + " instead.",
                 declaredReturnType != void.class &&
                 declaredReturnType != null &&
-                actualMatchesFormal(declaredReturnType, returnType));
+                actualMatchesFormal(declaredReturnType, returnType)
+                );
         }
 
         result = invoke(receiver, m, params);
@@ -2372,14 +2385,29 @@ public class ReflectionSupport
 
 
     //-----------------------------------------------------------------
+    /**
+     * A custom class loader used when supporting forced re-loading of
+     * classes that contain statics that should be re-evaluated/re-
+     * initialized fresh.
+     */
     public static class NonDeferringClassLoader
         extends java.net.URLClassLoader
     {
+
+        //-----------------------------------------------------------------
+        /**
+         * Default constructor.
+         */
         public NonDeferringClassLoader()
         {
             this(null);
         }
 
+        //-----------------------------------------------------------------
+        /**
+         * Construct a new class loader.
+         * @param parent The parent class loader to delegate to.
+         */
         public NonDeferringClassLoader(ClassLoader parent)
         {
             super(new java.net.URL[0],
@@ -2388,12 +2416,14 @@ public class ReflectionSupport
                 : parent);
         }
 
+        //-----------------------------------------------------------------
         public Class<?> loadClass(String name)
             throws ClassNotFoundException
         {
             return loadClass(name, false);
         }
 
+        //-----------------------------------------------------------------
         @Override
         protected synchronized Class<?> loadClass(
             final String name, boolean resolve)
