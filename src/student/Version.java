@@ -50,7 +50,7 @@ public class Version
     //~ Instance/static variables .............................................
 
     // These fields are used for overridable world startup
-    private static final String version = "v4.13 $Date$";
+    private static final String version = "v4.14 $Date$";
 
 
     //~ Constructors ..........................................................
@@ -87,15 +87,15 @@ public class Version
     public static void printVersion()
     {
         String className = Version.class.getName();
-        int    lastDot   = className.lastIndexOf( '.' );
-        System.out.print(  className );
-        System.out.print( ": " );
-        if ( lastDot >= 0 )
+        int    lastDot   = className.lastIndexOf('.');
+        System.out.print(className);
+        System.out.print(": ");
+        if (lastDot >= 0)
         {
-            String pkgName = className.substring( 0, lastDot );
-            System.out.print( "package " + pkgName + ", " );
+            String pkgName = className.substring(0, lastDot);
+            System.out.print("package " + pkgName + ", ");
         }
-        System.out.println( version() );
+        System.out.println(version());
     }
 
 
@@ -105,7 +105,7 @@ public class Version
      * {@link System#out}.
      * @param args The command line arguments, if any, are completely ignored
      */
-    public static void main( String[] args )
+    public static void main(String[] args)
     {
         printVersion();
     }

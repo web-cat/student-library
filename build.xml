@@ -20,6 +20,12 @@
       <fileset dir="${build.classes}/" includes="abbot/"/>
       <mapper type="glob" from="${fully.qualified.build.classes}/*" to="*"/>
     </pathconvert>
+    <!-- Now, compute which junit files have been patched, as relative
+         path names in a comma-separated list -->
+    <pathconvert property="overrideJUnitFiles" pathsep=",">
+      <fileset dir="${build.classes}/" includes="org/junit/"/>
+      <mapper type="glob" from="${fully.qualified.build.classes}/*" to="*"/>
+    </pathconvert>
 
     <!-- Now, build the main jar -->
     <jar destfile="${jar.file}" update="false">
@@ -51,6 +57,11 @@
       </zipfileset>
       <zipfileset src="${build.lib}/abbot.jar"
                   excludes="META-INF/,${overrideAbbotFiles}"/>
+      <zipfileset src="${build.lib}/junit.jar"
+                  excludes="META-INF/,${overrideJUnitFiles}"/>
+      <zipfileset src="${build.lib}/hamcrest-core.jar">
+        <include name="**/*.class"/>
+      </zipfileset>
     </jar>
 
     <!-- Last, export everything but the excludes into student-web.jar -->
@@ -68,6 +79,7 @@
              get.commons.collections,
              get.eddie,
              get.junit,
+             get.hamcrest,
              get.objectdraw,
              get.ostermiller,
              get.tagsoup,
@@ -180,6 +192,18 @@
   <target name="get.junit" depends="check.junit" if="need.junit">
     <get usetimestamp="true" dest="${build.lib}/junit.jar"
       src="${junit.download.url}" />
+  </target>
+
+  <target name="check.hamcrest">
+    <condition property="need.hamcrest">
+      <not>
+        <available file="${build.lib}/hamcrest-core.jar" />
+      </not>
+    </condition>
+  </target>
+  <target name="get.hamcrest" depends="check.hamcrest" if="need.hamcrest">
+    <get usetimestamp="true" dest="${build.lib}/hamcrest-core.jar"
+      src="${hamcrest.download.url}" />
   </target>
 
   <target name="check.objectdraw">

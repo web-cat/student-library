@@ -29,6 +29,7 @@ import java.security.AccessController;
 import java.security.PrivilegedAction;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import org.junit.internal.runners.statements.FailOnTimeout;
 import org.junit.rules.MethodRule;
 import org.junit.runners.model.FrameworkMethod;
@@ -269,7 +270,15 @@ public class AdaptiveTimeout
 		methodName = method.getName();
 
 		start = end = System.currentTimeMillis();
-		return new FailOnTimeout(base, ceiling);
+		int timeLimit = ceiling;
+		TimeUnit unit = TimeUnit.MILLISECONDS;
+		if (timeLimit % 1000 == 0)
+		{
+		    timeLimit /= 1000;
+		    unit = TimeUnit.SECONDS;
+		}
+		return FailOnTimeout.builder().withTimeout(timeLimit, unit)
+		    .build(base);
 	}
 
 

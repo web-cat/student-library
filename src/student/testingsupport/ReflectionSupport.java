@@ -569,9 +569,9 @@ public class ReflectionSupport
     /**
      * Dynamically look up a class by name, returning null if the class
      * is not found.
-     * @param className The type of object to create
-     * @param loader    The class loader to search from
-     * @return The corresponding Class object
+     * @param className The name of the class to find.
+     * @param loader    The class loader to search from.
+     * @return The corresponding Class object.
      */
     public static Class<?> getClassForNameIfPossible(
         String className, ClassLoader loader)
@@ -597,9 +597,9 @@ public class ReflectionSupport
     /**
      * Dynamically look up a class by name, with appropriate hints if the
      * class cannot be found.
-     * @param className The type of object to create
-     * @param loader    The class loader to search from
-     * @return The corresponding Class object
+     * @param className The name of the class to find.
+     * @param loader    The class loader to search from.
+     * @return The corresponding Class object.
      */
     public static Class<?> getClassForName(String className, ClassLoader loader)
     {
@@ -614,65 +614,89 @@ public class ReflectionSupport
 
     // ----------------------------------------------------------
     /**
-     * Dynamically look up a class by name, with appropriate hints if the
-     * class cannot be found.
-     * @param className The type of object to create
-     * @return The corresponding Class object
+     * Dynamically look up a class by name using a sequence of one or more
+     * potential class names, with appropriate hints if the class cannot be
+     * found. Looks for each name in the provided sequence of names in turn,
+     * returning the first match found, and only failing if no matches
+     * can be found for any of the provided class names.
+     *
+     * @param classNames The sequence of class names to look for.
+     * @return The corresponding Class object for the first matching class
+     * name that can be found.
      */
-    public static Class<?> getClassForName(String className)
+    public static Class<?> getClassForName(String... classNames)
     {
-        Class<?> result = null;
-        for (ClassLoader loader : getCandidateLoaders())
+        if (classNames == null || classNames.length == 0)
         {
-            result = getClassForNameIfPossible(className, loader);
-            if (result != null)
+            throw new IllegalArgumentException("At least one non-null class "
+                + "name must be specified.");
+        }
+
+        for (String name : classNames)
+        {
+            for (ClassLoader loader : getCandidateLoaders())
             {
-                break;
+                Class<?> result = getClassForNameIfPossible(name, loader);
+                if (result != null)
+                {
+                    return result;
+                }
             }
         }
 
         // Class wasn't found in any candidate loader
-        if (result == null)
-        {
-            fail("cannot find class " + className);
-        }
-
-        return result;
+        fail("cannot find class " + classNames[0]);
+        // Unreachable, just to make the compiler happy
+        return null;
     }
 
 
     // ----------------------------------------------------------
     /**
-     * Dynamically look up a class by name, with appropriate hints if the
-     * class cannot be found.
-     * @param className The type of object to create
-     * @return The corresponding Class object
+     * Dynamically look up a class by name using a sequence of one or more
+     * potential class names, with appropriate hints if the class cannot be
+     * found. Looks for each name in the provided sequence of names in turn,
+     * returning the first match found, and only failing if no matches
+     * can be found for any of the provided class names.
+     *
+     * @param classNames The sequence of class names to look for.
+     * @return The corresponding Class object for the first matching class
+     * name that can be found.
      */
-    public static Class<?> reloadClassForName(String className)
+    public static Class<?> reloadClassForName(String... classNames)
     {
-        final String resourceName = className.replace('.', '/') + ".class";
-        for (final ClassLoader loader : getCandidateLoaders())
+        if (classNames == null || classNames.length == 0)
         {
-            Class<?> result = getClassForName(className,
-                AccessController.doPrivileged(
-                    new PrivilegedAction<ClassLoader>()
-                    {
-                        public ClassLoader run()
-                        {
-                            if (loader.getResource(resourceName) != null)
-                            {
-                                return new NonDeferringClassLoader(loader);
-                            }
-                            return null;
-                        }
-                    }));
-            if (result != null)
+            throw new IllegalArgumentException("At least one non-null class "
+                + "name must be specified.");
+        }
+
+        for (String name : classNames)
+        {
+            final String resourceName = name.replace('.', '/') + ".class";
+            for (final ClassLoader loader : getCandidateLoaders())
             {
-                return result;
+                Class<?> result = getClassForName(name,
+                    AccessController.doPrivileged(
+                        new PrivilegedAction<ClassLoader>()
+                        {
+                            public ClassLoader run()
+                            {
+                                if (loader.getResource(resourceName) != null)
+                                {
+                                    return new NonDeferringClassLoader(loader);
+                                }
+                                return null;
+                            }
+                        }));
+                if (result != null)
+                {
+                    return result;
+                }
             }
         }
 
-        fail("cannot find class " + className);
+        fail("cannot find class " + classNames[0]);
         // Unreachable, just to make the compiler happy
         return null;
     }
@@ -1476,7 +1500,9 @@ public class ReflectionSupport
         Object ... params)
     {
         Object result = null;
-        Class<?> targetClass = receiver.getClass();
+        Class<?> targetClass = (receiver instanceof Class<?>)
+            ? (Class<?>)receiver
+            : receiver.getClass();
         ParameterSignature paramProfile = new ParameterSignature(params);
         Method m = getMatchingMethod(
             targetClass, visibility, methodName, paramProfile);
@@ -1675,7 +1701,9 @@ public class ReflectionSupport
         throws Exception
     {
         Object result = null;
-        Class<?> targetClass = receiver.getClass();
+        Class<?> targetClass = (receiver instanceof Class<?>)
+            ? (Class<?>)receiver
+            : receiver.getClass();
         ParameterSignature paramProfile = new ParameterSignature(params);
         Method m = getMatchingMethod(targetClass, methodName, paramProfile);
 

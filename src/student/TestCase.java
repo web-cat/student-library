@@ -21,16 +21,17 @@
 
 package student;
 
+import java.io.File;
+import java.io.FileReader;
+import java.io.IOException;
+import java.nio.CharBuffer;
 import java.util.Scanner;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import junit.framework.AssertionFailedError;
-import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
-import org.junit.Rule;
-import student.testingsupport.junit4.AdaptiveTimeout;
 import student.testingsupport.junit4.JUnit4TesterRunner;
 import student.testingsupport.MutableStringBufferInputStream;
 import student.testingsupport.PrintStreamWithHistory;
@@ -60,17 +61,6 @@ import student.testingsupport.SystemIOUtilities;
 public class TestCase
     extends junit.framework.TestCase
 {
-    //~ JUnit 4 rules .........................................................
-
-    /**
-     * Applies adaptive timeout control to test methods to cope with
-     * non-terminating methods.
-     */
-    @Rule
-    public static final AdaptiveTimeout ADAPTIVE_TIMEOUT =
-        new AdaptiveTimeout();
-
-
     //~ Instance/static variables .............................................
 
     // These don't use the names "in" or "out" to provide better error
@@ -79,7 +69,7 @@ public class TestCase
     private PrintWriterWithHistory tcOut = null;
     private Scanner                tcIn  = null;
     private MutableStringBufferInputStream tcInBuf = null;
-    private StringNormalizer       sn = new StringNormalizer(true);
+    private static StringNormalizer       sn = new StringNormalizer(true);
 
     // Used for communicating with assertTrue() and assertFalse().  Ideally,
     // they should be instance vars, but assertTrue() and assertFalse()
@@ -88,6 +78,8 @@ public class TestCase
     private static String predicateReturnsFalseReason;
 
     private static Boolean trimStackTraces;
+    private static boolean normalizeLineEndings = true;
+    private static boolean useFuzzyStringComparisons = false;
 
 
     //~ Public classes used inside this class .................................
@@ -118,6 +110,11 @@ public class TestCase
     public TestCase()
     {
         super();
+        // Re-initialize this, since it was made static--we don't want
+        // state from earlier test cases messing things up here.
+        sn = new StringNormalizer(true);
+        normalizeLineEndings = true;
+        useFuzzyStringComparisons = false;
     }
 
 
@@ -129,6 +126,11 @@ public class TestCase
     public TestCase(String name)
     {
         super(name);
+        // Re-initialize this, since it was made static--we don't want
+        // state from earlier test cases messing things up here.
+        sn = new StringNormalizer(true);
+        normalizeLineEndings = true;
+        useFuzzyStringComparisons = false;
     }
 
 
@@ -216,9 +218,9 @@ public class TestCase
     /**
      * Get an output stream suitable for use in test cases.  You can pass
      * this output stream to your own methods, and later call its
-     * {@link student.testingsupport.PrintWriterWithHistory#getHistory()} method to
-     * extract all the output in the form of a string.  The contents of this
-     * stream get cleared for every test case.
+     * {@link student.testingsupport.PrintWriterWithHistory#getHistory()}
+     * method to extract all the output in the form of a string.  The contents
+     * of this stream get cleared for every test case.
      * @return a {@link java.io.PrintWriter} suitable for use in test cases
      */
     public PrintWriterWithHistory out()
@@ -262,7 +264,7 @@ public class TestCase
     // ----------------------------------------------------------
     /**
      * Get an input stream containing the contents that you specify.
-     * Set the contents by calling {@link #setIn(String)} or
+     * Set the contents by calling {@link #setIn(String...)} or
      * {@link #setIn(Scanner)} to set the contents before you begin
      * using this stream.  This stream gets reset for every test case.
      * @return a {@link Scanner} containing any contents you
@@ -283,13 +285,19 @@ public class TestCase
      * Set the contents of this test case's input stream, which can then
      * be retrieved using {@link #in()}.
      * @param contents The contents to use for the stream, which replace
-     * any that were there before.
+     * any that were there before.  The contents can be provided as a
+     * single string, or as a series of strings that should be merged
+     * using {@link #multiline(String...)}.  Line terminator sequences
+     * in the contents will be normalized to unix-style line endings.
      */
-    public void setIn(String contents)
+    public void setIn(String... contents)
     {
+        String input = (contents.length == 1)
+            ? normEndings(contents[0])
+            : multiline(contents);
         if (tcInBuf == null)
         {
-            tcInBuf = new MutableStringBufferInputStream(contents)
+            tcInBuf = new MutableStringBufferInputStream(input)
             {
                 protected void handleMissingContents()
                 {
@@ -300,7 +308,7 @@ public class TestCase
         }
         else
         {
-            tcInBuf.resetContents(contents);
+            tcInBuf.resetContents(input);
         }
         // Note that this doesn't reset the existing scanner if any
         // code still has a reference to it.
@@ -324,14 +332,98 @@ public class TestCase
 
     // ----------------------------------------------------------
     /**
-     * Set the contents of this test case's input stream, which can then
-     * be retrieved using {@link #in()}.
+     * Set the contents of {@link System#in} for this test case.
      * @param contents The contents to use for the stream, which replace
-     * any that were there before.
+     * any that were there before.  The contents can be provided as a
+     * single string, or as a series of strings that should be merged
+     * using {@link #multiline(String...)}.  Line terminator sequences
+     * in the contents will be normalized to unix-style line endings.
      */
-    public void setSystemIn(String contents)
+    public void setSystemIn(String... contents)
     {
-        SystemIOUtilities.replaceSystemInContents(contents);
+        String input = (contents.length == 1)
+            ? normEndings(contents[0])
+            : multiline(contents);
+        SystemIOUtilities.replaceSystemInContents(input);
+    }
+
+
+    // ----------------------------------------------------------
+    /**
+     * Combine a list of strings provided as arguments into a single
+     * string, following each "line" with a line terminator.  This
+     * gives the same effect as if println() were called on each argument,
+     * collecting the results into a single string.  Note that line
+     * terminators will be normalized to unix-style line terminators,
+     * if desired.
+     *
+     * @param lines The series of lines to be combined (a line terminator
+     *              will be added after each one).
+     * @return A single string representing the concatenation of all the
+     *         provided lines.
+     */
+    public String multiline(String... lines)
+    {
+        String nl = java.security.AccessController
+        .doPrivileged(new java.security.PrivilegedAction<String>()
+        {
+            public String run()
+            {
+                return System.getProperty("line.separator");
+            }
+        });
+        StringBuilder builder = new StringBuilder(lines.length * 100);
+        for (String line : lines)
+        {
+            builder.append(line);
+            builder.append(nl);
+        }
+        return normEndings(builder.toString());
+    }
+
+
+    // ----------------------------------------------------------
+    /**
+     * Load the contents of a text file and return it as a string
+     * (normalizing newlines to unix-style line ending conventions).
+     *
+     * @param file The file to read from.
+     *
+     * @return The contents of the specified file, as a single string.
+     */
+    public String fromFile(File file)
+    {
+        try
+        {
+            CharBuffer buffer = CharBuffer.allocate((int)file.length());
+            new FileReader(file).read(buffer);
+            return normEndings(buffer.toString());
+        }
+        catch (IOException e)
+        {
+            throw new RuntimeException(e);
+        }
+    }
+
+
+    // ----------------------------------------------------------
+    /**
+     * Load the contents of a text file and return it as a string
+     * (normalizing newlines to unix-style line ending conventions).
+     *
+     * @param file The name of the file to read from.
+     *
+     * @return The contents of the specified file, as a single string.
+     */
+    public String fromFile(String file)
+    {
+        if (file != null && file.matches("([a-zA-Z]:)?[\\/].*"))
+        {
+            throw new IllegalArgumentException(
+                "You may not use absolute file or path names in your tests, "
+                + "since absolute names are machine-specific.");
+        }
+        return fromFile(new File(file));
     }
 
 
@@ -348,9 +440,46 @@ public class TestCase
      * @see StringNormalizer
      * @see student.testingsupport.StringNormalizer#addStandardRules()
      */
-    protected StringNormalizer stringNormalizer()
+    protected static StringNormalizer stringNormalizer()
     {
         return sn;
+    }
+
+
+    // ----------------------------------------------------------
+    /**
+     * Control whether strings manipulated in this test case will have
+     * their line terminator sequences automatically normalized to unix-style
+     * line terminators (default is true).
+     *
+     * @param value True if line endings should be automatically converted
+     *              to unix-style, or false if they should be left alone.
+     */
+    public static void setNormalizeLineEndings(boolean value)
+    {
+        normalizeLineEndings = value;
+    }
+
+
+    // ----------------------------------------------------------
+    /**
+     * Control whether assertEquals() on strings will use fuzzy comparisons
+     * (using the {@link #stringNormalizer()} to ignore things like
+     * punctuation differences, capitalization differences, etc.--see the
+     * StringNormalizer documentation for how to control what differences
+     * are ignored).  The default is false, meaning that fuzzy comparisons
+     * must be explicitly requested using one of the "fuzzy"-named methods.
+     * Calling this method with the parameter true will cause conventional
+     * assertEquals() calls to use fuzzy string normalization in comparisons
+     * as well, making assertEquals() and similar methods behave the same
+     * as assertFuzzyEquals().
+     *
+     * @param value True if string comparisons should be fuzzy in
+     *              assertEquals().
+     */
+    public static void set(boolean value)
+    {
+        useFuzzyStringComparisons = value;
     }
 
 
@@ -368,7 +497,7 @@ public class TestCase
      * @param expected The expected value
      * @param actual   The value to test
      */
-    public void assertFuzzyEquals(String expected, String actual)
+    public static void assertFuzzyEquals(String expected, String actual)
     {
         assertFuzzyEquals(null, expected, actual);
     }
@@ -389,7 +518,7 @@ public class TestCase
      * @param expected The expected value
      * @param actual   The value to test
      */
-    public void assertFuzzyEquals(
+    public static void assertFuzzyEquals(
         String message, String expected, String actual)
     {
         if (message != null)
@@ -399,8 +528,8 @@ public class TestCase
         try
         {
             assertEquals(
-                message, stringNormalizer().normalize(expected),
-                stringNormalizer().normalize(actual));
+                message, stringNormalizer().normalize(normEndings(expected)),
+                stringNormalizer().normalize(normEndings(actual)));
         }
         catch (AssertionFailedError e)
         {
@@ -614,7 +743,7 @@ public class TestCase
             + expectedArticle + " " + expectedType
             + " and "
             + actualArticle + " " + actualType
-            + ", but comparing them directly may give incorrect results.";
+            + ", but comparing them this way may give incorrect results.";
         if (!expected.getClass().equals(actual.getClass()))
         {
             msg += " Instead, use a type cast to convert one of the "
@@ -654,14 +783,21 @@ public class TestCase
      * @param expected The expected value
      * @param actual The actual value
      */
+    @SuppressWarnings("deprecation")
     public static void assertEquals(
         String message, String expected, String actual)
     {
+        if (useFuzzyStringComparisons)
+        {
+            assertFuzzyEquals(message, expected, actual);
+        }
+
         if (message == null)
         {
             message = "";
         }
-        junit.framework.Assert.assertEquals(message, expected, actual);
+        junit.framework.Assert.assertEquals(
+            message, normEndings(expected), normEndings(actual));
     }
 
 
@@ -734,6 +870,8 @@ public class TestCase
     public boolean equals(String left, String right)
     {
         boolean result = left == right;
+        left = normEndings(left);
+        right = normEndings(right);
         if (left != null && right != null)
         {
             result = left.equals(right);
@@ -832,6 +970,7 @@ public class TestCase
         {
             actual = "";
         }
+        actual = normEndings(actual);
         boolean result = expected.matcher(actual).matches();
         if (result)
         {
@@ -895,7 +1034,8 @@ public class TestCase
      */
     public boolean fuzzyEqualsRegex(String actual, Pattern expected)
     {
-        return equalsRegex(stringNormalizer().normalize(actual), expected);
+        return equalsRegex(
+            stringNormalizer().normalize(actual), expected);
     }
 
 
@@ -924,9 +1064,11 @@ public class TestCase
      */
     public boolean contains(String largerString, String ... substrings)
     {
+        largerString = normEndings(largerString);
         int pos = (largerString == null) ? -1 : 0;
         for (int i = 0; i < substrings.length  &&  pos >= 0; i++)
         {
+            substrings[i] = normEndings(substrings[i]);
             pos = largerString.indexOf(substrings[i], pos);
             if (pos >= 0)
             {
@@ -1059,6 +1201,7 @@ public class TestCase
      */
     public boolean containsRegex(String largerString, Pattern ... substrings)
     {
+        largerString = normEndings(largerString);
         boolean result = true;
         int pos = 0;
         for (int i = 0; i < substrings.length; i++)
@@ -1182,30 +1325,6 @@ public class TestCase
 
     // ----------------------------------------------------------
     /**
-     * Collect timing date on the test method that just finished.
-     */
-    @After
-    public void getStats()
-    {
-        ADAPTIVE_TIMEOUT.logTestMethod(true);
-    }
-
-
-    // ----------------------------------------------------------
-    /**
-     * This method is for internal use only and should not be called
-     * by other code.  It is used to hook into the data collection
-     * mechanisms of the AdaptiveTimeout test timing control rule.
-     */
-    @AfterClass
-    public static void writeStats()
-    {
-        ADAPTIVE_TIMEOUT.appendStatsToFile();
-    }
-
-
-    // ----------------------------------------------------------
-    /**
      * This method is for internal use only and should not be called
      * by other code.  It is used to install System.exit() prevention
      * control.
@@ -1241,6 +1360,15 @@ public class TestCase
             new AssertMethodCalledIncorrectly(message);
         trimStack(error);
         throw error;
+    }
+
+
+    // ----------------------------------------------------------
+    private static String normEndings(String text)
+    {
+        return (text != null && normalizeLineEndings)
+          ? Assert.normalizeLineEndings(text)
+          : text;
     }
 
 

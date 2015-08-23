@@ -36,17 +36,11 @@ public class AllDefaultPossibilitiesBuilder extends RunnerBuilder {
 		    // Add support for NU tester + MixRunner
 		    builders.add(testerBuilder());
 		}
-		else if (System.getProperty(DISABLE_MIX_RUNNER, "false")
-		    .matches("(?i)true|yes|on|[1-9][0-9]*"))
+		else
 		{
 		    // Original behavior
             builders.add(junit3Builder());
             builders.add(junit4Builder());
-		}
-		else
-		{
-		    // Just the custom Web-CAT MixRunner, no NU Tester support
-		    builders.add(testerBuilder());
 		}
 
 		for (RunnerBuilder each : builders) {
@@ -64,16 +58,6 @@ public class AllDefaultPossibilitiesBuilder extends RunnerBuilder {
 //              return new BlockJUnit4ClassRunner(testClass);
                 return new student.testingsupport.junit4
                     .JUnit4TesterRunner(testClass);
-            }
-        };
-    }
-
-    protected RunnerBuilder mixBuilder() {
-        return new RunnerBuilder() {
-            @Override
-            public Runner runnerForClass(Class<?> testClass) throws Throwable {
-//              return new BlockJUnit4ClassRunner(testClass);
-                return new student.testingsupport.junit4.MixRunner(testClass);
             }
         };
     }

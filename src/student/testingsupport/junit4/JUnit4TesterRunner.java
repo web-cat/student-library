@@ -36,23 +36,10 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
-import org.apache.commons.collections.comparators.ComparatorChain;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
-import org.junit.Rule;
 import org.junit.internal.AssumptionViolatedException;
 import org.junit.internal.runners.model.EachTestNotifier;
-import org.junit.internal.runners.model.MultipleFailureException;
-import org.junit.internal.runners.model.ReflectiveCallable;
-import org.junit.internal.runners.statements.Fail;
 import org.junit.internal.runners.statements.RunAfters;
 import org.junit.internal.runners.statements.RunBefores;
 import org.junit.rules.MethodRule;
@@ -63,7 +50,6 @@ import org.junit.runners.model.FrameworkMethod;
 import org.junit.runners.model.InitializationError;
 import org.junit.runners.model.Statement;
 import student.testingsupport.junit4.AdaptiveTimeout;
-import student.testingsupport.junit4.RunTestMethodWrapper;
 import tester.Printer;
 import tester.Tester;
 import tester.junit.TesterMethodResult;
@@ -92,8 +78,8 @@ public class JUnit4TesterRunner
     //~ Instance/static variables .............................................
 
 	private List<FrameworkMethod> befores      = null;
-	private boolean         junit3methodsAdded = false;
-	private boolean         junit3aftersAdded  = false;
+    private List<FrameworkMethod> children     = null;
+    private List<FrameworkMethod> afters       = null;
 	private boolean         testerDetected     = false;
 	private boolean         testerFull         = false;
 	private boolean         testerPrintAll     = false;
@@ -177,12 +163,11 @@ public class JUnit4TesterRunner
 	protected Statement withBefores(
 	    FrameworkMethod method, Object target, Statement statement)
 	{
-		List<FrameworkMethod> annotatedBefores =
-		    getTestClass().getAnnotatedMethods(Before.class);
+        if (befores == null)
+        {
+            befores = new ArrayList<FrameworkMethod>(
+                getTestClass().getAnnotatedMethods(Before.class));
 
-		if (befores != annotatedBefores)
-		{
-            befores = annotatedBefores;
 			Method setUp = find(getTestClass().getJavaClass(), "setUp");
 			// Need to ensure it isn't annotated as @Before already
 			if (setUp != null
@@ -210,19 +195,17 @@ public class JUnit4TesterRunner
 	 * superclasses before running {@code next}; all After methods are always
 	 * executed: exceptions thrown by previous steps are combined, if
 	 * necessary, with exceptions from After methods into a
-	 * {@link MultipleFailureException}.
-	 *
-	 * Note that in BlockJUnit4ClassRunner this method is deprecated.
+	 * MultipleFailureException.
 	 */
 	@Override
 	protected Statement withAfters(
 	    FrameworkMethod method, Object target, Statement statement)
 	{
-		List<FrameworkMethod> afters =
-		    getTestClass().getAnnotatedMethods(After.class);
+        if (afters == null)
+        {
+            afters = new ArrayList<FrameworkMethod>(
+                getTestClass().getAnnotatedMethods(After.class));
 
-		if (!junit3aftersAdded)
-		{
 			Method tearDown = find(getTestClass().getJavaClass(), "tearDown");
             // Need to ensure it isn't annotated as @After already
 			if (tearDown != null
@@ -235,33 +218,30 @@ public class JUnit4TesterRunner
 				// before all other @After methods
 				afters.add(0, fm);
 			}
-			if (!student.TestCase.class.isAssignableFrom(
-			    getTestClass().getJavaClass()))
-			{
-			    try
-			    {
-			        afters.add(new FrameworkMethod(null)
-			        {
-			            @Override
-			            public Object invokeExplosively(
-			                Object target,
-			                Object... params)
-			                throws Throwable
-			            {
-			                if (adaptiveTimeout != null)
-			                {
-			                    adaptiveTimeout.logTestMethod(true);
-			                }
-			                return null;
-			            }
-			        });
-			    }
-			    catch (Exception e)
-			    {
-			        throw new RuntimeException(e);
-			    }
+		    try
+		    {
+		        afters.add(new FrameworkMethod(
+		            AdaptiveTimeout.class.getDeclaredMethod(
+		                "logTestMethod", boolean.class))
+		        {
+		            @Override
+		            public Object invokeExplosively(
+		                Object target,
+		                Object... params)
+		                throws Throwable
+		            {
+		                if (adaptiveTimeout != null)
+		                {
+		                    adaptiveTimeout.logTestMethod(true);
+		                }
+		                return null;
+		            }
+		        });
+		    }
+		    catch (Exception e)
+		    {
+		        throw new RuntimeException(e);
 	        }
-			junit3aftersAdded = true;
 		}
 
 		return afters.isEmpty()
@@ -277,7 +257,7 @@ public class JUnit4TesterRunner
 	 * is detected for the current test, and also installs the
 	 * {@link student.testingsupport.ExitPreventingSecurityManager} for all
 	 * test classes.
-	 * @throws Exception If {@link #getTest()} fails.
+	 * @throws Exception If {@link #createTest()} fails.
 	 */
 	public void testerBeforeHook()
 	    throws Exception
@@ -295,7 +275,7 @@ public class JUnit4TesterRunner
                 TESTER_PRINT_ALL, "")
                 .matches("(?i)true|yes|on|[1-9][0-9]*");
 	        getTester().prepareToRunAnyTests(
-	            getTest(), testerFull, testerPrintAll);
+	            createTest(), testerFull, testerPrintAll);
 	    }
 	}
 
@@ -437,11 +417,11 @@ public class JUnit4TesterRunner
 	    if (testerDetected)
 	    {
 	        getTester().runOneTestMethod(
-	            getTest(), m, testerFull, testerPrintAll);
+	            createTest(), m, testerFull, testerPrintAll);
 	    }
 	    else
 	    {
-	        new FrameworkMethod(m).invokeExplosively(getTest());
+	        new FrameworkMethod(m).invokeExplosively(createTest());
 	    }
 	}
 
@@ -521,11 +501,12 @@ public class JUnit4TesterRunner
 	@Override
 	protected List<FrameworkMethod> getChildren()
 	{
-		List<FrameworkMethod> children = super.computeTestMethods();
-
-		if (!junit3methodsAdded)
+	    if (children == null)
 		{
-		    // First, check public methods
+	        children =
+	            new ArrayList<FrameworkMethod>(super.computeTestMethods());
+
+	        // First, check public methods
 			Method[] methods =
 			    getTestClass().getJavaClass().getMethods();
 			for (final Method method : methods)
@@ -584,7 +565,6 @@ public class JUnit4TesterRunner
 			    children.add(OBJECT_HASH_CODE);
 			    testerDetected = true;
 			}
-			junit3methodsAdded = true;
 
 			Collections.sort(children, new MethodComparator());
 		}
@@ -616,78 +596,38 @@ public class JUnit4TesterRunner
 
 
     // ----------------------------------------------------------
-    @SuppressWarnings("deprecation")
-    protected Statement methodBlock(FrameworkMethod method)
-    {
-        Object test;
-        try
-        {
-            test = new ReflectiveCallable() {
-                @Override
-                protected Object runReflectiveCall() throws Throwable
-                {
-                    return getTest();
-                }
-            }.run();
-        }
-        catch (Throwable e)
-        {
-            return new Fail(e);
-        }
-
-        Statement statement = methodInvoker(method, test);
-        statement = possiblyExpectingExceptions(method, test, statement);
-        statement = withPotentialTimeout(method, test, statement);
-        statement = withBefores(method, test, statement);
-        statement = withAfters(method, test, statement);
-        statement = withRules(method, test, statement);
-        statement = new RunTestMethodWrapper(statement, test);
-        return statement;
-    }
-
-
-    // ----------------------------------------------------------
     /**
-     * This method was declared private in the parent class, when it should
-     * have been protected (sigh)--it takes a {@link Statement}, and decorates
-     * it with all the {@link MethodRule}s in the test class.
-     * @param method The test method itself.
-     * @param target The instance of the test class, on which the method will
-     *               be called.
-     * @param statement The decorated, executable representation of the method
-     *               call that has all supplementary behaviors added on.
-     * @return A new statement that represents the incoming statement with
-     * any method rules added to it.
+     * @param target the test case instance
+     * @return a list of MethodRules that should be applied when executing this
+     *         test
      */
-    protected Statement withRules(
-        FrameworkMethod method, Object target, Statement statement)
+    @Override
+    protected List<MethodRule> rules(Object target)
     {
-        Statement result = statement;
-        // Use system property to suppress forcing of adaptive timeouts
+        List<MethodRule> rules = super.rules(target);
         boolean foundAdaptiveTimeout = !System.getProperty(
             FORCE_ADAPTIVE_TIMEOUT, "true")
             .matches("(?i)true|yes|on|[1-9][0-9]*");
-        for (MethodRule each : getTestClass()
-            .getAnnotatedFieldValues(target, Rule.class, MethodRule.class))
+        for (MethodRule each : rules)
         {
             if (each instanceof AdaptiveTimeout)
             {
                 foundAdaptiveTimeout = true;
+                break;
             }
-            result = each.apply(result, method, target);
         }
 
         // force adaptive timeout
         if (!foundAdaptiveTimeout)
         {
             adaptiveTimeout = new AdaptiveTimeout();
-            result = adaptiveTimeout.apply(result, method, target);
+            rules.add(adaptiveTimeout);
         }
         else
         {
             adaptiveTimeout = null;
         }
-        return result;
+        return rules;
     }
 
 
@@ -719,14 +659,15 @@ public class JUnit4TesterRunner
     protected void runChild(final FrameworkMethod method, RunNotifier notifier)
     {
         Description description = describeChild(method);
-        if (method.getAnnotation(Ignore.class) != null)
+        if (isIgnored(method))
         {
             notifier.fireTestIgnored(description);
         }
         else
         {
             // Only change
-            runMyLeaf(methodBlock(method), description, notifier, method);
+            Statement s = methodBlock(method);
+            runMyLeaf(s, description, notifier);
         }
     }
 
@@ -739,10 +680,9 @@ public class JUnit4TesterRunner
      * @param statement   The test to run.
      * @param description A description of this test.
      * @param notifier    The notifier to use
-     * @param method      The test method bundled in the statement.
      */
     protected void runMyLeaf(Statement statement, Description description,
-        RunNotifier notifier, FrameworkMethod method)
+        RunNotifier notifier)
     {
         boolean wantsFinish = true;
         EachTestNotifier eachNotifier =
@@ -759,7 +699,6 @@ public class JUnit4TesterRunner
             {
                 if (!wantsFinish)
                 {
-                    description = describeChild(method);
                     eachNotifier = new EachTestNotifier(notifier, description);
                     eachNotifier.fireTestStarted();
                 }
@@ -812,74 +751,18 @@ public class JUnit4TesterRunner
 
 
     // ----------------------------------------------------------
-    private ExecutorService exec = Executors.newSingleThreadExecutor();
-    private int ctor_time_limit = 10;
-    private int ctor_timeout_count = 0;
-    private Object getTest(Callable<Object> ctor)
-        throws Exception
-    {
-        try
-        {
-            Future<Object> task = exec.submit(ctor);
-            return task.get(ctor_time_limit, TimeUnit.SECONDS);
-        }
-        catch (TimeoutException e)
-        {
-            int limit = ctor_time_limit;
-            ctor_timeout_count++;
-            if (ctor_timeout_count > 1 && ctor_time_limit > 1)
-            {
-                // Ramp limit down, if necessary
-                ctor_time_limit /= 2;
-            }
-            throw new AssertionError("constructor " + ctor
-                + " took longer than " + limit
-                + " second"
-                + (limit == 1 ? "" : "s" )
-                + " to execute.");
-        }
-        catch (ExecutionException e)
-        {
-            if (e.getCause() != null
-                && e.getCause() instanceof Exception)
-            {
-                throw (Exception)e.getCause();
-            }
-            else
-            {
-                throw e;
-            }
-        }
-    }
-
-
-    // ----------------------------------------------------------
-    private Object getTest(final Constructor<?> ctor, final Object... args)
-        throws Exception
-    {
-        return getTest(new Callable<Object>() {
-                public Object call()
-                    throws Exception
-                {
-                    return ctor.newInstance(args);
-                }
-                @Override
-                public String toString()
-                {
-                    return ctor == null ? "null" : ctor.toString();
-                }
-            });
-    }
-
-
-    // ----------------------------------------------------------
     /**
-     * Get the test class for this runner, taking NU Tester considerations
-     * into account.
+     * Returns a new fixture for running a test. Default implementation
+     * executes the test class's no-argument constructor (validation should
+     * have ensured one exists).  If an NU Tester tester class is being
+     * used, only one instance is created and then used for all child
+     * test methods, rather than creating a new instance for each one--this
+     * preserves the semantics of the NU Tester behavior.
+     *
      * @return The test object.
      * @throws Exception If any of the underlying JUnit methods fail.
      */
-    protected Object getTest()
+    protected Object createTest()
         throws Exception
     {
         if (testerDetected) // should only use one instance of test class
@@ -891,20 +774,19 @@ public class JUnit4TesterRunner
                 {
                     try
                     {
-                        cachedTest = getTest(
-                            testClass.getConstructor(String.class),
-                            testClass.getName());
+                        cachedTest = testClass.getConstructor(String.class)
+                            .newInstance(testClass.getName());
                     }
                     catch (NoSuchMethodException e)
                     {
-                        cachedTest = getTest(testClass.getConstructor());
+                        cachedTest = testClass.getConstructor().newInstance();
                     }
                 }
                 else
                 {
                     Constructor<?> c = testClass.getDeclaredConstructor();
                     ensureIsAccessible(c);
-                    cachedTest = getTest(c);
+                    cachedTest = c.newInstance();
                 }
             }
             return cachedTest;
@@ -916,12 +798,12 @@ public class JUnit4TesterRunner
             {
                 try
                 {
-                    return getTest(testClass.getConstructor(String.class),
-                        testClass.getName());
+                    return testClass.getConstructor(String.class)
+                        .newInstance(testClass.getName());
                 }
                 catch (NoSuchMethodException e)
                 {
-                    return getTest(testClass.getConstructor());
+                    return testClass.getConstructor().newInstance();
                 }
             }
             else
@@ -1105,7 +987,6 @@ public class JUnit4TesterRunner
     private static class MethodComparator
         implements Comparator<FrameworkMethod>
     {
-        private static final char[] METHOD_SEPARATORS = {1, 7};
         private static final Map<Class<?>, Integer> classDepth =
             new HashMap<Class<?>, Integer>();
         private static final Map<String, Integer> methodPosition =
