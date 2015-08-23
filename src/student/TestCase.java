@@ -477,7 +477,7 @@ public class TestCase
      * @param value True if string comparisons should be fuzzy in
      *              assertEquals().
      */
-    public static void set(boolean value)
+    public static void setUseFuzzyStringComparisons(boolean value)
     {
         useFuzzyStringComparisons = value;
     }
