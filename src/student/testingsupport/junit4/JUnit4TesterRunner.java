@@ -1057,7 +1057,7 @@ public class JUnit4TesterRunner
             if (pos == null)
             {
                 Class<?> c = method.getDeclaringClass();
-                InputStream in = c.getResourceAsStream(
+                InputStream in = c.getClassLoader().getResourceAsStream(
                     c.getName().replace('.', '/') + ".class");
                 StringBuffer buff = new StringBuffer();
                 try
@@ -1081,6 +1081,10 @@ public class JUnit4TesterRunner
                 }
                 catch (Exception e)
                 {
+                    System.out.println("method = " + method);
+                    System.out.println("class = " + c);
+                    System.out.println("target = "
+                        + c.getName().replace('.', '/') + ".class");
                     e.printStackTrace();
                 }
                 finally
