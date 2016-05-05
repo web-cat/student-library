@@ -50,14 +50,21 @@ public class Parser
         String word1 = null;
         String word2 = null;
 
-        System.out.print( promptString() );     // print prompt
+        System.out.print(promptString());     // print prompt
 
-        try {
+        try
+        {
             inputLine = reader.readLine();
         }
-        catch(java.io.IOException exc) {
-            System.out.println ("There was an error during reading: "
-                                + exc.getMessage());
+        catch (java.io.IOException exc)
+        {
+            System.out.println (
+                "There was an error during reading: " + exc.getMessage());
+        }
+
+        if (inputLine == null)
+        {
+            return new QuitCommand();
         }
 
         StringTokenizer tokenizer = new StringTokenizer(inputLine);

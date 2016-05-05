@@ -2,6 +2,7 @@ package student.adventure;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Represents one location in the scenery of an adventure game.  It is
@@ -72,7 +73,7 @@ public class Room
      * "Exits: north west".
      * @return A textual listing of the possible exit directions from this room
      */
-    private String getExitString()
+    public String getExitString()
     {
         StringBuffer result = new StringBuffer( 128 );
         result.append( "Exits:" );
@@ -93,6 +94,16 @@ public class Room
     public Room getExit(String direction)
     {
         return exits.get(direction);
+    }
+
+    /**
+     * Return a set of all of the directions one can exit from this room.
+     * @return A Set of string exit directions of the possible exits
+     * from this room
+     */
+    public Set<String> getExitDirections()
+    {
+        return exits.keySet();
     }
 }
 
