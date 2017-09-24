@@ -244,9 +244,13 @@ public class JUnit4TesterRunner
 	        }
 		}
 
-		return afters.isEmpty()
+        Statement result = afters.isEmpty()
 		    ? statement
 		    : new RunAfters(statement, afters, target);
+
+        // Add wrapper for GUI tests
+        result = new RunTestMethodWrapper(result, target);
+        return result;
 	}
 
 
